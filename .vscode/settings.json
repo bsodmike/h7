@@ -3,7 +3,7 @@
         "main.h": "c"
     },
     "C_Cpp.default.defines": [
-        "__IO=",
-        "ETH="
+        "",
+        ""
     ]
 }
