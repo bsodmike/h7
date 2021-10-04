@@ -11,22 +11,13 @@
             "configFiles": [
                 "interface/cmsis-dap.cfg",
                 "target/stm32h7x.cfg"
-            ]
-        },
-        {
-            "name": "(gdb) Attach",
-            "type": "cppdbg",
-            "request": "attach",
-            "program": "/home/olback/.cargo-target/thumbv7em-none-eabihf/debug/cm7",
-            "processId": "${command:pickProcess}",
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
-        },
+            ],
+            "svdFile": "${workspaceRoot}/resources/stm32h747xi/svd/STM32H747_CM7.svd",
+            "postAttachCommands": [
+                "monitor arm semihosting enable"
+            ],
+            "breakAfterReset": true,
+            "numberOfProcessors": 2
+        }
     ]
 }
