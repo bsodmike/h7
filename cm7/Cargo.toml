@@ -10,8 +10,10 @@ cortex-m = "0.7"
 cortex-m-rt = "0.6" # Upgrade blocked by stm32h7xx-hal
 cortex-m-alloc = { version = "0.4", package = "alloc-cortex-m" }
 stm32-fmc = { path = "../../stm32-fmc" }
-stm32h7xx-hal = { path = "../../stm32h7xx-hal", features = [ "stm32h747cm7", "fmc", "ltdc", "rtc", "crc" ] }
+stm32h7xx-hal = { path = "../../stm32h7xx-hal", features = [ "stm32h747cm7", "rt", "fmc", "ltdc", "rtc", "crc", "usb_hs" ] }
+usb-device = "0.2"
 #stm32h7xx-hal = { version = "0.10", features = [ "stm32h747cm7", "fmc", "ltdc", "rtc", "crc" ] }
+embedded-display-controller = "0.1"
 log = { version = "0.4", default-features = false }
 
 cortex-m-log = { version = "0.7", features = [ "semihosting", "log-integration" ], optional = true }

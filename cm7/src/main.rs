@@ -6,8 +6,17 @@ extern crate alloc;
 
 use {
     cortex_m_alloc::CortexMHeap,
+    // embedded_display_controller::{
+    //     DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
+    // },
     log,
-    stm32h7xx_hal::{hal::digital::v2::OutputPin, pac, prelude::*, rcc},
+    stm32h7xx_hal::{
+        hal::digital::v2::{OutputPin, ToggleableOutputPin},
+        interrupt, pac,
+        prelude::*,
+        rcc,
+        usb_hs::{UsbBus, USB2},
+    },
 };
 
 #[cfg(feature = "semihosting")]
@@ -18,6 +27,7 @@ mod sdram;
 static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
 
 // static mut FRAME_BUF: Option<alloc::boxed::Box<[u16; 1024 * 768]>> = None;
+static mut EP_MEMORY: [u32; 1024] = [0; 1024];
 
 #[cortex_m_rt::entry]
 unsafe fn main() -> ! {
@@ -28,7 +38,7 @@ unsafe fn main() -> ! {
     log::info!("Hello, world!");
 
     // Get peripherals
-    let cp = cortex_m::Peripherals::take().unwrap();
+    let mut cp = cortex_m::Peripherals::take().unwrap();
     let dp = pac::Peripherals::take().unwrap();
 
     // Ah, yes
@@ -45,18 +55,28 @@ unsafe fn main() -> ! {
 
     // Constrain and Freeze clock
     // let rcc = dp.RCC.constrain();
-    let ccdr = dp
+    let mut ccdr = dp
         .RCC
         .constrain()
         .bypass_hse()
         .sys_ck(480.mhz())
         .pll1_strategy(rcc::PllConfigStrategy::Iterative)
+        .pll2_strategy(rcc::PllConfigStrategy::Iterative)
+        .pll3_strategy(rcc::PllConfigStrategy::Iterative)
+        // .pll3_p_ck(100.mhz())
+        // .pll3_r_ck(26.mhz())
         .freeze(pwrcfg, &dp.SYSCFG);
+
+    // USB Clock
+    let _ = ccdr.clocks.hsi48_ck().expect("HSI48 must run");
+    ccdr.peripheral
+        .kernel_usb_clk_mux(rcc::rec::UsbClkSel::HSI48);
 
     // Get the delay provider.
     let mut delay = cp.SYST.delay(ccdr.clocks);
 
     // GPIO
+    let gpioa = dp.GPIOA.split(ccdr.peripheral.GPIOA);
     let gpiod = dp.GPIOD.split(ccdr.peripheral.GPIOD);
     let gpioe = dp.GPIOE.split(ccdr.peripheral.GPIOE);
     let gpiof = dp.GPIOF.split(ccdr.peripheral.GPIOF);
@@ -105,34 +125,70 @@ unsafe fn main() -> ! {
 
     // Display
     // TODO - LTDC
+    // let mut display = stm32h7xx_hal::ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
+    // let display_config = DisplayConfiguration {
+    //     active_width: 640,
+    //     active_height: 480,
+    //     h_back_porch: 0,
+    //     h_front_porch: 0,
+    //     v_back_porch: 0,
+    //     v_front_porch: 0,
+    //     h_sync: 0,
+    //     v_sync: 0,
+
+    //     /// horizontal synchronization: `false`: active low, `true`: active high
+    //     h_sync_pol: false,
+    //     /// vertical synchronization: `false`: active low, `true`: active high
+    //     v_sync_pol: false,
+    //     /// data enable: `false`: active low, `true`: active high
+    //     not_data_enable_pol: false,
+    //     /// pixel_clock: `false`: active low, `true`: active high
+    //     pixel_clock_pol: false,
+    // };
+    // display.init(display_config);
+    // let mut layer1 = display.split();
+    // // let framebuf = alloc::boxed::Box::new([0u8; 640 * 480]);
+    // let framebuf = [0u8; 640 * 480];
+    // layer1.enable(framebuf.as_ptr(), PixelFormat::L8);
+    // layer1.swap_framebuffer(framebuf.as_ptr());
 
     // USB Keyboard
-    // TODO
+    let usb2 = USB2::new(
+        dp.OTG2_HS_GLOBAL,
+        dp.OTG2_HS_DEVICE,
+        dp.OTG2_HS_PWRCLK,
+        gpioa.pa11.into_alternate_af10(),
+        gpioa.pa12.into_alternate_af10(),
+        ccdr.peripheral.USB2OTG,
+        &ccdr.clocks,
+    );
+    let usb2_bus = UsbBus::new(usb2, &mut EP_MEMORY);
+    // usb2_bus.interrupt(64, 100);
+
+    cp.NVIC
+        .set_priority(stm32h7xx_hal::pac::interrupt::OTG_HS, 1);
+    cortex_m::peripheral::NVIC::unmask(stm32h7xx_hal::pac::interrupt::OTG_HS);
+
+    // usb2_bus.
 
     // Crypto chip
     // TODO
     // https://crates.io/crates/Rusty_CryptoAuthLib
 
     // Configure PK5, PK6, PK7 as output.
-    let mut led_r = gpiok.pk5.into_push_pull_output();
+    // let mut led_r = gpiok.pk5.into_push_pull_output();
     let mut led_g = gpiok.pk6.into_push_pull_output();
-    let mut led_b = gpiok.pk7.into_push_pull_output();
+    // let mut led_b = gpiok.pk7.into_push_pull_output();
 
     loop {
-        led_r.set_high().unwrap();
-        delay.delay_ms(100_u16);
-        led_g.set_high().unwrap();
-        delay.delay_ms(100_u16);
-        led_b.set_high().unwrap();
-        delay.delay_ms(100_u16);
-
-        led_r.set_low().unwrap();
-        delay.delay_ms(100_u16);
-        led_g.set_low().unwrap();
-        delay.delay_ms(100_u16);
-        led_b.set_low().unwrap();
-        delay.delay_ms(100_u16);
+        led_g.toggle().unwrap();
+        delay.delay_ms(500_u16);
     }
+}
+
+#[interrupt]
+fn OTG_HS() {
+    log::info!("USB");
 }
 
 #[alloc_error_handler]
