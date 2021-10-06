@@ -2,9 +2,12 @@
 #![no_std]
 #![feature(alloc_error_handler)]
 
+use stm32h7xx_hal::i2c::PinScl;
+
 extern crate alloc;
 
 use {
+    anx7625::Anx7625,
     cortex_m_alloc::CortexMHeap,
     // embedded_display_controller::{
     //     DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
@@ -77,12 +80,14 @@ unsafe fn main() -> ! {
 
     // GPIO
     let gpioa = dp.GPIOA.split(ccdr.peripheral.GPIOA);
+    let gpiob = dp.GPIOB.split(ccdr.peripheral.GPIOB);
     let gpiod = dp.GPIOD.split(ccdr.peripheral.GPIOD);
     let gpioe = dp.GPIOE.split(ccdr.peripheral.GPIOE);
     let gpiof = dp.GPIOF.split(ccdr.peripheral.GPIOF);
     let gpiog = dp.GPIOG.split(ccdr.peripheral.GPIOG);
     let gpioh = dp.GPIOH.split(ccdr.peripheral.GPIOH);
     let gpiok = dp.GPIOK.split(ccdr.peripheral.GPIOK);
+    let gpioj = dp.GPIOJ.split(ccdr.peripheral.GPIOJ);
 
     // Configure SDRAM pins
     let sdram_pins = fmc_pins! {
@@ -125,21 +130,39 @@ unsafe fn main() -> ! {
 
     // Display
     // TODO - LTDC
+    // i2c_internal.write(0x7e, &[0x3F, 4 << 5]).unwrap();
+    let mut anx7625 = Anx7625::new(
+        dp.I2C1.i2c(
+            (
+                gpiob.pb6.into_alternate_af4().set_open_drain(),
+                gpiob.pb7.into_alternate_af4().set_open_drain(),
+            ),
+            100.khz(),
+            ccdr.peripheral.I2C1,
+            &ccdr.clocks,
+        ),
+        gpiok.pk2.into_push_pull_output(),
+        gpioj.pj3.into_push_pull_output(),
+    );
+    match anx7625.init(gpioj.pj6.into_push_pull_output(), &mut delay) {
+        Ok(_) => (),
+        Err(e) => panic!("{}", e),
+    };
     // let mut display = stm32h7xx_hal::ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
     // let display_config = DisplayConfiguration {
-    //     active_width: 640,
-    //     active_height: 480,
-    //     h_back_porch: 0,
-    //     h_front_porch: 0,
-    //     v_back_porch: 0,
-    //     v_front_porch: 0,
-    //     h_sync: 0,
-    //     v_sync: 0,
+    //     active_width: 1280,
+    //     active_height: 768,
+    //     h_back_porch: 120,
+    //     h_front_porch: 32,
+    //     v_back_porch: 10,
+    //     v_front_porch: 45,
+    //     h_sync: 20,
+    //     v_sync: 12,
 
     //     /// horizontal synchronization: `false`: active low, `true`: active high
-    //     h_sync_pol: false,
+    //     h_sync_pol: true,
     //     /// vertical synchronization: `false`: active low, `true`: active high
-    //     v_sync_pol: false,
+    //     v_sync_pol: true,
     //     /// data enable: `false`: active low, `true`: active high
     //     not_data_enable_pol: false,
     //     /// pixel_clock: `false`: active low, `true`: active high
@@ -148,21 +171,21 @@ unsafe fn main() -> ! {
     // display.init(display_config);
     // let mut layer1 = display.split();
     // // let framebuf = alloc::boxed::Box::new([0u8; 640 * 480]);
-    // let framebuf = [0u8; 640 * 480];
+    // let framebuf = [0u8; 1280 * 768];
     // layer1.enable(framebuf.as_ptr(), PixelFormat::L8);
     // layer1.swap_framebuffer(framebuf.as_ptr());
 
     // USB Keyboard
-    let usb2 = USB2::new(
-        dp.OTG2_HS_GLOBAL,
-        dp.OTG2_HS_DEVICE,
-        dp.OTG2_HS_PWRCLK,
-        gpioa.pa11.into_alternate_af10(),
-        gpioa.pa12.into_alternate_af10(),
-        ccdr.peripheral.USB2OTG,
-        &ccdr.clocks,
-    );
-    let usb2_bus = UsbBus::new(usb2, &mut EP_MEMORY);
+    // let usb2 = USB2::new(
+    //     dp.OTG2_HS_GLOBAL,
+    //     dp.OTG2_HS_DEVICE,
+    //     dp.OTG2_HS_PWRCLK,
+    //     gpioa.pa11.into_alternate_af10(),
+    //     gpioa.pa12.into_alternate_af10(),
+    //     ccdr.peripheral.USB2OTG,
+    //     &ccdr.clocks,
+    // );
+    // let usb2_bus = UsbBus::new(usb2, &mut EP_MEMORY);
     // usb2_bus.interrupt(64, 100);
 
     cp.NVIC
