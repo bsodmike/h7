@@ -57,3 +57,5 @@ dkms.conf
 # STM32 Cube IDE output
 source/CM[47]/Debug
 
+# Target dirs
+/cm[47]/target
