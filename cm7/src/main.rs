@@ -2,8 +2,6 @@
 #![no_std]
 #![feature(alloc_error_handler)]
 
-use stm32h7xx_hal::i2c::PinScl;
-
 extern crate alloc;
 
 use {
@@ -20,6 +18,7 @@ use {
         rcc,
         usb_hs::{UsbBus, USB2},
     },
+    // Rusty_CryptoAuthLib::ATECC608A,
 };
 
 #[cfg(feature = "semihosting")]
@@ -61,7 +60,7 @@ unsafe fn main() -> ! {
     let mut ccdr = dp
         .RCC
         .constrain()
-        .bypass_hse()
+        // .bypass_hse()
         .sys_ck(480.mhz())
         .pll1_strategy(rcc::PllConfigStrategy::Iterative)
         .pll2_strategy(rcc::PllConfigStrategy::Iterative)
@@ -128,26 +127,47 @@ unsafe fn main() -> ! {
     // Configure allocator
     ALLOCATOR.init(sdram_ptr as usize, sdram::SDRAM_SIZE);
 
+    // Enable osc?
+    let mut oscen = gpioh.ph1.into_push_pull_output();
+    delay.delay_ms(10u32);
+    oscen.set_high().unwrap();
+    delay.delay_ms(1000u32);
+
     // Display
     // TODO - LTDC
-    // i2c_internal.write(0x7e, &[0x3F, 4 << 5]).unwrap();
-    let mut anx7625 = Anx7625::new(
-        dp.I2C1.i2c(
-            (
-                gpiob.pb6.into_alternate_af4().set_open_drain(),
-                gpiob.pb7.into_alternate_af4().set_open_drain(),
-            ),
-            100.khz(),
-            ccdr.peripheral.I2C1,
-            &ccdr.clocks,
+    let mut internal_i2c = dp.I2C1.i2c(
+        (
+            gpiob.pb6.into_alternate_af4().set_open_drain(),
+            gpiob.pb7.into_alternate_af4().set_open_drain(),
         ),
-        gpiok.pk2.into_push_pull_output(),
-        gpioj.pj3.into_push_pull_output(),
+        400.khz(),
+        ccdr.peripheral.I2C1,
+        &ccdr.clocks,
     );
-    match anx7625.init(gpioj.pj6.into_push_pull_output(), &mut delay) {
-        Ok(_) => (),
-        Err(e) => panic!("{}", e),
-    };
+    internal_i2c.write(0x08, &[0x42, 0x01]).unwrap(); // void fixup3V1Rail()???
+    internal_i2c.write(0x08, &[0x52, 0x09]).unwrap(); // LDO3 to 1.2V
+    internal_i2c.write(0x08, &[0x53, 0x0f]).unwrap();
+    internal_i2c.write(0x08, &[0x3b, 0x0f]).unwrap(); // SW2 to 3.3V (SW2_VOLT)
+    internal_i2c.write(0x08, &[0x35, 0x0f]).unwrap(); // SW1 to 3.0V (SW1_VOLT)
+
+    // let mut anx7625 = Anx7625::new(
+    //     // dp.I2C1.i2c(
+    //     //     (
+    //     //         gpiob.pb6.into_alternate_af4().set_open_drain(),
+    //     //         gpiob.pb7.into_alternate_af4().set_open_drain(),
+    //     //     ),
+    //     //     400.khz(),
+    //     //     ccdr.peripheral.I2C1,
+    //     //     &ccdr.clocks,
+    //     // ),
+    //     internal_i2c,
+    //     gpiok.pk2.into_push_pull_output(),
+    //     gpioj.pj3.into_push_pull_output(),
+    // );
+    // match anx7625.init(gpioj.pj6.into_push_pull_output(), &mut delay) {
+    //     Ok(_) => (),
+    //     Err(e) => panic!("{}", e),
+    // };
     // let mut display = stm32h7xx_hal::ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
     // let display_config = DisplayConfiguration {
     //     active_width: 1280,
@@ -197,6 +217,17 @@ unsafe fn main() -> ! {
     // Crypto chip
     // TODO
     // https://crates.io/crates/Rusty_CryptoAuthLib
+    // let crypto_delay = stm32h7xx_hal::delay::DelayFromCountDownTimer::new(dp.TIM2.timer(
+    //     100.ms(),
+    //     ccdr.peripheral.TIM2,
+    //     &mut ccdr.clocks,
+    // ));
+    // let crypto_timer = dp
+    //     .TIM3
+    //     .timer(100.ms(), ccdr.peripheral.TIM3, &mut ccdr.clocks);
+    // let crypto = ATECC608A::new(internal_i2c, crypto_delay, crypto_timer);
+    let atecc608x_info = atecc608x::Atecc608x::info(&mut internal_i2c, &mut delay);
+    log::info!("{:?}", atecc608x_info);
 
     // Configure PK5, PK6, PK7 as output.
     // let mut led_r = gpiok.pk5.into_push_pull_output();
@@ -220,7 +251,12 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
 }
 
 #[cortex_m_rt::exception]
-fn HardFault(ef: &cortex_m_rt::ExceptionFrame) -> ! {
+unsafe fn DefaultHandler(irqn: i16) -> ! {
+    panic!("IRQn {:?}", irqn);
+}
+
+#[cortex_m_rt::exception]
+unsafe fn HardFault(ef: &cortex_m_rt::ExceptionFrame) -> ! {
     panic!("HardFault at {:?}", ef);
 }
 

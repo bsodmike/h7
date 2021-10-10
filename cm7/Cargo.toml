@@ -7,14 +7,17 @@ edition = "2018"
 
 [dependencies]
 cortex-m = "0.7"
-cortex-m-rt = "0.6" # Upgrade blocked by stm32h7xx-hal
+cortex-m-rt = "0.7" # Upgrade blocked by stm32h7xx-hal
 cortex-m-alloc = { version = "0.4", package = "alloc-cortex-m" }
-stm32-fmc = { path = "../../stm32-fmc" }
+stm32-fmc = "0.2"
+# stm32h7xx-hal = { version = "0.10", features = [ "stm32h747cm7", "unproven", "rt", "fmc", "ltdc", "rtc", "crc", "usb_hs" ] }
+# stm32h7xx-hal = { git = "https://github.com/stm32-rs/stm32h7xx-hal.git", features = [ "stm32h747cm7", "unproven", "rt", "fmc", "ltdc", "rtc", "crc", "usb_hs" ] }
 stm32h7xx-hal = { path = "../../stm32h7xx-hal", features = [ "stm32h747cm7", "unproven", "rt", "fmc", "ltdc", "rtc", "crc", "usb_hs" ] }
-usb-device = "0.2"
-#stm32h7xx-hal = { version = "0.10", features = [ "stm32h747cm7", "fmc", "ltdc", "rtc", "crc" ] }
+# usb-device = "0.2"
 embedded-hal = { version = "0.2", features = [ "unproven" ] }
+atecc608x = { path = "../../atecc608x" }
 anx7625 = { path = "../../anx7625" }
+# Rusty_CryptoAuthLib = { version = "1", default-features = false }
 embedded-display-controller = "0.1"
 log = { version = "0.4", default-features = false }
 
