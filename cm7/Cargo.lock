@@ -22,14 +22,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anx7625"
-version = "0.1.0"
-dependencies = [
- "embedded-hal",
- "log",
-]
-
-[[package]]
 name = "as-slice"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -39,14 +31,6 @@ dependencies = [
  "generic-array 0.13.3",
  "generic-array 0.14.4",
  "stable_deref_trait",
-]
-
-[[package]]
-name = "atecc608x"
-version = "0.1.0"
-dependencies = [
- "embedded-hal",
- "log",
 ]
 
 [[package]]
@@ -77,6 +61,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46afbd2983a5d5a7bd740ccb198caf5b82f45c40c09c0eed36052d91cb92e719"
 
 [[package]]
+name = "byteorder"
+version = "1.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
+
+[[package]]
 name = "cast"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -103,14 +93,13 @@ name = "cm7"
 version = "0.1.0"
 dependencies = [
  "alloc-cortex-m",
- "anx7625",
- "atecc608x",
+ "chrono",
  "cortex-m 0.7.3",
  "cortex-m-log",
  "cortex-m-rt",
  "cortex-m-semihosting",
- "embedded-display-controller",
  "embedded-hal",
+ "embedded-sdmmc",
  "lazy_static",
  "log",
  "panic-semihosting",
@@ -206,6 +195,18 @@ checksum = "e36cfb62ff156596c892272f3015ef952fe1525e85261fa3a7f327bd6b384ab9"
 dependencies = [
  "nb 0.1.3",
  "void",
+]
+
+[[package]]
+name = "embedded-sdmmc"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d3bf0a2b5becb87e9a329d9290f131e4d10fec39b56d129926826a7cbea1e7a"
+dependencies = [
+ "byteorder",
+ "embedded-hal",
+ "log",
+ "nb 0.1.3",
 ]
 
 [[package]]
@@ -338,6 +339,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "sdio-host"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f93c025f9cfe4c388c328ece47d11a54a823da3b5ad0370b22d95ad47137f85a"
+
+[[package]]
 name = "semver"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -393,12 +400,13 @@ dependencies = [
  "cast",
  "chrono",
  "cortex-m 0.7.3",
- "cortex-m-rt",
  "embedded-display-controller",
  "embedded-dma",
  "embedded-hal",
+ "embedded-sdmmc",
  "nb 1.0.0",
  "paste",
+ "sdio-host",
  "stm32-fmc",
  "stm32h7",
  "synopsys-usb-otg",

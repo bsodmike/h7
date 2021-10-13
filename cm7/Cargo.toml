@@ -6,21 +6,37 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# Core
 cortex-m = "0.7"
-cortex-m-rt = "0.7" # Upgrade blocked by stm32h7xx-hal
+cortex-m-rt = "0.7"
+stm32h7xx-hal = { path = "../../stm32h7xx-hal", features = [ "stm32h747cm7", "unproven", "rt", "fmc", "sdmmc-fatfs", "ltdc", "quadspi", "rtc", "crc", "usb_hs" ] }
+embedded-hal = { version = "0.2", features = [ "unproven" ] }
+
+# Alloc
 cortex-m-alloc = { version = "0.4", package = "alloc-cortex-m" }
 stm32-fmc = "0.2"
-# stm32h7xx-hal = { version = "0.10", features = [ "stm32h747cm7", "unproven", "rt", "fmc", "ltdc", "rtc", "crc", "usb_hs" ] }
-# stm32h7xx-hal = { git = "https://github.com/stm32-rs/stm32h7xx-hal.git", features = [ "stm32h747cm7", "unproven", "rt", "fmc", "ltdc", "rtc", "crc", "usb_hs" ] }
-stm32h7xx-hal = { path = "../../stm32h7xx-hal", features = [ "stm32h747cm7", "unproven", "rt", "fmc", "ltdc", "rtc", "crc", "usb_hs" ] }
-# usb-device = "0.2"
-embedded-hal = { version = "0.2", features = [ "unproven" ] }
-atecc608x = { path = "../../atecc608x" }
-anx7625 = { path = "../../anx7625" }
-# Rusty_CryptoAuthLib = { version = "1", default-features = false }
-embedded-display-controller = "0.1"
-log = { version = "0.4", default-features = false }
 
+# SD Card / FAT
+embedded-sdmmc = "0.3"
+
+# Time
+chrono = { version = "0.4", default-features = false }
+
+# USB
+# usb-device = "0.2"
+
+# PMIC
+# mc32pf1550 = { path = "../../ mc32pf1550" }
+
+# Crypto
+#atecc608x = { path = "../../atecc608x" } # Microchip Secure Element
+
+# Display
+# embedded-display-controller = "0.1"
+#anx7625 = { path = "../../anx7625" } # MIPI to Displayport
+
+# Logging
+log = { version = "0.4", default-features = false }
 cortex-m-log = { version = "0.7", features = [ "semihosting", "log-integration" ], optional = true }
 panic-semihosting = { version = "0.5", optional = true }
 cortex-m-semihosting = { version = "0.3", optional = true }

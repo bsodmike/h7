@@ -5,39 +5,27 @@
 extern crate alloc;
 
 use {
-    anx7625::Anx7625,
-    cortex_m_alloc::CortexMHeap,
-    // embedded_display_controller::{
-    //     DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
-    // },
     log,
     stm32h7xx_hal::{
         hal::digital::v2::{OutputPin, ToggleableOutputPin},
         interrupt, pac,
         prelude::*,
-        rcc,
-        usb_hs::{UsbBus, USB2},
+        rcc, rtc,
     },
-    // Rusty_CryptoAuthLib::ATECC608A,
+    time::TimeSource,
 };
 
+mod globals;
 #[cfg(feature = "semihosting")]
 mod logger;
+mod sdmmc_fs;
 mod sdram;
-
-#[global_allocator]
-static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
-
-// static mut FRAME_BUF: Option<alloc::boxed::Box<[u16; 1024 * 768]>> = None;
-static mut EP_MEMORY: [u32; 1024] = [0; 1024];
+mod time;
 
 #[cortex_m_rt::entry]
 unsafe fn main() -> ! {
     #[cfg(feature = "semihosting")]
     logger::init();
-
-    // Hi
-    log::info!("Hello, world!");
 
     // Get peripherals
     let mut cp = cortex_m::Peripherals::take().unwrap();
@@ -53,9 +41,10 @@ unsafe fn main() -> ! {
 
     // Constrain and Freeze power
     let pwr = dp.PWR.constrain();
-    let pwrcfg = pwr.vos0(&dp.SYSCFG).freeze();
+    let mut pwrcfg = pwr.vos0(&dp.SYSCFG).freeze();
+    let backup = pwrcfg.backup().unwrap();
 
-    // Constrain and Freeze clock
+    // Constrain and Freeze clocks
     // let rcc = dp.RCC.constrain();
     let mut ccdr = dp
         .RCC
@@ -63,6 +52,7 @@ unsafe fn main() -> ! {
         // .bypass_hse()
         .sys_ck(480.mhz())
         .pll1_strategy(rcc::PllConfigStrategy::Iterative)
+        .pll1_q_ck(100.mhz())
         .pll2_strategy(rcc::PllConfigStrategy::Iterative)
         .pll3_strategy(rcc::PllConfigStrategy::Iterative)
         // .pll3_p_ck(100.mhz())
@@ -73,6 +63,21 @@ unsafe fn main() -> ! {
     let _ = ccdr.clocks.hsi48_ck().expect("HSI48 must run");
     ccdr.peripheral
         .kernel_usb_clk_mux(rcc::rec::UsbClkSel::HSI48);
+
+    // Configure RTC
+    globals::RTC = Some(TimeSource::rtc(
+        dp.RTC,
+        backup.RTC,
+        rtc::RtcClock::Lse {
+            freq: 32768.hz(),
+            bypass: false,
+            css: false,
+        },
+        &ccdr.clocks,
+    ));
+    // if let Some(ref mut rtc) = globals::RTC {
+    //     rtc.set_date_time(chrono::NaiveDate::from_ymd(2021, 10, 13).and_hms(3, 45, 00));
+    // }
 
     // Get the delay provider.
     let mut delay = cp.SYST.delay(ccdr.clocks);
@@ -125,7 +130,7 @@ unsafe fn main() -> ! {
         .init(&mut delay);
 
     // Configure allocator
-    ALLOCATOR.init(sdram_ptr as usize, sdram::SDRAM_SIZE);
+    globals::ALLOCATOR.init(sdram_ptr as usize, sdram::SDRAM_SIZE);
 
     // Enable osc?
     let mut oscen = gpioh.ph1.into_push_pull_output();
@@ -133,8 +138,7 @@ unsafe fn main() -> ! {
     oscen.set_high().unwrap();
     delay.delay_ms(1000u32);
 
-    // Display
-    // TODO - LTDC
+    // Power config?
     let mut internal_i2c = dp.I2C1.i2c(
         (
             gpiob.pb6.into_alternate_af4().set_open_drain(),
@@ -150,93 +154,36 @@ unsafe fn main() -> ! {
     internal_i2c.write(0x08, &[0x3b, 0x0f]).unwrap(); // SW2 to 3.3V (SW2_VOLT)
     internal_i2c.write(0x08, &[0x35, 0x0f]).unwrap(); // SW1 to 3.0V (SW1_VOLT)
 
-    // let mut anx7625 = Anx7625::new(
-    //     // dp.I2C1.i2c(
-    //     //     (
-    //     //         gpiob.pb6.into_alternate_af4().set_open_drain(),
-    //     //         gpiob.pb7.into_alternate_af4().set_open_drain(),
-    //     //     ),
-    //     //     400.khz(),
-    //     //     ccdr.peripheral.I2C1,
-    //     //     &ccdr.clocks,
-    //     // ),
-    //     internal_i2c,
-    //     gpiok.pk2.into_push_pull_output(),
-    //     gpioj.pj3.into_push_pull_output(),
-    // );
-    // match anx7625.init(gpioj.pj6.into_push_pull_output(), &mut delay) {
-    //     Ok(_) => (),
-    //     Err(e) => panic!("{}", e),
-    // };
-    // let mut display = stm32h7xx_hal::ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
-    // let display_config = DisplayConfiguration {
-    //     active_width: 1280,
-    //     active_height: 768,
-    //     h_back_porch: 120,
-    //     h_front_porch: 32,
-    //     v_back_porch: 10,
-    //     v_front_porch: 45,
-    //     h_sync: 20,
-    //     v_sync: 12,
-
-    //     /// horizontal synchronization: `false`: active low, `true`: active high
-    //     h_sync_pol: true,
-    //     /// vertical synchronization: `false`: active low, `true`: active high
-    //     v_sync_pol: true,
-    //     /// data enable: `false`: active low, `true`: active high
-    //     not_data_enable_pol: false,
-    //     /// pixel_clock: `false`: active low, `true`: active high
-    //     pixel_clock_pol: false,
-    // };
-    // display.init(display_config);
-    // let mut layer1 = display.split();
-    // // let framebuf = alloc::boxed::Box::new([0u8; 640 * 480]);
-    // let framebuf = [0u8; 1280 * 768];
-    // layer1.enable(framebuf.as_ptr(), PixelFormat::L8);
-    // layer1.swap_framebuffer(framebuf.as_ptr());
-
-    // USB Keyboard
-    // let usb2 = USB2::new(
-    //     dp.OTG2_HS_GLOBAL,
-    //     dp.OTG2_HS_DEVICE,
-    //     dp.OTG2_HS_PWRCLK,
-    //     gpioa.pa11.into_alternate_af10(),
-    //     gpioa.pa12.into_alternate_af10(),
-    //     ccdr.peripheral.USB2OTG,
-    //     &ccdr.clocks,
-    // );
-    // let usb2_bus = UsbBus::new(usb2, &mut EP_MEMORY);
-    // usb2_bus.interrupt(64, 100);
-
-    cp.NVIC
-        .set_priority(stm32h7xx_hal::pac::interrupt::OTG_HS, 1);
-    cortex_m::peripheral::NVIC::unmask(stm32h7xx_hal::pac::interrupt::OTG_HS);
-
-    // usb2_bus.
-
-    // Crypto chip
-    // TODO
-    // https://crates.io/crates/Rusty_CryptoAuthLib
-    // let crypto_delay = stm32h7xx_hal::delay::DelayFromCountDownTimer::new(dp.TIM2.timer(
-    //     100.ms(),
-    //     ccdr.peripheral.TIM2,
-    //     &mut ccdr.clocks,
-    // ));
-    // let crypto_timer = dp
-    //     .TIM3
-    //     .timer(100.ms(), ccdr.peripheral.TIM3, &mut ccdr.clocks);
-    // let crypto = ATECC608A::new(internal_i2c, crypto_delay, crypto_timer);
-    let atecc608x_info = atecc608x::Atecc608x::info(&mut internal_i2c, &mut delay);
-    log::info!("{:?}", atecc608x_info);
+    let fs = sdmmc_fs::SdmmcFs::new(dp.SDMMC2.sdmmc(
+        (
+            gpiod.pd6.into_alternate_af11(),
+            gpiod.pd7.into_alternate_af11(),
+            gpiob.pb14.into_alternate_af9(),
+            gpiob.pb15.into_alternate_af9(),
+            gpiob.pb3.into_alternate_af9(),
+            gpiob.pb4.into_alternate_af9(),
+        ),
+        ccdr.peripheral.SDMMC2,
+        &ccdr.clocks,
+    ));
 
     // Configure PK5, PK6, PK7 as output.
-    // let mut led_r = gpiok.pk5.into_push_pull_output();
+    let mut led_r = gpiok.pk5.into_push_pull_output();
     let mut led_g = gpiok.pk6.into_push_pull_output();
     // let mut led_b = gpiok.pk7.into_push_pull_output();
 
     loop {
-        led_g.toggle().unwrap();
-        delay.delay_ms(500_u16);
+        if let Some(dt) = TimeSource::get_date_time() {
+            led_r.set_high().unwrap();
+            use chrono::Timelike;
+            if dt.second() % 2 == 0 {
+                led_g.set_high().unwrap()
+            } else {
+                led_g.set_low().unwrap()
+            }
+        } else {
+            led_r.set_low().unwrap();
+        }
     }
 }
 
