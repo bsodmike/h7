@@ -105,6 +105,8 @@ dependencies = [
  "panic-semihosting",
  "stm32-fmc",
  "stm32h7xx-hal",
+ "synopsys-usb-otg",
+ "usb-device",
 ]
 
 [[package]]

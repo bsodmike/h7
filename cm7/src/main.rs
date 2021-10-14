@@ -7,12 +7,15 @@ extern crate alloc;
 use {
     log,
     stm32h7xx_hal::{
-        hal::digital::v2::{OutputPin, ToggleableOutputPin},
+        hal::digital::v2::OutputPin,
         interrupt, pac,
         prelude::*,
         rcc, rtc,
+        usb_hs::{UsbBus, USB2},
     },
+    synopsys_usb_otg::UsbPeripheral,
     time::TimeSource,
+    usb_device::device::{UsbDeviceBuilder, UsbVidPid},
 };
 
 mod globals;
@@ -154,18 +157,40 @@ unsafe fn main() -> ! {
     internal_i2c.write(0x08, &[0x3b, 0x0f]).unwrap(); // SW2 to 3.3V (SW2_VOLT)
     internal_i2c.write(0x08, &[0x35, 0x0f]).unwrap(); // SW1 to 3.0V (SW1_VOLT)
 
-    let fs = sdmmc_fs::SdmmcFs::new(dp.SDMMC2.sdmmc(
-        (
-            gpiod.pd6.into_alternate_af11(),
-            gpiod.pd7.into_alternate_af11(),
-            gpiob.pb14.into_alternate_af9(),
-            gpiob.pb15.into_alternate_af9(),
-            gpiob.pb3.into_alternate_af9(),
-            gpiob.pb4.into_alternate_af9(),
-        ),
-        ccdr.peripheral.SDMMC2,
+    // let sdfs = sdmmc_fs::SdmmcFs::new(dp.SDMMC2.sdmmc(
+    //     (
+    //         gpiod.pd6.into_alternate_af11(),
+    //         gpiod.pd7.into_alternate_af11(),
+    //         gpiob.pb14.into_alternate_af9(),
+    //         gpiob.pb15.into_alternate_af9(),
+    //         gpiob.pb3.into_alternate_af9(),
+    //         gpiob.pb4.into_alternate_af9(),
+    //     ),
+    //     ccdr.peripheral.SDMMC2,
+    //     &ccdr.clocks,
+    // ));
+
+    USB2::enable();
+
+    let usb = USB2::new(
+        dp.OTG2_HS_GLOBAL,
+        dp.OTG2_HS_DEVICE,
+        dp.OTG2_HS_PWRCLK,
+        gpioa.pa11.into_alternate_af10(),
+        gpioa.pa12.into_alternate_af10(),
+        ccdr.peripheral.USB2OTG,
         &ccdr.clocks,
-    ));
+    );
+
+    let usb_bus = UsbBus::new(usb, &mut globals::USB_MEMORY_1);
+    // let mut usb_dev = UsbDeviceBuilder::new(&usb_bus, UsbVidPid(0x16c0, 0x27dd))
+    //     .manufacturer("Fake company")
+    //     .product("Serial port")
+    //     .serial_number("TEST PORT 1")
+    //     // .device_class(usbd_serial::USB_CLASS_CDC)
+    //     .build();
+
+    // usb_dev.poll();
 
     // Configure PK5, PK6, PK7 as output.
     let mut led_r = gpiok.pk5.into_push_pull_output();
@@ -177,9 +202,10 @@ unsafe fn main() -> ! {
             led_r.set_high().unwrap();
             use chrono::Timelike;
             if dt.second() % 2 == 0 {
-                led_g.set_high().unwrap()
+                led_g.set_high().unwrap();
             } else {
-                led_g.set_low().unwrap()
+                led_g.set_low().unwrap();
+                log::info!("{}:{}:{}", dt.hour(), dt.minute(), dt.second());
             }
         } else {
             led_r.set_low().unwrap();

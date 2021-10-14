@@ -23,7 +23,8 @@ embedded-sdmmc = "0.3"
 chrono = { version = "0.4", default-features = false }
 
 # USB
-# usb-device = "0.2"
+synopsys-usb-otg = "0.2"
+usb-device = "0.2"
 
 # PMIC
 # mc32pf1550 = { path = "../../ mc32pf1550" }
