@@ -5,6 +5,7 @@
 extern crate alloc;
 
 use {
+    anx7625::Anx7625,
     log,
     stm32h7xx_hal::{
         hal::digital::v2::OutputPin,
@@ -79,7 +80,7 @@ unsafe fn main() -> ! {
         &ccdr.clocks,
     ));
     // if let Some(ref mut rtc) = globals::RTC {
-    //     rtc.set_date_time(chrono::NaiveDate::from_ymd(2021, 10, 13).and_hms(3, 45, 00));
+    //     rtc.set_date_time(chrono::NaiveDate::from_ymd(2021, 10, 16).and_hms(4, 39, 00));
     // }
 
     // Get the delay provider.
@@ -94,6 +95,7 @@ unsafe fn main() -> ! {
     let gpiog = dp.GPIOG.split(ccdr.peripheral.GPIOG);
     let gpioh = dp.GPIOH.split(ccdr.peripheral.GPIOH);
     let gpiok = dp.GPIOK.split(ccdr.peripheral.GPIOK);
+    let gpioi = dp.GPIOI.split(ccdr.peripheral.GPIOI);
     let gpioj = dp.GPIOJ.split(ccdr.peripheral.GPIOJ);
 
     // Configure SDRAM pins
@@ -138,7 +140,7 @@ unsafe fn main() -> ! {
     // Enable osc?
     let mut oscen = gpioh.ph1.into_push_pull_output();
     delay.delay_ms(10u32);
-    oscen.set_high().unwrap();
+    oscen.set_low().unwrap();
     delay.delay_ms(1000u32);
 
     // Power config?
@@ -147,7 +149,7 @@ unsafe fn main() -> ! {
             gpiob.pb6.into_alternate_af4().set_open_drain(),
             gpiob.pb7.into_alternate_af4().set_open_drain(),
         ),
-        400.khz(),
+        100.khz(),
         ccdr.peripheral.I2C1,
         &ccdr.clocks,
     );
@@ -156,6 +158,47 @@ unsafe fn main() -> ! {
     internal_i2c.write(0x08, &[0x53, 0x0f]).unwrap();
     internal_i2c.write(0x08, &[0x3b, 0x0f]).unwrap(); // SW2 to 3.3V (SW2_VOLT)
     internal_i2c.write(0x08, &[0x35, 0x0f]).unwrap(); // SW1 to 3.0V (SW1_VOLT)
+
+    // No issues writing to NXP crypto chip
+    gpioi.pi12.into_push_pull_output().set_low().unwrap();
+    // delay.delay_ms(10u8);
+    // internal_i2c.write(0x48, &[0x00, 0x00]).unwrap();
+
+    let vc_rstn = gpioj.pj3.into_push_pull_output();
+    let vc_en = gpiok.pk2.into_push_pull_output();
+    // let vc_cable = gpiok.pk3.into_push_pull_output();
+    // let vc_alt = gpiok.pk4.into_push_pull_output();
+    let vc_otg = gpioj.pj6.into_push_pull_output();
+
+    // enum i2c devices
+    // for addr in 0..128 {
+    //     let mut buf = [0u8; 2];
+    //     match internal_i2c.read(addr, &mut buf) {
+    //         Ok(_) => log::info!("7bit = 0x{:02x}, 8bit = 0x{:02x}", addr, addr << 1),
+    //         Err(_) => {}
+    //     }
+    //     // match internal_i2c.write(addr, &[0, 0]) {
+    //     //     Ok(_) => log::info!("0x{:02x}", addr),
+    //     //     Err(_) => {}
+    //     // }
+    // }
+
+    let mut anx = Anx7625::new(vc_en, vc_rstn, vc_otg);
+    anx.init(&mut internal_i2c, &mut delay).unwrap();
+    anx.wait_hpd_event(&mut internal_i2c, &mut delay).unwrap();
+
+    // enum i2c devices
+    for addr in 0..128 {
+        // let mut buf = [0u8; 2];
+        // match internal_i2c.read(addr, &mut buf) {
+        //     Ok(_) => log::info!("7bit = 0x{:02x}, 8bit = 0x{:02x}", addr, addr << 1),
+        //     Err(_) => {}
+        // }
+        match internal_i2c.write(addr, &[0, 0]) {
+            Ok(_) => log::info!("0x{:02x}", addr),
+            Err(_) => {}
+        }
+    }
 
     // let sdfs = sdmmc_fs::SdmmcFs::new(dp.SDMMC2.sdmmc(
     //     (
@@ -170,19 +213,19 @@ unsafe fn main() -> ! {
     //     &ccdr.clocks,
     // ));
 
-    USB2::enable();
+    // USB2::enable();
 
-    let usb = USB2::new(
-        dp.OTG2_HS_GLOBAL,
-        dp.OTG2_HS_DEVICE,
-        dp.OTG2_HS_PWRCLK,
-        gpioa.pa11.into_alternate_af10(),
-        gpioa.pa12.into_alternate_af10(),
-        ccdr.peripheral.USB2OTG,
-        &ccdr.clocks,
-    );
+    // let usb = USB2::new(
+    //     dp.OTG2_HS_GLOBAL,
+    //     dp.OTG2_HS_DEVICE,
+    //     dp.OTG2_HS_PWRCLK,
+    //     gpioa.pa11.into_alternate_af10(),
+    //     gpioa.pa12.into_alternate_af10(),
+    //     ccdr.peripheral.USB2OTG,
+    //     &ccdr.clocks,
+    // );
 
-    let usb_bus = UsbBus::new(usb, &mut globals::USB_MEMORY_1);
+    // let usb_bus = UsbBus::new(usb, &mut globals::USB_MEMORY_1);
     // let mut usb_dev = UsbDeviceBuilder::new(&usb_bus, UsbVidPid(0x16c0, 0x27dd))
     //     .manufacturer("Fake company")
     //     .product("Serial port")

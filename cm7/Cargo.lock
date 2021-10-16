@@ -22,6 +22,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "anx7625"
+version = "0.1.0"
+dependencies = [
+ "embedded-hal",
+ "log",
+]
+
+[[package]]
 name = "as-slice"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -93,6 +101,7 @@ name = "cm7"
 version = "0.1.0"
 dependencies = [
  "alloc-cortex-m",
+ "anx7625",
  "chrono",
  "cortex-m 0.7.3",
  "cortex-m-log",
