@@ -6,6 +6,7 @@ extern crate alloc;
 
 use {
     anx7625::Anx7625,
+    chrono::{NaiveDate, Timelike},
     log,
     stm32h7xx_hal::{
         hal::digital::v2::OutputPin,
@@ -79,9 +80,9 @@ unsafe fn main() -> ! {
         },
         &ccdr.clocks,
     ));
-    // if let Some(ref mut rtc) = globals::RTC {
-    //     rtc.set_date_time(chrono::NaiveDate::from_ymd(2021, 10, 16).and_hms(4, 39, 00));
-    // }
+    // Set Date and Time
+    TimeSource::set_date_time(NaiveDate::from_ymd(2021, 10, 20).and_hms(21, 09, 00))
+        .expect("RTC not initialized");
 
     // Get the delay provider.
     let mut delay = cp.SYST.delay(ccdr.clocks);
@@ -159,6 +160,8 @@ unsafe fn main() -> ! {
     internal_i2c.write(0x08, &[0x3b, 0x0f]).unwrap(); // SW2 to 3.3V (SW2_VOLT)
     internal_i2c.write(0x08, &[0x35, 0x0f]).unwrap(); // SW1 to 3.0V (SW1_VOLT)
 
+    drop(internal_i2c.free());
+
     // No issues writing to NXP crypto chip
     gpioi.pi12.into_push_pull_output().set_low().unwrap();
     // delay.delay_ms(10u8);
@@ -183,22 +186,22 @@ unsafe fn main() -> ! {
     //     // }
     // }
 
-    let mut anx = Anx7625::new(vc_en, vc_rstn, vc_otg);
-    anx.init(&mut internal_i2c, &mut delay).unwrap();
-    anx.wait_hpd_event(&mut internal_i2c, &mut delay).unwrap();
+    // let mut anx = Anx7625::new(vc_en, vc_rstn, vc_otg);
+    // anx.init(&mut internal_i2c, &mut delay).unwrap();
+    // anx.wait_hpd_event(&mut internal_i2c, &mut delay).unwrap();
 
     // enum i2c devices
-    for addr in 0..128 {
-        // let mut buf = [0u8; 2];
-        // match internal_i2c.read(addr, &mut buf) {
-        //     Ok(_) => log::info!("7bit = 0x{:02x}, 8bit = 0x{:02x}", addr, addr << 1),
-        //     Err(_) => {}
-        // }
-        match internal_i2c.write(addr, &[0, 0]) {
-            Ok(_) => log::info!("0x{:02x}", addr),
-            Err(_) => {}
-        }
-    }
+    // for addr in 0..128 {
+    //     // let mut buf = [0u8; 2];
+    //     // match internal_i2c.read(addr, &mut buf) {
+    //     //     Ok(_) => log::info!("7bit = 0x{:02x}, 8bit = 0x{:02x}", addr, addr << 1),
+    //     //     Err(_) => {}
+    //     // }
+    //     match internal_i2c.write(addr, &[0, 0]) {
+    //         Ok(_) => log::info!("0x{:02x}", addr),
+    //         Err(_) => {}
+    //     }
+    // }
 
     // let sdfs = sdmmc_fs::SdmmcFs::new(dp.SDMMC2.sdmmc(
     //     (
@@ -243,16 +246,17 @@ unsafe fn main() -> ! {
     loop {
         if let Some(dt) = TimeSource::get_date_time() {
             led_r.set_high().unwrap();
-            use chrono::Timelike;
             if dt.second() % 2 == 0 {
                 led_g.set_high().unwrap();
             } else {
                 led_g.set_low().unwrap();
-                log::info!("{}:{}:{}", dt.hour(), dt.minute(), dt.second());
+                // log::info!("{}:{}:{}", dt.hour(), dt.minute(), dt.second());
             }
         } else {
             led_r.set_low().unwrap();
+            led_g.set_high().unwrap();
         }
+        delay.delay_ms(10u8);
     }
 }
 

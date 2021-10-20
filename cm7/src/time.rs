@@ -3,6 +3,7 @@ use chrono::Datelike;
 use {
     crate::globals,
     chrono::{NaiveDateTime, Timelike},
+    cortex_m::interrupt,
     stm32h7xx_hal::{
         pac,
         rcc::backup,
@@ -32,14 +33,24 @@ impl TimeSource {
         rtc::Rtc::open_or_init(rtc, prec, clock_source, clocks)
     }
 
-    pub unsafe fn get_date_time() -> Option<NaiveDateTime> {
-        globals::RTC.as_ref().map(|dt| dt.date_time()).flatten()
+    pub fn set_date_time(dt: chrono::NaiveDateTime) -> Result<(), ()> {
+        interrupt::free(|_| match unsafe { globals::RTC.as_mut() } {
+            Some(rtc) => {
+                rtc.set_date_time(dt);
+                Ok(())
+            }
+            None => Err(()),
+        })
+    }
+
+    pub fn get_date_time() -> Option<NaiveDateTime> {
+        interrupt::free(|_| unsafe { globals::RTC.as_ref().map(|dt| dt.date_time()).flatten() })
     }
 }
 
 impl embedded_sdmmc::TimeSource for TimeSource {
     fn get_timestamp(&self) -> embedded_sdmmc::Timestamp {
-        match unsafe { Self::get_date_time() } {
+        match { Self::get_date_time() } {
             Some(date_time) => embedded_sdmmc::Timestamp {
                 year_since_1970: (date_time.year() - 1970) as u8,
                 zero_indexed_month: date_time.month0() as u8,
