@@ -8,7 +8,10 @@ const CONSTS_FILE: &'static str = "consts.rs";
 
 fn main() {
     out_dir().unwrap();
+    // Rows
     let mut rows = HashMap::<&'static str, (&'static str, String)>::new();
+
+    // Time
     let now = Local::now();
     rows.insert("COMPILE_TIME_YEAR", ("i32", now.year().to_string()));
     rows.insert("COMPILE_TIME_MONTH", ("u32", now.month().to_string()));
@@ -17,9 +20,31 @@ fn main() {
     rows.insert("COMPILE_TIME_MINUTE", ("u32", now.minute().to_string()));
     rows.insert("COMPILE_TIME_SECOND", ("u32", now.second().to_string()));
 
+    // Git version
+    let git_desc = Command::new("git")
+        .args(&["describe", "--all", "--tags", "--dirty", "--long"])
+        .output()
+        .unwrap();
+    rows.insert(
+        "GIT_DESCRIBE",
+        (
+            "&'static str",
+            String::from_utf8_lossy(&git_desc.stdout).to_string(),
+        ),
+    );
+
     let mut contents = Vec::<String>::with_capacity(rows.len());
     for (n, (t, v)) in rows {
-        contents.push(format!("const {}: {} = {};", n.to_uppercase(), t, v));
+        if t == "&'static str" || t == "&str" {
+            contents.push(format!(
+                "const {}: {} = \"{}\";",
+                n.to_uppercase(),
+                t,
+                v.trim()
+            ));
+        } else {
+            contents.push(format!("const {}: {} = {};", n.to_uppercase(), t, v.trim()));
+        }
     }
 
     fs::write(
