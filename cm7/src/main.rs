@@ -20,6 +20,7 @@ use {
     usb_device::device::{UsbDeviceBuilder, UsbVidPid},
 };
 
+mod consts;
 mod globals;
 #[cfg(feature = "semihosting")]
 mod logger;
@@ -81,8 +82,19 @@ unsafe fn main() -> ! {
         &ccdr.clocks,
     ));
     // Set Date and Time
-    TimeSource::set_date_time(NaiveDate::from_ymd(2021, 10, 20).and_hms(21, 09, 00))
-        .expect("RTC not initialized");
+    TimeSource::set_date_time(
+        NaiveDate::from_ymd(
+            consts::COMPILE_TIME_YEAR,
+            consts::COMPILE_TIME_MONTH,
+            consts::COMPILE_TIME_DAY,
+        )
+        .and_hms(
+            consts::COMPILE_TIME_HOUR,
+            consts::COMPILE_TIME_MINUTE,
+            consts::COMPILE_TIME_SECOND,
+        ),
+    )
+    .expect("RTC not initialized");
 
     // Get the delay provider.
     let mut delay = cp.SYST.delay(ccdr.clocks);
@@ -141,7 +153,7 @@ unsafe fn main() -> ! {
     // Enable osc?
     let mut oscen = gpioh.ph1.into_push_pull_output();
     delay.delay_ms(10u32);
-    oscen.set_low().unwrap();
+    oscen.set_high().unwrap();
     delay.delay_ms(1000u32);
 
     // Power config?
@@ -241,7 +253,10 @@ unsafe fn main() -> ! {
     // Configure PK5, PK6, PK7 as output.
     let mut led_r = gpiok.pk5.into_push_pull_output();
     let mut led_g = gpiok.pk6.into_push_pull_output();
-    // let mut led_b = gpiok.pk7.into_push_pull_output();
+    let mut led_b = gpiok.pk7.into_push_pull_output();
+    led_r.set_high().unwrap();
+    led_g.set_high().unwrap();
+    led_b.set_high().unwrap();
 
     loop {
         if let Some(dt) = TimeSource::get_date_time() {
@@ -283,5 +298,11 @@ unsafe fn HardFault(ef: &cortex_m_rt::ExceptionFrame) -> ! {
 #[cfg(not(feature = "semihosting"))]
 #[panic_handler]
 fn panic_handler(_panic_info: &core::panic::PanicInfo) -> ! {
+    // Turn on Red and turn off Green and Blue LED
+    unsafe {
+        (*stm32h7xx_hal::pac::GPIOK::ptr())
+            .bsrr
+            .write(|w| w.br5().set_bit().bs6().set_bit().bs7().set_bit())
+    }
     loop {}
 }

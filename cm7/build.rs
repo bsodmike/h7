@@ -7,6 +7,7 @@ const GEN_DIR: &'static str = "gen";
 const CONSTS_FILE: &'static str = "consts.rs";
 
 fn main() {
+    rerun_if_changed();
     out_dir().unwrap();
     // Rows
     let mut rows = HashMap::<&'static str, (&'static str, String)>::new();
@@ -37,13 +38,18 @@ fn main() {
     for (n, (t, v)) in rows {
         if t == "&'static str" || t == "&str" {
             contents.push(format!(
-                "const {}: {} = \"{}\";",
+                "pub const {}: {} = \"{}\";",
                 n.to_uppercase(),
                 t,
                 v.trim()
             ));
         } else {
-            contents.push(format!("const {}: {} = {};", n.to_uppercase(), t, v.trim()));
+            contents.push(format!(
+                "pub const {}: {} = {};",
+                n.to_uppercase(),
+                t,
+                v.trim()
+            ));
         }
     }
 
@@ -60,4 +66,10 @@ fn out_dir() -> Result<(), io::Error> {
         fs::remove_dir_all(&path)?;
     }
     fs::create_dir_all(&path)
+}
+
+fn rerun_if_changed() {
+    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=memory.x");
+    println!("cargo:rerun-if-changed=**/*");
 }
