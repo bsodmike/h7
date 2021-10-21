@@ -1,3 +1,5 @@
+use core::borrow::Borrow;
+
 use chrono::Datelike;
 
 use {
@@ -24,17 +26,12 @@ const DEFAULT_TIMESTAMP: embedded_sdmmc::Timestamp = embedded_sdmmc::Timestamp {
 pub struct TimeSource;
 
 impl TimeSource {
-    pub fn rtc(
-        rtc: pac::RTC,
-        prec: backup::Rtc,
-        clock_source: RtcClock,
-        clocks: &CoreClocks,
-    ) -> rtc::Rtc {
-        rtc::Rtc::open_or_init(rtc, prec, clock_source, clocks)
+    pub fn set_source(rtc: rtc::Rtc) {
+        interrupt::free(|cs| globals::RTC.borrow(cs).replace(Some(rtc)));
     }
 
     pub fn set_date_time(dt: chrono::NaiveDateTime) -> Result<(), ()> {
-        interrupt::free(|_| match unsafe { globals::RTC.as_mut() } {
+        interrupt::free(|cs| match &mut *globals::RTC.borrow(cs).borrow_mut() {
             Some(rtc) => {
                 rtc.set_date_time(dt);
                 Ok(())
@@ -44,7 +41,14 @@ impl TimeSource {
     }
 
     pub fn get_date_time() -> Option<NaiveDateTime> {
-        interrupt::free(|_| unsafe { globals::RTC.as_ref().map(|dt| dt.date_time()).flatten() })
+        interrupt::free(|cs| {
+            globals::RTC
+                .borrow(cs)
+                .borrow()
+                .as_ref()
+                .map(|dt| dt.date_time())
+                .flatten()
+        })
     }
 }
 

@@ -26,3 +26,8 @@ DST on crack
 * [ ] Application API
 * [ ] Load binaries from SD Card (async?)
 * [ ] Settings storage? NOR-Flash/SD Card?
+
+### Test
+
+* [ ] Test SDRAM https://github.com/stm32-rs/stm32f7xx-hal/blob/master/examples/fmc.rs#L110
+

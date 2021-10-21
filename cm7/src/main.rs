@@ -37,6 +37,11 @@ unsafe fn main() -> ! {
     let mut cp = cortex_m::Peripherals::take().unwrap();
     let dp = pac::Peripherals::take().unwrap();
 
+    // System
+    cp.SCB.enable_icache();
+    cp.SCB.enable_dcache(&mut cp.CPUID);
+    cp.DWT.enable_cycle_counter();
+
     // Ah, yes
     // Copy the PWR CR3 power register value from a working Arduino sketch and write the value
     // directly since I cannot for the life of me figure out how to get it working with the
@@ -71,7 +76,7 @@ unsafe fn main() -> ! {
         .kernel_usb_clk_mux(rcc::rec::UsbClkSel::HSI48);
 
     // Configure RTC
-    globals::RTC = Some(TimeSource::rtc(
+    TimeSource::set_source(rtc::Rtc::open_or_init(
         dp.RTC,
         backup.RTC,
         rtc::RtcClock::Lse {
