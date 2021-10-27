@@ -3,8 +3,8 @@ use {
     std::{collections::HashMap, fs, io, path::PathBuf, process::Command},
 };
 
-const GEN_DIR: &'static str = "gen";
-const CONSTS_FILE: &'static str = "consts.rs";
+const GEN_DIR: &str = "gen";
+const CONSTS_FILE: &str = "consts.rs";
 
 fn main() {
     rerun_if_changed();
@@ -29,7 +29,7 @@ fn main() {
     rows.insert(
         "GIT_DESCRIBE",
         (
-            "&'static str",
+            "&str",
             String::from_utf8_lossy(&git_desc.stdout).to_string(),
         ),
     );

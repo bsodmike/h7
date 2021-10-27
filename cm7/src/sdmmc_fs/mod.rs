@@ -79,7 +79,8 @@ impl SdmmcFs {
                     core::mem::replace(&mut self.state, SdmmcState::MidSwap)
                 {
                     // Awaiting https://github.com/rust-embedded-community/embedded-sdmmc-rs/pull/42
-                    // self.state = SdmmcState::Sdmmc(controller.free().0.free())
+                    // self.state = SdmmcState::Sdmmc(controller.free().0.free());
+                    // Ok(())
                     todo!()
                 } else {
                     unreachable!()
@@ -99,7 +100,7 @@ impl SdmmcFs {
             SdmmcState::Controller(controller) => {
                 todo!()
             }
-            SdmmcState::Sdmmc(_) => return Err(SdmmcFsError::NotMounted),
+            SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
             SdmmcState::MidSwap => unreachable!(),
         }
     }
@@ -114,7 +115,7 @@ impl SdmmcFs {
             SdmmcState::Controller(controller) => {
                 todo!()
             }
-            SdmmcState::Sdmmc(_) => return Err(SdmmcFsError::NotMounted),
+            SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
             SdmmcState::MidSwap => unreachable!(),
         }
     }

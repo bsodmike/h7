@@ -7,7 +7,6 @@ extern crate alloc;
 use {
     anx7625::Anx7625,
     chrono::{NaiveDate, Timelike},
-    log,
     stm32h7xx_hal::{
         hal::digital::v2::OutputPin,
         interrupt, pac,
@@ -75,6 +74,26 @@ unsafe fn main() -> ! {
     ccdr.peripheral
         .kernel_usb_clk_mux(rcc::rec::UsbClkSel::HSI48);
 
+    // GPIO
+    let gpioa = dp.GPIOA.split(ccdr.peripheral.GPIOA);
+    let gpiob = dp.GPIOB.split(ccdr.peripheral.GPIOB);
+    let gpiod = dp.GPIOD.split(ccdr.peripheral.GPIOD);
+    let gpioe = dp.GPIOE.split(ccdr.peripheral.GPIOE);
+    let gpiof = dp.GPIOF.split(ccdr.peripheral.GPIOF);
+    let gpiog = dp.GPIOG.split(ccdr.peripheral.GPIOG);
+    let gpioh = dp.GPIOH.split(ccdr.peripheral.GPIOH);
+    let gpiok = dp.GPIOK.split(ccdr.peripheral.GPIOK);
+    let gpioi = dp.GPIOI.split(ccdr.peripheral.GPIOI);
+    let gpioj = dp.GPIOJ.split(ccdr.peripheral.GPIOJ);
+
+    // Configure PK5, PK6, PK7 as output.
+    let mut led_r = gpiok.pk5.into_push_pull_output();
+    let mut led_g = gpiok.pk6.into_push_pull_output();
+    let mut led_b = gpiok.pk7.into_push_pull_output();
+    led_r.set_high().unwrap();
+    led_g.set_high().unwrap();
+    led_b.set_high().unwrap();
+
     // Configure RTC
     TimeSource::set_source(rtc::Rtc::open_or_init(
         dp.RTC,
@@ -103,18 +122,6 @@ unsafe fn main() -> ! {
 
     // Get the delay provider.
     let mut delay = cp.SYST.delay(ccdr.clocks);
-
-    // GPIO
-    let gpioa = dp.GPIOA.split(ccdr.peripheral.GPIOA);
-    let gpiob = dp.GPIOB.split(ccdr.peripheral.GPIOB);
-    let gpiod = dp.GPIOD.split(ccdr.peripheral.GPIOD);
-    let gpioe = dp.GPIOE.split(ccdr.peripheral.GPIOE);
-    let gpiof = dp.GPIOF.split(ccdr.peripheral.GPIOF);
-    let gpiog = dp.GPIOG.split(ccdr.peripheral.GPIOG);
-    let gpioh = dp.GPIOH.split(ccdr.peripheral.GPIOH);
-    let gpiok = dp.GPIOK.split(ccdr.peripheral.GPIOK);
-    let gpioi = dp.GPIOI.split(ccdr.peripheral.GPIOI);
-    let gpioj = dp.GPIOJ.split(ccdr.peripheral.GPIOJ);
 
     // Configure SDRAM pins
     let sdram_pins = fmc_pins! {
@@ -171,11 +178,21 @@ unsafe fn main() -> ! {
         ccdr.peripheral.I2C1,
         &ccdr.clocks,
     );
-    internal_i2c.write(0x08, &[0x42, 0x01]).unwrap(); // void fixup3V1Rail()???
-    internal_i2c.write(0x08, &[0x52, 0x09]).unwrap(); // LDO3 to 1.2V
-    internal_i2c.write(0x08, &[0x53, 0x0f]).unwrap();
-    internal_i2c.write(0x08, &[0x3b, 0x0f]).unwrap(); // SW2 to 3.3V (SW2_VOLT)
-    internal_i2c.write(0x08, &[0x35, 0x0f]).unwrap(); // SW1 to 3.0V (SW1_VOLT)
+    // Captured by osci during boot
+    internal_i2c.write(0x08, &[0x4f, 0x00]).unwrap(); // LDO2_VOLT: 1.80V
+    internal_i2c.write(0x08, &[0x50, 0x0f]).unwrap(); // LDO2_CTRL: VLDO2_EN = 1, VLDO2_STBY_EN = 1, VLDO2_OMODE = 1, VLDO2_LPWR = 1
+    internal_i2c.write(0x08, &[0x4c, 0x05]).unwrap(); // LDO1_VOLT: 1.00V
+    internal_i2c.write(0x08, &[0x4d, 0x03]).unwrap(); // LDO1_CTRL: VLDO1_EN = 1, VLDO1_STBY_EN = 1
+    internal_i2c.write(0x08, &[0x52, 0x09]).unwrap(); // LDO3_VOLT: 1.20V
+    internal_i2c.write(0x08, &[0x53, 0x0f]).unwrap(); // LDO3_CTRL: VLDO3_EN = 1, VLDO3_STBY_EN = 1, VLDO3_OMODE = 1, VLDO3_LPWR = 1
+
+    // Found in open source Arduino H7 target source
+    internal_i2c.write(0x08, &[0x42, 0x01]).unwrap(); // void internal_i2c.write(0x08, &[0x52, 0x09]).unwrap();.write(0x08, &[0x52, 0x09]).unwrap();p3V1Rail()???
+                                                      // Ethernet power?
+                                                      // internal_i2c.write(0x08, &[0x52, 0x09]).unwrap(); // LDO3 to 1.2V
+                                                      // internal_i2c.write(0x08, &[0x53, 0x0f]).unwrap();
+                                                      // internal_i2c.write(0x08, &[0x3b, 0x0f]).unwrap(); // SW2 to 3.3V (SW2_VOLT)
+                                                      // internal_i2c.write(0x08, &[0x35, 0x0f]).unwrap(); // SW1 to 3.0V (SW1_VOLT)
 
     drop(internal_i2c.free());
 
@@ -254,14 +271,6 @@ unsafe fn main() -> ! {
     //     .build();
 
     // usb_dev.poll();
-
-    // Configure PK5, PK6, PK7 as output.
-    let mut led_r = gpiok.pk5.into_push_pull_output();
-    let mut led_g = gpiok.pk6.into_push_pull_output();
-    let mut led_b = gpiok.pk7.into_push_pull_output();
-    led_r.set_high().unwrap();
-    led_g.set_high().unwrap();
-    led_b.set_high().unwrap();
 
     loop {
         if let Some(dt) = TimeSource::get_date_time() {

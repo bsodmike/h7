@@ -14,7 +14,8 @@
             ],
             "svdFile": "${workspaceRoot}/resources/stm32h747xi/svd/STM32H747_CM7.svd",
             "postAttachCommands": [
-                "monitor arm semihosting enable"
+                "monitor arm semihosting enable",
+                "break main"
             ],
             "breakAfterReset": true,
             "numberOfProcessors": 2

@@ -1,17 +1,8 @@
-use core::borrow::Borrow;
-
-use chrono::Datelike;
-
 use {
     crate::globals,
-    chrono::{NaiveDateTime, Timelike},
+    chrono::{Datelike, NaiveDateTime, Timelike},
     cortex_m::interrupt,
-    stm32h7xx_hal::{
-        pac,
-        rcc::backup,
-        rcc::CoreClocks,
-        rtc::{self, RtcClock},
-    },
+    stm32h7xx_hal::rtc,
 };
 
 const DEFAULT_TIMESTAMP: embedded_sdmmc::Timestamp = embedded_sdmmc::Timestamp {
