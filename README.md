@@ -1,7 +1,5 @@
 # h7
 
-DST on crack
-
 ## Todo
 
 ### Hardware/HAL
