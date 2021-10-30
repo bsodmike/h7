@@ -23,6 +23,7 @@ mod consts;
 mod globals;
 #[cfg(feature = "semihosting")]
 mod logger;
+mod pmic;
 mod sdmmc_fs;
 mod sdram;
 mod time;
@@ -45,8 +46,10 @@ unsafe fn main() -> ! {
     // Copy the PWR CR3 power register value from a working Arduino sketch and write the value
     // directly since I cannot for the life of me figure out how to get it working with the
     // provided power configuration methods.
-    // This is obviously not the *proper way* to do things but it works. The orange DL2 LED
-    // is still lit meaning something is indeed not configured correctly.
+    // This is obviously not the *proper way* to do things but it works. ~~The orange DL2 LED
+    // is still lit meaning something is indeed not configured correctly.~~
+    // PMIC is configured later, the DL2 LED issue was fixed by analyzing the Arduino Bootloader
+    // I2C traffic.
     core::ptr::write_volatile(0x5802480c as *mut u32, 0b00000101000000010000000001010110);
 
     // Constrain and Freeze power
@@ -93,6 +96,19 @@ unsafe fn main() -> ! {
     led_r.set_high().unwrap();
     led_g.set_high().unwrap();
     led_b.set_high().unwrap();
+
+    // Internal I2C bus
+    let mut internal_i2c = dp.I2C1.i2c(
+        (
+            gpiob.pb6.into_alternate_af4().set_open_drain(),
+            gpiob.pb7.into_alternate_af4().set_open_drain(),
+        ),
+        100.khz(),
+        ccdr.peripheral.I2C1,
+        &ccdr.clocks,
+    );
+    // Configure PMIC (NXP PF1550)
+    pmic::configure(&mut internal_i2c).unwrap();
 
     // Configure RTC
     TimeSource::set_source(rtc::Rtc::open_or_init(
@@ -168,110 +184,17 @@ unsafe fn main() -> ! {
     oscen.set_high().unwrap();
     delay.delay_ms(1000u32);
 
-    // Power config?
-    let mut internal_i2c = dp.I2C1.i2c(
-        (
-            gpiob.pb6.into_alternate_af4().set_open_drain(),
-            gpiob.pb7.into_alternate_af4().set_open_drain(),
-        ),
-        100.khz(),
-        ccdr.peripheral.I2C1,
-        &ccdr.clocks,
+    // Display config
+    let mut anx = Anx7625::new(
+        gpiok.pk2.into_push_pull_output(),
+        gpioj.pj3.into_push_pull_output(),
+        gpioj.pj6.into_push_pull_output(),
     );
-    // Captured by osci during boot
-    internal_i2c.write(0x08, &[0x4f, 0x00]).unwrap(); // LDO2_VOLT: 1.80V
-    internal_i2c.write(0x08, &[0x50, 0x0f]).unwrap(); // LDO2_CTRL: VLDO2_EN = 1, VLDO2_STBY_EN = 1, VLDO2_OMODE = 1, VLDO2_LPWR = 1
-    internal_i2c.write(0x08, &[0x4c, 0x05]).unwrap(); // LDO1_VOLT: 1.00V
-    internal_i2c.write(0x08, &[0x4d, 0x03]).unwrap(); // LDO1_CTRL: VLDO1_EN = 1, VLDO1_STBY_EN = 1
-    internal_i2c.write(0x08, &[0x52, 0x09]).unwrap(); // LDO3_VOLT: 1.20V
-    internal_i2c.write(0x08, &[0x53, 0x0f]).unwrap(); // LDO3_CTRL: VLDO3_EN = 1, VLDO3_STBY_EN = 1, VLDO3_OMODE = 1, VLDO3_LPWR = 1
+    anx.init(&mut internal_i2c, &mut delay).unwrap();
+    anx.wait_hpd_event(&mut internal_i2c, &mut delay).unwrap(); // Blocks until monitor is display
+    anx.dp_get_edid(&mut internal_i2c, &mut delay).unwrap();
 
-    // Found in open source Arduino H7 target source
-    internal_i2c.write(0x08, &[0x42, 0x01]).unwrap(); // void internal_i2c.write(0x08, &[0x52, 0x09]).unwrap();.write(0x08, &[0x52, 0x09]).unwrap();p3V1Rail()???
-                                                      // Ethernet power?
-                                                      // internal_i2c.write(0x08, &[0x52, 0x09]).unwrap(); // LDO3 to 1.2V
-                                                      // internal_i2c.write(0x08, &[0x53, 0x0f]).unwrap();
-                                                      // internal_i2c.write(0x08, &[0x3b, 0x0f]).unwrap(); // SW2 to 3.3V (SW2_VOLT)
-                                                      // internal_i2c.write(0x08, &[0x35, 0x0f]).unwrap(); // SW1 to 3.0V (SW1_VOLT)
-
-    drop(internal_i2c.free());
-
-    // No issues writing to NXP crypto chip
-    gpioi.pi12.into_push_pull_output().set_low().unwrap();
-    // delay.delay_ms(10u8);
-    // internal_i2c.write(0x48, &[0x00, 0x00]).unwrap();
-
-    let vc_rstn = gpioj.pj3.into_push_pull_output();
-    let vc_en = gpiok.pk2.into_push_pull_output();
-    // let vc_cable = gpiok.pk3.into_push_pull_output();
-    // let vc_alt = gpiok.pk4.into_push_pull_output();
-    let vc_otg = gpioj.pj6.into_push_pull_output();
-
-    // enum i2c devices
-    // for addr in 0..128 {
-    //     let mut buf = [0u8; 2];
-    //     match internal_i2c.read(addr, &mut buf) {
-    //         Ok(_) => log::info!("7bit = 0x{:02x}, 8bit = 0x{:02x}", addr, addr << 1),
-    //         Err(_) => {}
-    //     }
-    //     // match internal_i2c.write(addr, &[0, 0]) {
-    //     //     Ok(_) => log::info!("0x{:02x}", addr),
-    //     //     Err(_) => {}
-    //     // }
-    // }
-
-    // let mut anx = Anx7625::new(vc_en, vc_rstn, vc_otg);
-    // anx.init(&mut internal_i2c, &mut delay).unwrap();
-    // anx.wait_hpd_event(&mut internal_i2c, &mut delay).unwrap();
-
-    // enum i2c devices
-    // for addr in 0..128 {
-    //     // let mut buf = [0u8; 2];
-    //     // match internal_i2c.read(addr, &mut buf) {
-    //     //     Ok(_) => log::info!("7bit = 0x{:02x}, 8bit = 0x{:02x}", addr, addr << 1),
-    //     //     Err(_) => {}
-    //     // }
-    //     match internal_i2c.write(addr, &[0, 0]) {
-    //         Ok(_) => log::info!("0x{:02x}", addr),
-    //         Err(_) => {}
-    //     }
-    // }
-
-    // let sdfs = sdmmc_fs::SdmmcFs::new(dp.SDMMC2.sdmmc(
-    //     (
-    //         gpiod.pd6.into_alternate_af11(),
-    //         gpiod.pd7.into_alternate_af11(),
-    //         gpiob.pb14.into_alternate_af9(),
-    //         gpiob.pb15.into_alternate_af9(),
-    //         gpiob.pb3.into_alternate_af9(),
-    //         gpiob.pb4.into_alternate_af9(),
-    //     ),
-    //     ccdr.peripheral.SDMMC2,
-    //     &ccdr.clocks,
-    // ));
-
-    // USB2::enable();
-
-    // let usb = USB2::new(
-    //     dp.OTG2_HS_GLOBAL,
-    //     dp.OTG2_HS_DEVICE,
-    //     dp.OTG2_HS_PWRCLK,
-    //     gpioa.pa11.into_alternate_af10(),
-    //     gpioa.pa12.into_alternate_af10(),
-    //     ccdr.peripheral.USB2OTG,
-    //     &ccdr.clocks,
-    // );
-
-    // let usb_bus = UsbBus::new(usb, &mut globals::USB_MEMORY_1);
-    // let mut usb_dev = UsbDeviceBuilder::new(&usb_bus, UsbVidPid(0x16c0, 0x27dd))
-    //     .manufacturer("Fake company")
-    //     .product("Serial port")
-    //     .serial_number("TEST PORT 1")
-    //     // .device_class(usbd_serial::USB_CLASS_CDC)
-    //     .build();
-
-    // usb_dev.poll();
-
+    // Main loop
     loop {
         if let Some(dt) = TimeSource::get_date_time() {
             led_r.set_high().unwrap();
@@ -287,11 +210,6 @@ unsafe fn main() -> ! {
         }
         delay.delay_ms(10u8);
     }
-}
-
-#[interrupt]
-fn OTG_HS() {
-    log::info!("USB");
 }
 
 #[alloc_error_handler]
