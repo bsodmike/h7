@@ -1,4 +1,0 @@
-0x08 - PMIC
-0x36 - ??
-0x48 - NXP SE050C2
-0x60 - Microchip ATECC608A
