@@ -109,6 +109,7 @@ unsafe fn main() -> ! {
     // RTC
     {
         // Configure RTC
+        #[cfg(debug_assertions)]
         TimeSource::set_source(rtc::Rtc::open_or_init(
             dp.RTC,
             backup.RTC,

@@ -17,9 +17,11 @@
 
 ### Software
 
+* [ ] Add release/debug info to osinfo.
 * [ ] CPU Temp ADC interrupt.
 * [ ] Watchdog info in mcuinfo.
 * [ ] Watchdog control command.
+* [ ] RTC control command.
 * [ ] Render to display. Interrupt driven frame-updates.
 * [ ] USB input with interrupts.
 * [ ] User login using secure element.
