@@ -109,7 +109,6 @@ unsafe fn main() -> ! {
     // RTC
     {
         // Configure RTC
-        #[cfg(debug_assertions)]
         TimeSource::set_source(rtc::Rtc::open_or_init(
             dp.RTC,
             backup.RTC,
@@ -121,6 +120,7 @@ unsafe fn main() -> ! {
             &ccdr.clocks,
         ));
         // Set Date and Time
+        #[cfg(debug_assertions)]
         TimeSource::set_date_time(
             NaiveDate::from_ymd(
                 consts::COMPILE_TIME_YEAR,
