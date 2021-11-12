@@ -22,14 +22,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anx7625"
-version = "0.1.0"
-dependencies = [
- "embedded-hal",
- "log",
-]
-
-[[package]]
 name = "as-slice"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -104,7 +96,6 @@ name = "cm7"
 version = "0.1.0"
 dependencies = [
  "alloc-cortex-m",
- "anx7625",
  "chrono",
  "cortex-m 0.7.3",
  "cortex-m-log",
@@ -114,7 +105,9 @@ dependencies = [
  "embedded-sdmmc",
  "lazy_static",
  "log",
+ "menu",
  "panic-semihosting",
+ "ringfifo",
  "stm32-fmc",
  "stm32h7xx-hal",
  "synopsys-usb-otg",
@@ -262,9 +255,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.104"
+version = "0.2.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b2f96d100e1cf1929e7719b7edb3b90ab5298072638fccd77be9ce942ecdfce"
+checksum = "fbe5e23404da5b4f555ef85ebed98fb4083e55a00c317800bc2a50ede9f3d219"
 
 [[package]]
 name = "linked_list_allocator"
@@ -280,6 +273,10 @@ checksum = "51b9bbe6c47d51fc3e1a9b945965946b4c44142ab8792c50835a980d362c2710"
 dependencies = [
  "cfg-if",
 ]
+
+[[package]]
+name = "menu"
+version = "0.1.0"
 
 [[package]]
 name = "nb"
@@ -327,15 +324,15 @@ dependencies = [
 
 [[package]]
 name = "paste"
-version = "1.0.5"
+version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "acbf547ad0c65e31259204bd90935776d1c693cec2f4ff7abb7a1bbbd40dfe58"
+checksum = "0744126afe1a6dd7f394cb50a716dbe086cb06e255e53d8d0185d82828358fb5"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.30"
+version = "1.0.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "edc3358ebc67bc8b7fa0c007f945b0b18226f78437d61bec735a9eb96b61ee70"
+checksum = "ba508cc11742c0dc5c1659771673afbab7a0efab23aa17e854cbab0837ed0b43"
 dependencies = [
  "unicode-xid",
 ]
@@ -348,6 +345,10 @@ checksum = "38bc8cc6a5f2e3655e0899c1b848643b2562f853f114bfec7be120678e3ace05"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "ringfifo"
+version = "0.1.0"
 
 [[package]]
 name = "rustc_version"
@@ -415,6 +416,7 @@ dependencies = [
 [[package]]
 name = "stm32h7xx-hal"
 version = "0.10.0"
+source = "git+https://github.com/stm32-rs/stm32h7xx-hal#2c16f463d4f4bc8acc401caddec2c168320596cc"
 dependencies = [
  "bare-metal 1.0.0",
  "cast",
@@ -435,9 +437,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.80"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d010a1623fbd906d51d650a9916aaefc05ffa0e4053ff7fe601167f3e715d194"
+checksum = "f2afee18b8beb5a596ecb4a2dce128c719b4ba399d34126b9e4396e3f9860966"
 dependencies = [
  "proc-macro2",
  "quote",

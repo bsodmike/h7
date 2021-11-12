@@ -10,6 +10,10 @@ pub enum MenuError {
     WriteError(core::fmt::Error),
     /// Command error
     CommandError(Option<&'static str>),
+    /// Command not implemented
+    CommandNotImplemented,
+    /// Invalid Argument
+    InvalidArgument,
 }
 
 impl From<core::fmt::Error> for MenuError {
@@ -38,6 +42,8 @@ impl core::fmt::Display for MenuError {
             Self::WriteError(we) => write!(f, "Write error: {:?}", we),
             Self::CommandError(Some(err)) => write!(f, "Command error: {}", err),
             Self::CommandError(None) => write!(f, "Command error"),
+            Self::CommandNotImplemented => write!(f, "Command not implemented"),
+            Self::InvalidArgument => write!(f, "Invalid argument"),
         }
     }
 }

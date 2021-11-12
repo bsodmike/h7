@@ -1,7 +1,9 @@
 use {
     crate::time::TimeSource,
+    core::cell::RefCell,
+    cortex_m::interrupt::Mutex,
     embedded_hal::blocking::delay::DelayMs,
-    embedded_sdmmc::Controller,
+    embedded_sdmmc::{BlockDevice, Controller},
     error::*,
     stm32h7xx_hal::{
         pac::SDMMC2,
@@ -12,6 +14,8 @@ use {
 
 mod error;
 mod path;
+
+pub static SD_CARD: Mutex<RefCell<Option<SdmmcFs>>> = Mutex::new(RefCell::new(None));
 
 enum SdmmcState {
     Controller(Controller<SdmmcBlockDevice<Sdmmc<SDMMC2>>, TimeSource>),
@@ -30,16 +34,32 @@ impl SdmmcFs {
         }
     }
 
-    pub fn mount<D: DelayMs<u16>>(
+    pub fn is_mounted(&self) -> bool {
+        match &self.state {
+            &SdmmcState::Controller(_) => true,
+            &SdmmcState::Sdmmc(_) => false,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn card_size(&mut self) -> Result<u32, SdmmcFsError> {
+        match self.state {
+            SdmmcState::Controller(ref mut c) => Ok(c.device().num_blocks()?.0 * 512),
+            SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
+            SdmmcState::MidSwap => unreachable!(),
+        }
+    }
+
+    pub fn mount<D: DelayMs<u16>, H: Into<Hertz>>(
         &mut self,
-        freq: Hertz,
+        freq: H,
         n_retry: u8,
-        sleep_ms: u16,
-        delay: &mut D,
+        mut delay: Option<(u16, &mut D)>,
     ) -> Result<(), SdmmcFsError> {
         match &mut self.state {
             SdmmcState::Controller(_) => return Err(SdmmcFsError::AlreadyMounted),
             SdmmcState::Sdmmc(sdmmc) => {
+                let freq = freq.into();
                 for i in (0..n_retry).rev() {
                     match sdmmc.init_card(freq) {
                         Ok(_) => {
@@ -58,9 +78,11 @@ impl SdmmcFs {
                         }
                         Err(e) => {
                             if i == 0 {
-                                return Err(SdmmcFsError::Internal(e));
+                                return Err(SdmmcFsError::Sdmmc(e));
                             } else {
-                                delay.delay_ms(sleep_ms);
+                                if let Some((time, ref mut delay)) = delay {
+                                    delay.delay_ms(time);
+                                }
                                 continue;
                             }
                         }
@@ -72,7 +94,7 @@ impl SdmmcFs {
         unreachable!()
     }
 
-    pub fn eject(&mut self) -> Result<(), SdmmcFsError> {
+    pub fn unmount(&mut self) -> Result<(), SdmmcFsError> {
         match &mut self.state {
             SdmmcState::Controller(controller) => {
                 if let SdmmcState::Controller(c) =

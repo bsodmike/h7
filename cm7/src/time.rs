@@ -1,9 +1,11 @@
 use {
-    crate::globals,
     chrono::{Datelike, NaiveDateTime, Timelike},
-    cortex_m::interrupt,
-    stm32h7xx_hal::rtc,
+    core::cell::RefCell,
+    cortex_m::interrupt::{self, Mutex},
+    stm32h7xx_hal::rtc::Rtc,
 };
+
+pub static RTC: Mutex<RefCell<Option<Rtc>>> = Mutex::new(RefCell::new(None));
 
 const DEFAULT_TIMESTAMP: embedded_sdmmc::Timestamp = embedded_sdmmc::Timestamp {
     year_since_1970: 0,
@@ -17,12 +19,12 @@ const DEFAULT_TIMESTAMP: embedded_sdmmc::Timestamp = embedded_sdmmc::Timestamp {
 pub struct TimeSource;
 
 impl TimeSource {
-    pub fn set_source(rtc: rtc::Rtc) {
-        interrupt::free(|cs| globals::RTC.borrow(cs).replace(Some(rtc)));
+    pub fn set_source(rtc: Rtc) {
+        interrupt::free(|cs| RTC.borrow(cs).replace(Some(rtc)));
     }
 
     pub fn set_date_time(dt: chrono::NaiveDateTime) -> Result<(), ()> {
-        interrupt::free(|cs| match &mut *globals::RTC.borrow(cs).borrow_mut() {
+        interrupt::free(|cs| match &mut *RTC.borrow(cs).borrow_mut() {
             Some(rtc) => {
                 rtc.set_date_time(dt);
                 Ok(())
@@ -33,8 +35,7 @@ impl TimeSource {
 
     pub fn get_date_time() -> Option<NaiveDateTime> {
         interrupt::free(|cs| {
-            globals::RTC
-                .borrow(cs)
+            RTC.borrow(cs)
                 .borrow()
                 .as_ref()
                 .map(|dt| dt.date_time())

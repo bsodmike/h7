@@ -55,6 +55,12 @@ impl<'m, W: core::fmt::Write> Menu<'m, W> {
     }
 }
 
+impl<'m, W: core::fmt::Write> core::fmt::Write for Menu<'m, W> {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        self.writer().write_str(s)
+    }
+}
+
 pub const fn check_args_len(expected: u8, actual: usize) -> MenuResult {
     if (actual as u8) > expected {
         Err(MenuError::TooManyArgs(expected, actual as u8))

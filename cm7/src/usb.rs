@@ -1,3 +1,6 @@
+// USB
+pub static mut USB_MEMORY_1: [u32; 1024] = [0u32; 1024];
+
 // USB Keyboard
 // let usb2 = USB2::new(
 //     dp.OTG2_HS_GLOBAL,

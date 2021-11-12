@@ -3,3 +3,6 @@ MEMORY
     FLASH  : ORIGIN = 0x08000000, LENGTH = 2M
     RAM    : ORIGIN = 0x24000000, LENGTH = 512K
 }
+
+_ram_start = ORIGIN(RAM);
+_ram_end = ORIGIN(RAM) + LENGTH(RAM);

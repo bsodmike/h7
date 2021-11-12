@@ -2,7 +2,7 @@ use {
     embedded_sdmmc::BlockDevice,
     stm32h7xx_hal::{
         pac::SDMMC2,
-        sdmmc::{Sdmmc, SdmmcBlockDevice},
+        sdmmc::{Error, Sdmmc, SdmmcBlockDevice},
     },
 };
 
@@ -13,7 +13,26 @@ pub enum SdmmcFsError {
     BufferTooSmall,
     AlreadyMounted,
     NotMounted,
-    Internal(SdmmcFsErrorInternal),
+    // Internal(SdmmcFsErrorInternal),
+    Sdmmc(Error),
+}
+
+impl From<Error> for SdmmcFsError {
+    fn from(err: Error) -> Self {
+        Self::Sdmmc(err)
+    }
+}
+
+impl core::fmt::Display for SdmmcFsError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::NotFound => write!(f, "Not Found"),
+            Self::BufferTooSmall => write!(f, "Buffer Too Small"),
+            Self::AlreadyMounted => write!(f, "Already mounted"),
+            Self::NotMounted => write!(f, "Not Mounted"),
+            Self::Sdmmc(e) => write!(f, "Sdmmc: {:?}", e),
+        }
+    }
 }
 
 // impl From<SdmmcFsErrorInternal> for SdmmcFsError {
