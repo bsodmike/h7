@@ -19,7 +19,6 @@ extern "C" {
 }
 
 pub static CLOCK_FREQ: Mutex<RefCell<Option<Hertz>>> = Mutex::new(RefCell::new(None));
-// TODO: Core temp ADC interrupt
 pub static CORE_TEMP: Mutex<
     RefCell<Option<(Adc<hal::device::ADC3, adc::Enabled>, adc::Temperature)>>,
 > = Mutex::new(RefCell::new(None));

@@ -100,7 +100,7 @@ impl SdmmcFs {
                 if let SdmmcState::Controller(c) =
                     core::mem::replace(&mut self.state, SdmmcState::MidSwap)
                 {
-                    // Awaiting https://github.com/rust-embedded-community/embedded-sdmmc-rs/pull/42
+                    // Awaiting embedded-sdmmc-rs release 0.3.1
                     // self.state = SdmmcState::Sdmmc(controller.free().0.free());
                     // Ok(())
                     todo!()
@@ -143,7 +143,13 @@ impl SdmmcFs {
     }
 
     pub fn exists<P: AsRef<str>>(&mut self, path: P) -> Result<bool, SdmmcFsError> {
-        todo!()
+        match &mut self.state {
+            SdmmcState::Controller(controller) => {
+                todo!()
+            }
+            SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
+            SdmmcState::MidSwap => unreachable!(),
+        }
     }
 }
 
