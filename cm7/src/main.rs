@@ -5,7 +5,7 @@
 extern crate alloc;
 
 use {
-    // anx7625::Anx7625,
+    anx7625::Anx7625,
     chrono::{NaiveDate, Timelike},
     core::fmt::Write,
     cortex_m::interrupt::free as interrupt_free,
@@ -40,6 +40,11 @@ unsafe fn main() -> ! {
     // Get peripherals
     let mut cp = cortex_m::Peripherals::take().unwrap();
     let dp = pac::Peripherals::take().unwrap();
+
+    pac::DWT::unlock();
+    cp.DWT.enable_cycle_counter();
+    cp.SCB.enable_icache();
+    cp.SCB.enable_dcache(&mut cp.CPUID);
 
     // Ah, yes
     // Copy the PWR CR3 power register value from a working Arduino sketch and write the value
@@ -114,14 +119,14 @@ unsafe fn main() -> ! {
             backup.RTC,
             rtc::RtcClock::Lse {
                 freq: 32768.hz(),
-                bypass: false,
+                bypass: true,
                 css: false,
             },
             &ccdr.clocks,
         ));
         // Set Date and Time
         #[cfg(debug_assertions)]
-        TimeSource::set_date_time(
+        let _ = TimeSource::set_date_time(
             NaiveDate::from_ymd(
                 consts::COMPILE_TIME_YEAR,
                 consts::COMPILE_TIME_MONTH,
@@ -132,19 +137,14 @@ unsafe fn main() -> ! {
                 consts::COMPILE_TIME_MINUTE,
                 consts::COMPILE_TIME_SECOND,
             ),
-        )
-        .expect("RTC not initialized");
+        );
     }
 
     // Get the delay provider.
     let mut delay = cp.SYST.delay(ccdr.clocks);
 
-    // System
+    // System temperature
     {
-        cp.SCB.enable_icache();
-        cp.SCB.enable_dcache(&mut cp.CPUID);
-        cp.DWT.enable_cycle_counter();
-
         // Temp ADC
         let mut channel = adc::Temperature::new();
         let mut temp_adc_disabled =
@@ -253,13 +253,14 @@ unsafe fn main() -> ! {
 
     // Display config
     {
-        // let mut anx = Anx7625::new(
-        //     gpiok.pk2.into_push_pull_output(),
-        //     gpioj.pj3.into_push_pull_output(),
-        //     gpioj.pj6.into_push_pull_output(),
-        // );
-        // anx.init(&mut internal_i2c, &mut delay).unwrap();
-        // anx.wait_hpd_event(&mut internal_i2c, &mut delay).unwrap(); // Blocks until monitor is display
+        let mut anx = Anx7625::new(
+            gpiok.pk2.into_push_pull_output(),
+            gpioj.pj3.into_push_pull_output(),
+            gpioj.pj6.into_push_pull_output(),
+        );
+        anx.init(&mut internal_i2c, &mut delay).unwrap();
+        anx.wait_hpd_event(&mut internal_i2c, &mut delay); // Blocks until monitor is connected
+        log::info!("Monitor connected");
         // anx.dp_get_edid(&mut internal_i2c, &mut delay).unwrap();
     }
 
@@ -346,12 +347,13 @@ unsafe fn main() -> ! {
         };
 
         // Blink
-        let dt = TimeSource::get_date_time().unwrap();
-        led_r.set_high().unwrap();
-        if dt.second() % 2 == 0 {
-            led_g.set_high().unwrap();
-        } else {
-            led_g.set_low().unwrap();
+        if let Some(dt) = TimeSource::get_date_time() {
+            led_r.set_high().unwrap();
+            if dt.second() % 2 == 0 {
+                led_g.set_high().unwrap();
+            } else {
+                led_g.set_low().unwrap();
+            }
         }
     }
 }
@@ -398,7 +400,7 @@ fn panic_handler(_panic_info: &core::panic::PanicInfo) -> ! {
         LED::Green.off();
         LED::Blue.off();
         loop {
-            let limit = 1_000_000;
+            let limit = 100_000_000;
             for i in 0..limit {
                 if i < limit / 2 {
                     LED::Red.on()

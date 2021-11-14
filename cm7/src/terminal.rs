@@ -191,7 +191,7 @@ pub const MENU: &[MenuItem<serial::Tx<pac::USART1>>] = &[
                 m.writer(),
                 "{:width$} {}",
                 "Core",
-                "Cortex-M7",
+                "Cortex-M7F",
                 width = LABEL_WIDTH
             )?;
             match interrupt::free(|cs| crate::system::cpu_freq(cs)) {

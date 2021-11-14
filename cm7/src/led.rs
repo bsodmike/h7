@@ -5,6 +5,7 @@ pub enum LED {
 }
 
 impl LED {
+    #[inline(always)]
     pub unsafe fn on(self) {
         (*stm32h7xx_hal::pac::GPIOK::ptr())
             .bsrr
@@ -14,6 +15,7 @@ impl LED {
                 Self::Blue => w.br7().set_bit(),
             })
     }
+    #[inline(always)]
     pub unsafe fn off(self) {
         (*stm32h7xx_hal::pac::GPIOK::ptr())
             .bsrr
