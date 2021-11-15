@@ -1,6 +1,6 @@
 #![no_main]
 #![no_std]
-#![feature(alloc_error_handler)]
+#![feature(alloc_error_handler, result_into_ok_or_err)]
 
 extern crate alloc;
 
@@ -10,6 +10,9 @@ use {
     core::fmt::Write,
     cortex_m::interrupt::free as interrupt_free,
     cortex_m_alloc::CortexMHeap,
+    embedded_display_controller::{
+        DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
+    },
     led::LED,
     stm32h7xx_hal::{
         self as hal, adc, hal::digital::v2::OutputPin, interrupt, pac, prelude::*, rcc, rtc,
@@ -73,8 +76,8 @@ unsafe fn main() -> ! {
             .pll2_strategy(rcc::PllConfigStrategy::Iterative)
             .pll2_p_ck(100.mhz())
             .pll3_strategy(rcc::PllConfigStrategy::Iterative)
-            // .pll3_p_ck(100.mhz())
-            // .pll3_r_ck(26.mhz())
+            .pll3_p_ck(100.mhz())
+            .pll3_r_ck(100.mhz())
             .freeze(pwrcfg, &dp.SYSCFG);
 
         // USB Clock
@@ -108,6 +111,9 @@ unsafe fn main() -> ! {
     led_r.set_high().unwrap();
     led_g.set_high().unwrap();
     led_b.set_high().unwrap();
+
+    // gpiok.pk3.into_push_pull_output().set_high().unwrap(); // cable
+    // gpiok.pk4.into_push_pull_output().set_low().unwrap(); // alt
 
     led_b.set_low().unwrap();
 
@@ -261,8 +267,46 @@ unsafe fn main() -> ! {
         anx.init(&mut internal_i2c, &mut delay).unwrap();
         anx.wait_hpd_event(&mut internal_i2c, &mut delay); // Blocks until monitor is connected
         log::info!("Monitor connected");
-        // anx.dp_get_edid(&mut internal_i2c, &mut delay).unwrap();
+        let edid = anx
+            .dp_get_edid(&mut internal_i2c, &mut delay)
+            .map_err(|(_, edid)| unsafe { edid.assume_init() })
+            .into_ok_or_err();
+        anx.dp_start(
+            &mut internal_i2c,
+            &mut delay,
+            &edid,
+            anx7625::EdidModes::EDID_MODE_640x480_60Hz,
+        )
+        .unwrap();
     }
+
+    let mut display = stm32h7xx_hal::ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
+    let display_config = DisplayConfiguration {
+        active_width: 1280,
+        active_height: 768,
+        h_back_porch: 120,
+        h_front_porch: 32,
+        v_back_porch: 10,
+        v_front_porch: 45,
+        h_sync: 20,
+        v_sync: 12,
+
+        /// horizontal synchronization: `false`: active low, `true`: active high
+        h_sync_pol: true,
+        /// vertical synchronization: `false`: active low, `true`: active high
+        v_sync_pol: true,
+        /// data enable: `false`: active low, `true`: active high
+        not_data_enable_pol: false,
+        /// pixel_clock: `false`: active low, `true`: active high
+        pixel_clock_pol: false,
+    };
+    display.init(display_config);
+    let mut layer1 = display.split();
+    // // let framebuf = alloc::boxed::Box::new([0u8; 640 * 480]);
+    // let framebuf = [0u8; 1280 * 768];
+    let framebuf = alloc::vec::Vec::<u8>::with_capacity(1280 * 768);
+    layer1.enable(framebuf.as_ptr(), PixelFormat::L8);
+    layer1.swap_framebuffer(framebuf.as_ptr());
 
     // Temp uart terminal
     let terminal_tx = {

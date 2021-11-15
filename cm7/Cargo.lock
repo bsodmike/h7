@@ -244,6 +244,7 @@ dependencies = [
  "cortex-m-log",
  "cortex-m-rt",
  "cortex-m-semihosting",
+ "embedded-display-controller",
  "embedded-hal",
  "embedded-sdmmc",
  "lazy_static",

@@ -38,7 +38,7 @@ menu = { path = "../libs/menu" }
 #atecc608x = { path = "../../atecc608x" } # Microchip Secure Element
 
 # Display
-# embedded-display-controller = "0.1"
+embedded-display-controller = "0.1"
 anx7625 = { path = "../../anx7625-2" } # MIPI to Displayport
 
 # Logging / Semihosting
