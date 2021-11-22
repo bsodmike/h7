@@ -5,19 +5,27 @@
 extern crate alloc;
 
 use {
-    anx7625::Anx7625,
+    // anx7625::Anx7625,
     chrono::{NaiveDate, Timelike},
     core::fmt::Write,
     cortex_m::interrupt::free as interrupt_free,
     cortex_m_alloc::CortexMHeap,
-    embedded_display_controller::{
-        DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
-    },
+    // embedded_display_controller::{
+    //     DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
+    // },
     led::LED,
     stm32h7xx_hal::{
-        self as hal, adc, hal::digital::v2::OutputPin, interrupt, pac, prelude::*, rcc, rtc,
+        self as hal, adc,
+        gpio::Speed,
+        hal::digital::v2::OutputPin,
+        pac,
+        prelude::*,
+        rcc, rtc,
+        usb_hs::{UsbBus, USB1_ULPI, USB2},
     },
+    synopsys_usb_otg::UsbPeripheral,
     time::TimeSource,
+    usb_device::{class::UsbClass, prelude::*},
 };
 
 mod consts;
@@ -30,6 +38,7 @@ mod sdram;
 mod system;
 mod terminal;
 mod time;
+mod usb;
 
 // Heap allocator
 #[global_allocator]
@@ -46,8 +55,8 @@ unsafe fn main() -> ! {
 
     pac::DWT::unlock();
     cp.DWT.enable_cycle_counter();
-    cp.SCB.enable_icache();
-    cp.SCB.enable_dcache(&mut cp.CPUID);
+    // cp.SCB.enable_icache();
+    // cp.SCB.enable_dcache(&mut cp.CPUID);
 
     // Ah, yes
     // Copy the PWR CR3 power register value from a working Arduino sketch and write the value
@@ -69,8 +78,9 @@ unsafe fn main() -> ! {
         let mut ccdr = dp
             .RCC
             .constrain()
-            // .bypass_hse()
+            .bypass_hse()
             .sys_ck(480.mhz())
+            .hclk(240.mhz())
             .pll1_strategy(rcc::PllConfigStrategy::Iterative)
             .pll1_q_ck(100.mhz())
             .pll2_strategy(rcc::PllConfigStrategy::Iterative)
@@ -110,12 +120,10 @@ unsafe fn main() -> ! {
     let mut led_b = gpiok.pk7.into_push_pull_output();
     led_r.set_high().unwrap();
     led_g.set_high().unwrap();
-    led_b.set_high().unwrap();
+    led_b.set_low().unwrap();
 
     // gpiok.pk3.into_push_pull_output().set_high().unwrap(); // cable
     // gpiok.pk4.into_push_pull_output().set_low().unwrap(); // alt
-
-    led_b.set_low().unwrap();
 
     // RTC
     {
@@ -258,55 +266,57 @@ unsafe fn main() -> ! {
     }
 
     // Display config
-    {
-        let mut anx = Anx7625::new(
-            gpiok.pk2.into_push_pull_output(),
-            gpioj.pj3.into_push_pull_output(),
-            gpioj.pj6.into_push_pull_output(),
-        );
-        anx.init(&mut internal_i2c, &mut delay).unwrap();
-        anx.wait_hpd_event(&mut internal_i2c, &mut delay); // Blocks until monitor is connected
-        log::info!("Monitor connected");
-        let edid = anx
-            .dp_get_edid(&mut internal_i2c, &mut delay)
-            .map_err(|(_, edid)| unsafe { edid.assume_init() })
-            .into_ok_or_err();
-        anx.dp_start(
-            &mut internal_i2c,
-            &mut delay,
-            &edid,
-            anx7625::EdidModes::EDID_MODE_640x480_60Hz,
-        )
-        .unwrap();
-    }
+    // {
+    //     let mut anx = Anx7625::new(
+    //         gpiok.pk2.into_push_pull_output(),
+    //         gpioj.pj3.into_push_pull_output(),
+    //         gpioj.pj6.into_push_pull_output(),
+    //     );
+    //     anx.init(&mut internal_i2c, &mut delay).unwrap();
+    //     anx.wait_hpd_event(&mut internal_i2c, &mut delay); // Blocks until monitor is connected
+    //     log::info!("Monitor connected");
+    //     let edid = anx
+    //         .dp_get_edid(&mut internal_i2c, &mut delay)
+    //         .map_err(|(_, edid)| unsafe { edid.assume_init() })
+    //         .into_ok_or_err();
+    //     log::warn!("{:#?}", edid);
+    //     anx.dp_start(
+    //         &mut internal_i2c,
+    //         &mut delay,
+    //         &edid,
+    //         anx7625::EdidModes::EDID_MODE_640x480_60Hz,
+    //     )
+    //     .unwrap();
+    // }
 
-    let mut display = stm32h7xx_hal::ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
-    let display_config = DisplayConfiguration {
-        active_width: 1280,
-        active_height: 768,
-        h_back_porch: 120,
-        h_front_porch: 32,
-        v_back_porch: 10,
-        v_front_porch: 45,
-        h_sync: 20,
-        v_sync: 12,
+    // let mut display = stm32h7xx_hal::ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
+    // let display_config = DisplayConfiguration {
+    //     active_width: 1280,
+    //     active_height: 768,
+    //     h_back_porch: 120,
+    //     h_front_porch: 32,
+    //     v_back_porch: 10,
+    //     v_front_porch: 45,
+    //     h_sync: 20,
+    //     v_sync: 12,
 
-        /// horizontal synchronization: `false`: active low, `true`: active high
-        h_sync_pol: true,
-        /// vertical synchronization: `false`: active low, `true`: active high
-        v_sync_pol: true,
-        /// data enable: `false`: active low, `true`: active high
-        not_data_enable_pol: false,
-        /// pixel_clock: `false`: active low, `true`: active high
-        pixel_clock_pol: false,
-    };
-    display.init(display_config);
-    let mut layer1 = display.split();
+    //     /// horizontal synchronization: `false`: active low, `true`: active high
+    //     h_sync_pol: true,
+    //     /// vertical synchronization: `false`: active low, `true`: active high
+    //     v_sync_pol: true,
+    //     /// data enable: `false`: active low, `true`: active high
+    //     not_data_enable_pol: false,
+    //     /// pixel_clock: `false`: active low, `true`: active high
+    //     pixel_clock_pol: false,
+    // };
+    // display.init(display_config);
+    // let mut layer1 = display.split();
     // // let framebuf = alloc::boxed::Box::new([0u8; 640 * 480]);
     // let framebuf = [0u8; 1280 * 768];
-    let framebuf = alloc::vec::Vec::<u8>::with_capacity(1280 * 768);
-    layer1.enable(framebuf.as_ptr(), PixelFormat::L8);
-    layer1.swap_framebuffer(framebuf.as_ptr());
+    // let framebuf = alloc::vec::Vec::<u8>::with_capacity(1280 * 768);
+    // let framebuf = alloc::vec![0xf81fu16; 640 * 480 * 2];
+    // layer1.enable(framebuf.as_ptr(), PixelFormat::L8);
+    // layer1.swap_framebuffer(framebuf.as_ptr());
 
     // Temp uart terminal
     let terminal_tx = {
@@ -335,6 +345,85 @@ unsafe fn main() -> ! {
         terminal_tx
     };
 
+    // USB Serial
+
+    let mut _usb_otg = gpioj.pj6.into_floating_input();
+    // let mut usb_otg = gpioj.pj6.into_push_pull_output();
+    // usb_otg.set_high().unwrap();
+
+    // Reset USB Phy
+    // USB1_ULPI::enable();
+    let mut usb_phy_rst = gpioj.pj4.into_push_pull_output();
+    // usb_phy_rst.set_high().unwrap();
+    // delay.delay_ms(10u8);
+    usb_phy_rst.set_low().unwrap();
+    delay.delay_ms(10u8);
+    usb_phy_rst.set_high().unwrap();
+    delay.delay_ms(10u8);
+
+    let usb = USB1_ULPI::new(
+        dp.OTG1_HS_GLOBAL,
+        dp.OTG1_HS_DEVICE,
+        dp.OTG1_HS_PWRCLK,
+        gpioa.pa5.into_alternate_af10(),
+        gpioi.pi11.into_alternate_af10(),
+        gpioh.ph4.into_alternate_af10(),
+        gpioc.pc0.into_alternate_af10(),
+        gpioa.pa3.into_alternate_af10().set_speed(Speed::High),
+        gpiob.pb0.into_alternate_af10().set_speed(Speed::High),
+        gpiob.pb1.into_alternate_af10().set_speed(Speed::High),
+        gpiob.pb10.into_alternate_af10().set_speed(Speed::High),
+        gpiob.pb11.into_alternate_af10().set_speed(Speed::High),
+        gpiob.pb12.into_alternate_af10().set_speed(Speed::High),
+        gpiob.pb13.into_alternate_af10().set_speed(Speed::High),
+        gpiob.pb5.into_alternate_af10().set_speed(Speed::High),
+        ccdr.peripheral.USB1OTG,
+        &ccdr.clocks,
+    );
+
+    // let usb = USB2::new(
+    //     dp.OTG2_HS_GLOBAL,
+    //     dp.OTG2_HS_DEVICE,
+    //     dp.OTG2_HS_PWRCLK,
+    //     gpioa.pa11.into_alternate_af10(),
+    //     gpioa.pa12.into_alternate_af10(),
+    //     ccdr.peripheral.USB2OTG,
+    //     &ccdr.clocks,
+    // );
+
+    let usb_bus = UsbBus::new(usb, &mut usb::USB_MEMORY_1);
+
+    // let mut usb_serial =
+    //     usbd_serial::SerialPort::new_with_store(&usb_bus, [0u8; 1024], [0u8; 1024]);
+    let mut usb_serial = usbd_serial::SerialPort::new(&usb_bus);
+
+    let mut usb_dev = UsbDeviceBuilder::new(&usb_bus, UsbVidPid(0x16D0, 0x0FE9))
+        .manufacturer("Test")
+        .product("USBTest")
+        .serial_number("TEST")
+        .device_class(usbd_serial::USB_CLASS_CDC)
+        .device_sub_class(2)
+        .self_powered(false)
+        .max_power(500)
+        .max_packet_size_0(64)
+        .build();
+
+    let bus = usb_dev.bus();
+
+    let mut vid: u16 = bus.ulpi_read(0x00).unwrap_or(0) as u16;
+    vid |= (bus.ulpi_read(0x01).unwrap_or(0) as u16) << 8;
+    let mut pid: u16 = bus.ulpi_read(0x02).unwrap_or(0) as u16;
+    pid |= (bus.ulpi_read(0x03).unwrap_or(0) as u16) << 8;
+    if vid == 0 || pid == 0 {
+        panic!("USB PHY Not Responding");
+    } else {
+        log::info!(
+            "USB Initialized: PHY VID=0x{:04x} PHY PID=0x{:04x}",
+            vid,
+            pid
+        );
+    }
+
     let mut menu = menu::Menu::new(terminal_tx, terminal::MENU);
 
     let mut cmd_buf = [0u8; 64];
@@ -343,7 +432,50 @@ unsafe fn main() -> ! {
     // Main loop
     led_b.set_high().unwrap();
     let _ = write!(menu.writer(), "> ");
+
+    let mut usb_state = usb_dev.state();
+    // let mut winusb = usb::MicrosoftDescriptors;
+
     loop {
+        if usb_dev.poll(&mut [&mut usb_serial]) {
+            cortex_m::asm::nop();
+        }
+
+        let usb_new_state = usb_dev.state();
+        if usb_new_state != usb_state {
+            match usb_new_state {
+                UsbDeviceState::Default => {
+                    // usb_led.set_high().unwrap();
+                    // log::info!("USB: Default");
+                }
+                UsbDeviceState::Addressed => {
+                    // usb_led.toggle().unwrap();
+                    // log::info!("USB: Addressed");
+                }
+                UsbDeviceState::Configured => {
+                    // usb_led.toggle().unwrap();
+                    // log::info!("USB: Configured");
+                }
+                UsbDeviceState::Suspend => {
+                    // usb_led.set_high().unwrap();
+                    // log::info!("USB: Suspended");
+                }
+            }
+        }
+        usb_state = usb_new_state;
+
+        let mut usb_serial_read_buf = [0u8; 64];
+        match usb_serial.read(&mut usb_serial_read_buf) {
+            Ok(0) => {}
+            Ok(n) => {
+                log::info!("{:?}", &usb_serial_read_buf[..n]);
+            }
+            Err(usb_device::UsbError::WouldBlock) => {}
+            Err(e) => {
+                log::error!("{:?}", e);
+            }
+        }
+
         match interrupt_free(|cs| {
             terminal::TERMINAL_INPUT_FIFO
                 .borrow(cs)
@@ -358,7 +490,7 @@ unsafe fn main() -> ! {
                         // Collect up to 8 arguments
                         let mut args = [""; 8];
                         let mut args_len = 0;
-                        for i in 0..8 {
+                        for i in 0..args.len() {
                             match parts.next() {
                                 Some(s) => {
                                     args[i] = s;
@@ -402,26 +534,6 @@ unsafe fn main() -> ! {
     }
 }
 
-#[interrupt]
-fn USART1() {
-    interrupt_free(|cs| {
-        if let Some(uart) = &mut *terminal::TERMINAL_RX.borrow(cs).borrow_mut() {
-            match uart.read() {
-                Ok(w) => terminal::TERMINAL_INPUT_FIFO
-                    .borrow(cs)
-                    .borrow_mut()
-                    .push_back(w),
-                Err(e) => {}
-            }
-        }
-    });
-    unsafe {
-        (*stm32h7xx_hal::pac::GPIOK::ptr())
-            .bsrr
-            .write(|w| w.bs7().set_bit())
-    }
-}
-
 #[alloc_error_handler]
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     panic!("{:?}", layout)
@@ -440,13 +552,14 @@ unsafe fn HardFault(ef: &cortex_m_rt::ExceptionFrame) -> ! {
 #[cfg(not(feature = "semihosting"))]
 #[panic_handler]
 fn panic_handler(_panic_info: &core::panic::PanicInfo) -> ! {
+    const LIMIT: usize = 10_000_000;
+    const LIMIT_DC: usize = LIMIT / 2;
     unsafe {
         LED::Green.off();
         LED::Blue.off();
         loop {
-            let limit = 100_000_000;
-            for i in 0..limit {
-                if i < limit / 2 {
+            for i in 0..LIMIT {
+                if i < LIMIT_DC {
                     LED::Red.on()
                 } else {
                     LED::Red.off()

@@ -2,17 +2,17 @@ use {
     crate::{consts, time::TimeSource},
     chrono::{Datelike, NaiveDate, Timelike},
     core::{cell::RefCell, fmt::Write},
-    cortex_m::interrupt::{self, Mutex},
+    cortex_m::interrupt::{free as interrupt_free, Mutex},
     menu::{check_args_len, MenuError, MenuItem},
     ringfifo::RingFiFo,
-    stm32h7xx_hal::{self as hal, pac, prelude::*, serial},
+    stm32h7xx_hal::{self as hal, interrupt, pac, prelude::*, serial},
 };
 
 // pub struct TerminalWriter;
 
 // impl core::fmt::Write for TerminalWriter {
 //     fn write_str(&mut self, s: &str) -> core::fmt::Result {
-//         interrupt::free(|cs| {
+//         interrupt_free(|cs| {
 //             if let Some(tx) = &mut *TERMINAL_TX.borrow(cs).borrow_mut() {
 //                 write!(tx, "{}", s)
 //             } else {
@@ -194,7 +194,7 @@ pub const MENU: &[MenuItem<serial::Tx<pac::USART1>>] = &[
                 "Cortex-M7F",
                 width = LABEL_WIDTH
             )?;
-            match interrupt::free(|cs| crate::system::cpu_freq(cs)) {
+            match interrupt_free(|cs| crate::system::cpu_freq(cs)) {
                 Some(freq) => writeln!(
                     m.writer(),
                     "{:width$} {}MHz",
@@ -210,7 +210,7 @@ pub const MENU: &[MenuItem<serial::Tx<pac::USART1>>] = &[
                     width = LABEL_WIDTH
                 )?,
             }
-            match interrupt::free(|cs| crate::system::cpu_temp(cs)) {
+            match interrupt_free(|cs| crate::system::cpu_temp(cs)) {
                 Some(temp) => writeln!(
                     m.writer(),
                     "{:width$} {:.01}°C",
@@ -293,7 +293,7 @@ pub const MENU: &[MenuItem<serial::Tx<pac::USART1>>] = &[
         description: "Get SD Card information",
         action: |m, args| {
             check_args_len(0, args.len())?;
-            match interrupt::free(|cs| {
+            match interrupt_free(|cs| {
                 crate::sdmmc_fs::SD_CARD
                     .borrow(cs)
                     .borrow_mut()
@@ -403,7 +403,7 @@ pub const MENU: &[MenuItem<serial::Tx<pac::USART1>>] = &[
         action: |m, args| {
             check_args_len(1, args.len())?;
             match args[0] {
-                "m" | "mount" => interrupt::free(|cs| {
+                "m" | "mount" => interrupt_free(|cs| {
                     match crate::sdmmc_fs::SD_CARD
                         .borrow(cs)
                         .borrow_mut()
@@ -424,7 +424,7 @@ pub const MENU: &[MenuItem<serial::Tx<pac::USART1>>] = &[
                         }
                     }
                 }),
-                "u" | "unmount" => interrupt::free(|cs| {
+                "u" | "unmount" => interrupt_free(|cs| {
                     match crate::sdmmc_fs::SD_CARD
                         .borrow(cs)
                         .borrow_mut()
@@ -496,4 +496,21 @@ fn to_hex<const N: usize>(data: &[u8], lowercase: bool) -> ([u8; N], usize) {
         res[idx + 1] = nibble_to_char(data[i] & 0x0f, lowercase).unwrap();
     }
     (res, len * 2)
+}
+
+#[interrupt]
+fn USART1() {
+    interrupt_free(|cs| {
+        if let Some(uart) = &mut *TERMINAL_RX.borrow(cs).borrow_mut() {
+            match uart.read() {
+                Ok(w) => TERMINAL_INPUT_FIFO.borrow(cs).borrow_mut().push_back(w),
+                Err(e) => {}
+            }
+        }
+    });
+    unsafe {
+        (*stm32h7xx_hal::pac::GPIOK::ptr())
+            .bsrr
+            .write(|w| w.bs7().set_bit())
+    }
 }

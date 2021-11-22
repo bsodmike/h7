@@ -26,6 +26,7 @@ chrono = { version = "0.4", default-features = false }
 # USB
 synopsys-usb-otg = "0.2"
 usb-device = "0.2"
+usbd-serial = "0.1"
 
 # Terminal stuff
 ringfifo = { path = "../libs/ringfifo" }

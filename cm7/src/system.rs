@@ -1,6 +1,6 @@
 use {
     core::cell::RefCell,
-    cortex_m::interrupt::{self, CriticalSection, Mutex},
+    cortex_m::interrupt::{CriticalSection, Mutex},
     stm32h7xx_hal::{
         self as hal,
         adc::{self, Adc},

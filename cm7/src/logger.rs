@@ -10,7 +10,7 @@ use {
 
 lazy_static::lazy_static! {
     static ref LOGGER: Logger<Semihosting<InterruptOk, HStdout>> = Logger {
-        level: log::LevelFilter::Debug,
+        level: log::LevelFilter::Info,
         inner: semihosting::InterruptOk::<_>::stdout().expect("Get Semihosting stdout"),
     };
 }
