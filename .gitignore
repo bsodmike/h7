@@ -63,3 +63,4 @@ source/CM[47]/Debug
 
 # Libs
 libs/**/Cargo.lock
+libs/api/gen

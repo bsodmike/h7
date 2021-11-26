@@ -34,11 +34,8 @@ usbd-serial = "0.1"
 ringfifo = { path = "../libs/ringfifo" }
 menu = { path = "../libs/menu" }
 
-# PMIC
-# mc32pf1550 = { path = "../../ mc32pf1550" }
-
-# Crypto
-#atecc608x = { path = "../../atecc608x" } # Microchip Secure Element
+# Program API
+api = { path = "../libs/api" }
 
 # Display
 embedded-display-controller = "0.1"

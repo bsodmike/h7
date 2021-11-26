@@ -52,6 +52,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "api"
+version = "0.1.0"
+dependencies = [
+ "cbindgen",
+]
+
+[[package]]
 name = "as-slice"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -239,6 +246,7 @@ version = "0.1.0"
 dependencies = [
  "alloc-cortex-m",
  "anx7625",
+ "api",
  "chrono",
  "cortex-m 0.7.3",
  "cortex-m-log",

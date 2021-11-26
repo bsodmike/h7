@@ -42,3 +42,11 @@
 // let framebuf = [0u8; 1280 * 768];
 // layer1.enable(framebuf.as_ptr(), PixelFormat::L8);
 // layer1.swap_framebuffer(framebuf.as_ptr());
+
+fn rgb888_to_rgb565(r: u8, g: u8, b: u8) -> u16 {
+    let rgb888 = u32::from_be_bytes([0, r, g, b]);
+    let r16 = ((rgb888 & 0x000000F8) >> 3) as u16;
+    let g16 = ((rgb888 & 0x0000FC00) >> 5) as u16;
+    let b16 = ((rgb888 & 0x00F80000) >> 8) as u16;
+    r16 | g16 | b16
+}
