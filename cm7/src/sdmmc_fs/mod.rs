@@ -94,16 +94,15 @@ impl SdmmcFs {
         unreachable!()
     }
 
+    /// Useless until https://github.com/stm32-rs/stm32h7xx-hal/issues/145 is fixed
     pub fn unmount(&mut self) -> Result<(), SdmmcFsError> {
         match &mut self.state {
-            SdmmcState::Controller(controller) => {
+            SdmmcState::Controller(_) => {
                 if let SdmmcState::Controller(c) =
                     core::mem::replace(&mut self.state, SdmmcState::MidSwap)
                 {
-                    // Awaiting embedded-sdmmc-rs release 0.3.1
-                    // self.state = SdmmcState::Sdmmc(controller.free().0.free());
-                    // Ok(())
-                    todo!()
+                    self.state = SdmmcState::Sdmmc(c.free().0.free());
+                    Ok(())
                 } else {
                     unreachable!()
                 }

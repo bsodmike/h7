@@ -16,22 +16,22 @@ use {
     led::LED,
     stm32h7xx_hal::{
         self as hal, adc,
-        gpio::Speed,
         hal::digital::v2::OutputPin,
         pac,
         prelude::*,
         rcc, rtc,
-        usb_hs::{UsbBus, USB1_ULPI, USB2},
+        usb_hs::{UsbBus, USB1_ULPI},
     },
-    synopsys_usb_otg::UsbPeripheral,
     time::TimeSource,
-    usb_device::{class::UsbClass, prelude::*},
+    usb_device::prelude::*,
 };
 
 mod consts;
 mod led;
 #[cfg(feature = "semihosting")]
 mod logger;
+#[cfg(not(feature = "semihosting"))]
+mod panic;
 mod pmic;
 mod sdmmc_fs;
 mod sdram;
@@ -55,8 +55,8 @@ unsafe fn main() -> ! {
 
     pac::DWT::unlock();
     cp.DWT.enable_cycle_counter();
-    // cp.SCB.enable_icache();
-    // cp.SCB.enable_dcache(&mut cp.CPUID);
+    cp.SCB.enable_icache();
+    cp.SCB.enable_dcache(&mut cp.CPUID);
 
     // Ah, yes
     // Copy the PWR CR3 power register value from a working Arduino sketch and write the value
@@ -82,7 +82,7 @@ unsafe fn main() -> ! {
             .sys_ck(480.mhz())
             .hclk(240.mhz())
             .pll1_strategy(rcc::PllConfigStrategy::Iterative)
-            .pll1_q_ck(100.mhz())
+            .pll1_q_ck(240.mhz())
             .pll2_strategy(rcc::PllConfigStrategy::Iterative)
             .pll2_p_ck(100.mhz())
             .pll3_strategy(rcc::PllConfigStrategy::Iterative)
@@ -318,8 +318,8 @@ unsafe fn main() -> ! {
     // layer1.enable(framebuf.as_ptr(), PixelFormat::L8);
     // layer1.swap_framebuffer(framebuf.as_ptr());
 
-    // Temp uart terminal
-    let terminal_tx = {
+    // UART1 terminal
+    {
         let mut uart = dp
             .USART1
             .serial(
@@ -327,7 +327,7 @@ unsafe fn main() -> ! {
                     gpioa.pa9.into_alternate_af7(),
                     gpioa.pa10.into_alternate_af7(),
                 ),
-                115_200.bps(),
+                terminal::UART_TERMINAL_BAUD.bps(),
                 ccdr.peripheral.USART1,
                 &ccdr.clocks,
             )
@@ -339,68 +339,61 @@ unsafe fn main() -> ! {
 
         let (terminal_tx, terminal_rx) = uart.split();
         interrupt_free(|cs| {
-            // terminal::TERMINAL_TX.borrow(cs).replace(Some(terminal_tx));
-            terminal::TERMINAL_RX.borrow(cs).replace(Some(terminal_rx));
+            terminal::UART_TERMINAL_TX
+                .borrow(cs)
+                .replace(Some(terminal_tx));
+            terminal::UART_TERMINAL_RX
+                .borrow(cs)
+                .replace(Some(terminal_rx));
         });
-        terminal_tx
     };
 
     // USB Serial
+    {
+        // Set OTG pin floating
+        let mut _usb_otg = gpioj.pj6.into_floating_input();
 
-    let mut _usb_otg = gpioj.pj6.into_floating_input();
-    // let mut usb_otg = gpioj.pj6.into_push_pull_output();
-    // usb_otg.set_high().unwrap();
+        // Reset USB Phy
+        let mut usb_phy_rst = gpioj.pj4.into_push_pull_output();
+        usb_phy_rst.set_low().unwrap();
+        delay.delay_ms(10u8);
+        usb_phy_rst.set_high().unwrap();
+        delay.delay_ms(10u8);
 
-    // Reset USB Phy
-    // USB1_ULPI::enable();
-    let mut usb_phy_rst = gpioj.pj4.into_push_pull_output();
-    // usb_phy_rst.set_high().unwrap();
-    // delay.delay_ms(10u8);
-    usb_phy_rst.set_low().unwrap();
-    delay.delay_ms(10u8);
-    usb_phy_rst.set_high().unwrap();
-    delay.delay_ms(10u8);
+        // Enable USB OTG_HS interrupt
+        cortex_m::peripheral::NVIC::unmask(pac::Interrupt::OTG_HS);
 
-    let usb = USB1_ULPI::new(
-        dp.OTG1_HS_GLOBAL,
-        dp.OTG1_HS_DEVICE,
-        dp.OTG1_HS_PWRCLK,
-        gpioa.pa5.into_alternate_af10(),
-        gpioi.pi11.into_alternate_af10(),
-        gpioh.ph4.into_alternate_af10(),
-        gpioc.pc0.into_alternate_af10(),
-        gpioa.pa3.into_alternate_af10().set_speed(Speed::High),
-        gpiob.pb0.into_alternate_af10().set_speed(Speed::High),
-        gpiob.pb1.into_alternate_af10().set_speed(Speed::High),
-        gpiob.pb10.into_alternate_af10().set_speed(Speed::High),
-        gpiob.pb11.into_alternate_af10().set_speed(Speed::High),
-        gpiob.pb12.into_alternate_af10().set_speed(Speed::High),
-        gpiob.pb13.into_alternate_af10().set_speed(Speed::High),
-        gpiob.pb5.into_alternate_af10().set_speed(Speed::High),
-        ccdr.peripheral.USB1OTG,
-        &ccdr.clocks,
-    );
+        let usb = USB1_ULPI::new(
+            dp.OTG1_HS_GLOBAL,
+            dp.OTG1_HS_DEVICE,
+            dp.OTG1_HS_PWRCLK,
+            gpioa.pa5.into_alternate_af10(), //.set_speed(Speed::VeryHigh),
+            gpioi.pi11.into_alternate_af10(), //.set_speed(Speed::VeryHigh),
+            gpioh.ph4.into_alternate_af10(), //.set_speed(Speed::VeryHigh),
+            gpioc.pc0.into_alternate_af10(), //.set_speed(Speed::VeryHigh),
+            gpioa.pa3.into_alternate_af10(), //.set_speed(Speed::VeryHigh),
+            gpiob.pb0.into_alternate_af10(), //.set_speed(Speed::VeryHigh),
+            gpiob.pb1.into_alternate_af10(), //.set_speed(Speed::VeryHigh),
+            gpiob.pb10.into_alternate_af10(), //.set_speed(Speed::VeryHigh),
+            gpiob.pb11.into_alternate_af10(), //.set_speed(Speed::VeryHigh),
+            gpiob.pb12.into_alternate_af10(), //.set_speed(Speed::VeryHigh),
+            gpiob.pb13.into_alternate_af10(), //.set_speed(Speed::VeryHigh),
+            gpiob.pb5.into_alternate_af10(), //.set_speed(Speed::VeryHigh),
+            ccdr.peripheral.USB1OTG,
+            &ccdr.clocks,
+        );
 
-    // let usb = USB2::new(
-    //     dp.OTG2_HS_GLOBAL,
-    //     dp.OTG2_HS_DEVICE,
-    //     dp.OTG2_HS_PWRCLK,
-    //     gpioa.pa11.into_alternate_af10(),
-    //     gpioa.pa12.into_alternate_af10(),
-    //     ccdr.peripheral.USB2OTG,
-    //     &ccdr.clocks,
-    // );
+        usb::USB_BUS_ALLOCATOR = Some(UsbBus::new(usb, &mut usb::USB_MEMORY_1));
 
-    let usb_bus = UsbBus::new(usb, &mut usb::USB_MEMORY_1);
+        let usb_serial = usbd_serial::SerialPort::new(usb::USB_BUS_ALLOCATOR.as_ref().unwrap());
 
-    // let mut usb_serial =
-    //     usbd_serial::SerialPort::new_with_store(&usb_bus, [0u8; 1024], [0u8; 1024]);
-    let mut usb_serial = usbd_serial::SerialPort::new(&usb_bus);
-
-    let mut usb_dev = UsbDeviceBuilder::new(&usb_bus, UsbVidPid(0x16D0, 0x0FE9))
-        .manufacturer("Test")
-        .product("USBTest")
-        .serial_number("TEST")
+        let usb_dev = UsbDeviceBuilder::new(
+            usb::USB_BUS_ALLOCATOR.as_ref().unwrap(),
+            UsbVidPid(usb::VID, usb::PID),
+        )
+        .manufacturer("Arduino")
+        .product("H7 Embedded Computer")
+        .serial_number("dev-01")
         .device_class(usbd_serial::USB_CLASS_CDC)
         .device_sub_class(2)
         .self_powered(false)
@@ -408,23 +401,13 @@ unsafe fn main() -> ! {
         .max_packet_size_0(64)
         .build();
 
-    let bus = usb_dev.bus();
-
-    let mut vid: u16 = bus.ulpi_read(0x00).unwrap_or(0) as u16;
-    vid |= (bus.ulpi_read(0x01).unwrap_or(0) as u16) << 8;
-    let mut pid: u16 = bus.ulpi_read(0x02).unwrap_or(0) as u16;
-    pid |= (bus.ulpi_read(0x03).unwrap_or(0) as u16) << 8;
-    if vid == 0 || pid == 0 {
-        panic!("USB PHY Not Responding");
-    } else {
-        log::info!(
-            "USB Initialized: PHY VID=0x{:04x} PHY PID=0x{:04x}",
-            vid,
-            pid
-        );
+        interrupt_free(|cs| {
+            usb::USB_DEVICE.borrow(cs).replace(Some(usb_dev));
+            usb::SERIAL_PORT.borrow(cs).replace(Some(usb_serial));
+        });
     }
 
-    let mut menu = menu::Menu::new(terminal_tx, terminal::MENU);
+    let mut menu = menu::Menu::new(terminal::TerminalWriter, terminal::MENU);
 
     let mut cmd_buf = [0u8; 64];
     let mut cmd_buf_len: usize = 0;
@@ -433,49 +416,7 @@ unsafe fn main() -> ! {
     led_b.set_high().unwrap();
     let _ = write!(menu.writer(), "> ");
 
-    let mut usb_state = usb_dev.state();
-    // let mut winusb = usb::MicrosoftDescriptors;
-
     loop {
-        if usb_dev.poll(&mut [&mut usb_serial]) {
-            cortex_m::asm::nop();
-        }
-
-        let usb_new_state = usb_dev.state();
-        if usb_new_state != usb_state {
-            match usb_new_state {
-                UsbDeviceState::Default => {
-                    // usb_led.set_high().unwrap();
-                    // log::info!("USB: Default");
-                }
-                UsbDeviceState::Addressed => {
-                    // usb_led.toggle().unwrap();
-                    // log::info!("USB: Addressed");
-                }
-                UsbDeviceState::Configured => {
-                    // usb_led.toggle().unwrap();
-                    // log::info!("USB: Configured");
-                }
-                UsbDeviceState::Suspend => {
-                    // usb_led.set_high().unwrap();
-                    // log::info!("USB: Suspended");
-                }
-            }
-        }
-        usb_state = usb_new_state;
-
-        let mut usb_serial_read_buf = [0u8; 64];
-        match usb_serial.read(&mut usb_serial_read_buf) {
-            Ok(0) => {}
-            Ok(n) => {
-                log::info!("{:?}", &usb_serial_read_buf[..n]);
-            }
-            Err(usb_device::UsbError::WouldBlock) => {}
-            Err(e) => {
-                log::error!("{:?}", e);
-            }
-        }
-
         match interrupt_free(|cs| {
             terminal::TERMINAL_INPUT_FIFO
                 .borrow(cs)
@@ -547,24 +488,4 @@ unsafe fn DefaultHandler(irqn: i16) -> ! {
 #[cortex_m_rt::exception]
 unsafe fn HardFault(ef: &cortex_m_rt::ExceptionFrame) -> ! {
     panic!("HardFault at {:?}", ef);
-}
-
-#[cfg(not(feature = "semihosting"))]
-#[panic_handler]
-fn panic_handler(_panic_info: &core::panic::PanicInfo) -> ! {
-    const LIMIT: usize = 10_000_000;
-    const LIMIT_DC: usize = LIMIT / 2;
-    unsafe {
-        LED::Green.off();
-        LED::Blue.off();
-        loop {
-            for i in 0..LIMIT {
-                if i < LIMIT_DC {
-                    LED::Red.on()
-                } else {
-                    LED::Red.off()
-                }
-            }
-        }
-    };
 }

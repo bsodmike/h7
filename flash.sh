@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -e
 
 #boot_elf="/home/$USER/.cargo-target/thumbv7em-none-eabihf/debug/cm7"
 boot_elf=""
@@ -31,6 +32,7 @@ openocd-command() {
     done
     cat <<__CMD__ | tr '\n' ';'
         telnet_port disabled
+        reset_config none separate
         init
         reset init
         halt

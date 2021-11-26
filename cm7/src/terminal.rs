@@ -1,5 +1,5 @@
 use {
-    crate::{consts, time::TimeSource},
+    crate::{consts, time::TimeSource, usb},
     chrono::{Datelike, NaiveDate, Timelike},
     core::{cell::RefCell, fmt::Write},
     cortex_m::interrupt::{free as interrupt_free, Mutex},
@@ -8,19 +8,21 @@ use {
     stm32h7xx_hal::{self as hal, interrupt, pac, prelude::*, serial},
 };
 
-// pub struct TerminalWriter;
+pub struct TerminalWriter;
 
-// impl core::fmt::Write for TerminalWriter {
-//     fn write_str(&mut self, s: &str) -> core::fmt::Result {
-//         interrupt_free(|cs| {
-//             if let Some(tx) = &mut *TERMINAL_TX.borrow(cs).borrow_mut() {
-//                 write!(tx, "{}", s)
-//             } else {
-//                 Err(core::fmt::Error)
-//             }
-//         })
-//     }
-// }
+impl core::fmt::Write for TerminalWriter {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        interrupt_free(|cs| {
+            if let Some(tx) = &mut *UART_TERMINAL_TX.borrow(cs).borrow_mut() {
+                write!(tx, "{}", s)?
+            }
+            if let Some(tx) = &mut *usb::SERIAL_PORT.borrow(cs).borrow_mut() {
+                write!(usb::SerialWriter(tx), "{}", s)?
+            }
+            Ok(())
+        })
+    }
+}
 
 const HEADER_WIDTH: usize = 52;
 const LABEL_WIDTH: usize = 27;
@@ -28,12 +30,13 @@ const LABEL_WIDTH: usize = 27;
 // Terminal
 pub static TERMINAL_INPUT_FIFO: Mutex<RefCell<RingFiFo<u8, 52>>> =
     Mutex::new(RefCell::new(RingFiFo::new()));
-pub static TERMINAL_RX: Mutex<RefCell<Option<serial::Rx<pac::USART1>>>> =
+pub static UART_TERMINAL_RX: Mutex<RefCell<Option<serial::Rx<pac::USART1>>>> =
     Mutex::new(RefCell::new(None));
-// pub static TERMINAL_TX: Mutex<RefCell<Option<serial::Tx<pac::USART1>>>> =
-//     Mutex::new(RefCell::new(None));
+pub static UART_TERMINAL_TX: Mutex<RefCell<Option<serial::Tx<pac::USART1>>>> =
+    Mutex::new(RefCell::new(None));
+pub const UART_TERMINAL_BAUD: u32 = 115_200;
 
-pub const MENU: &[MenuItem<serial::Tx<pac::USART1>>] = &[
+pub const MENU: &[MenuItem<TerminalWriter>] = &[
     MenuItem::Command {
         name: "help",
         help: "help <program> - Show help about a program",
@@ -51,7 +54,8 @@ pub const MENU: &[MenuItem<serial::Tx<pac::USART1>>] = &[
                     }
                     MenuItem::Alias { alias, command } => {
                         if *alias == program {
-                            write!(m.writer(), "{} aliased to {}", alias, command)?;
+                            writeln!(m.writer(), "'{}' aliased to '{}'", alias, command)?;
+                            m.run("help", &[*command])?;
                             return Ok(());
                         }
                     }
@@ -328,8 +332,8 @@ pub const MENU: &[MenuItem<serial::Tx<pac::USART1>>] = &[
     },
     MenuItem::Command {
         name: "osinfo",
-        help: "osinfo - Get os information",
-        description: "Get os information",
+        help: "osinfo - Get OS information",
+        description: "Get OS information",
         action: |m, args| {
             check_args_len(0, args.len())?;
             writeln!(
@@ -337,6 +341,13 @@ pub const MENU: &[MenuItem<serial::Tx<pac::USART1>>] = &[
                 "{:width$} {}",
                 "Version",
                 consts::GIT_DESCRIBE,
+                width = LABEL_WIDTH
+            )?;
+            writeln!(
+                m.writer(),
+                "{:width$} {}",
+                "Debug",
+                cfg!(debug_assertions),
                 width = LABEL_WIDTH
             )?;
             let dt = NaiveDate::from_ymd(
@@ -408,6 +419,7 @@ pub const MENU: &[MenuItem<serial::Tx<pac::USART1>>] = &[
                         .borrow(cs)
                         .borrow_mut()
                         .as_mut()
+                        // TODO: Inc to 50MHz?
                         .map(|sdfs| sdfs.mount::<hal::delay::Delay, _>(20.mhz(), 5, None))
                     {
                         Some(Ok(_)) => {
@@ -501,16 +513,10 @@ fn to_hex<const N: usize>(data: &[u8], lowercase: bool) -> ([u8; N], usize) {
 #[interrupt]
 fn USART1() {
     interrupt_free(|cs| {
-        if let Some(uart) = &mut *TERMINAL_RX.borrow(cs).borrow_mut() {
-            match uart.read() {
-                Ok(w) => TERMINAL_INPUT_FIFO.borrow(cs).borrow_mut().push_back(w),
-                Err(e) => {}
+        if let Some(uart) = &mut *UART_TERMINAL_RX.borrow(cs).borrow_mut() {
+            if let Ok(w) = uart.read() {
+                TERMINAL_INPUT_FIFO.borrow(cs).borrow_mut().push_back(w)
             }
         }
     });
-    unsafe {
-        (*stm32h7xx_hal::pac::GPIOK::ptr())
-            .bsrr
-            .write(|w| w.bs7().set_bit())
-    }
 }

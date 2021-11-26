@@ -10,7 +10,8 @@ build = "build.rs"
 # Core
 cortex-m = "0.7"
 cortex-m-rt = "0.7"
-stm32h7xx-hal = { git = "https://github.com/stm32-rs/stm32h7xx-hal", features = [ "stm32h747cm7", "unproven", "rt", "fmc", "sdmmc-fatfs", "ltdc", "rtc", "crc", "usb_hs" ] }
+# stm32h7xx-hal = { git = "https://github.com/stm32-rs/stm32h7xx-hal", features = [ "stm32h747cm7", "unproven", "rt", "fmc", "sdmmc-fatfs", "ltdc", "rtc", "crc", "usb_hs" ] }
+stm32h7xx-hal = { path = "../../stm32h7xx-hal", features = [ "stm32h747cm7", "unproven", "rt", "fmc", "sdmmc-fatfs", "ltdc", "rtc", "crc", "usb_hs" ] }
 embedded-hal = { version = "0.2", features = [ "unproven" ] }
 
 # Alloc, External SDRAM
@@ -18,7 +19,8 @@ cortex-m-alloc = { version = "0.4", package = "alloc-cortex-m" }
 stm32-fmc = "0.2"
 
 # SD Card / FAT
-embedded-sdmmc = "0.3"
+#embedded-sdmmc = "0.3"
+embedded-sdmmc = { git = "https://github.com/rust-embedded-community/embedded-sdmmc-rs" }
 
 # Time
 chrono = { version = "0.4", default-features = false }
