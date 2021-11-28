@@ -2,12 +2,13 @@
 
 ## Todo
 
-### Hardware/HAL
+### Hardware/HAL/Driver
 
 * [x] External SDRAM
 * [x] Allocator using external SDRAM
 * [ ] Displayport output
 * [ ] USB Keyboard
+* [x] USB Serial communication
 * [ ] Microchip/NXP Crypto chip. NXP SE050C2 does not have a rust driver. Microchip [ATECC608A](https://crates.io/crates/Rusty_CryptoAuthLib) does.
 * [x] SDMMC
 * [ ] Multi-Core. Move IO to CM4 and reserve CM7 for applications.
@@ -17,6 +18,7 @@
 
 ### Software
 
+* [ ] Interrupt prio
 * [ ] Add release/debug info to osinfo.
 * [ ] CPU Temp ADC interrupt.
 * [ ] Watchdog info in mcuinfo.

@@ -26,6 +26,7 @@ pub struct SerialWriter<'s>(
 impl<'s> core::fmt::Write for SerialWriter<'s> {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         self.0
+            // TODO: Loop until s.len() matched bytes written
             .write(s.as_bytes())
             .map(|_| ())
             .map_err(|_| core::fmt::Error)

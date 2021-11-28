@@ -2,6 +2,10 @@
 #![feature(maybe_uninit_uninit_array)]
 #![feature(maybe_uninit_array_assume_init)]
 
+// TODO:
+// * Make separate library
+// * Implement: iterator stuff, make contiguous
+
 use core::mem::MaybeUninit;
 
 #[derive(Debug)]

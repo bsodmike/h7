@@ -28,7 +28,7 @@ const HEADER_WIDTH: usize = 52;
 const LABEL_WIDTH: usize = 27;
 
 // Terminal
-pub static TERMINAL_INPUT_FIFO: Mutex<RefCell<RingFiFo<u8, 52>>> =
+pub static TERMINAL_INPUT_FIFO: Mutex<RefCell<RingFiFo<u8, 64>>> =
     Mutex::new(RefCell::new(RingFiFo::new()));
 pub static UART_TERMINAL_RX: Mutex<RefCell<Option<serial::Rx<pac::USART1>>>> =
     Mutex::new(RefCell::new(None));
