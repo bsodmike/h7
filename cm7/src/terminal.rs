@@ -24,8 +24,20 @@ impl core::fmt::Write for TerminalWriter {
     }
 }
 
-const HEADER_WIDTH: usize = 52;
-const LABEL_WIDTH: usize = 27;
+macro_rules! mem {
+    ($w:expr, $method:ident, $type:ty) => {
+        writeln!(
+            $w,
+            "mem::{method}::<{type}>() = {val}",
+            method = stringify!($method),
+            r#type = stringify!($type),
+            val = core::mem::align_of::<$type>()
+        )
+    };
+}
+
+const HEADER_WIDTH: usize = 48;
+const LABEL_WIDTH: usize = 20;
 
 // Terminal
 pub static TERMINAL_INPUT_FIFO: Mutex<RefCell<RingFiFo<u8, 64>>> =
@@ -159,252 +171,194 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
         },
     },
     MenuItem::Command {
-        name: "mcuinfo",
-        help: "mcuinfo - Get MCU information",
-        description: "Get MCU information",
-        action: |m, args| {
-            check_args_len(0, args.len())?;
-            writeln!(
-                m.writer(),
-                "{:width$} {}",
-                "MCU",
-                "STM32H747",
-                width = LABEL_WIDTH
-            )?;
-            // Uid is 12 byts, hex string will be 24.
-            let (id, id_len) = to_hex::<24>(hal::signature::Uid::read(), false);
-            // SAFETY: to_hex always returns valid hex
-            let id_str = unsafe { core::str::from_utf8_unchecked(&id[0..id_len]) };
-            writeln!(
-                m.writer(),
-                "{:width$} {}",
-                "Unique ID",
-                id_str,
-                width = LABEL_WIDTH
-            )?;
-            Ok(())
-        },
-    },
-    MenuItem::Command {
-        name: "cpuinfo",
-        help: "cpuinfo - Get CPU information",
-        description: "Get CPU information",
-        action: |m, args| {
-            check_args_len(0, args.len())?;
-            writeln!(
-                m.writer(),
-                "{:width$} {}",
-                "Core",
-                "Cortex-M7F",
-                width = LABEL_WIDTH
-            )?;
-            match interrupt_free(|cs| crate::system::cpu_freq(cs)) {
-                Some(freq) => writeln!(
-                    m.writer(),
-                    "{:width$} {}MHz",
-                    "Core frequency",
-                    freq.0 / 1_000_000,
-                    width = LABEL_WIDTH
-                )?,
-                None => writeln!(
+        name: "info",
+        help: "info - Query information from the system",
+        description: "Query information from the system",
+        action: |m, args| match args {
+            &["mcu"] => {
+                writeln!(
                     m.writer(),
                     "{:width$} {}",
-                    "Core frequency",
-                    "unavailable",
+                    "MCU",
+                    "STM32H747",
                     width = LABEL_WIDTH
-                )?,
-            }
-            match interrupt_free(|cs| crate::system::cpu_temp(cs)) {
-                Some(temp) => writeln!(
-                    m.writer(),
-                    "{:width$} {:.01}°C",
-                    "Core temperature",
-                    temp,
-                    width = LABEL_WIDTH
-                )?,
-                None => writeln!(
+                )?;
+                // Uid is 12 byts, hex string will be 24.
+                let (id, id_len) = to_hex::<24>(hal::signature::Uid::read(), false);
+                // SAFETY: to_hex always returns valid hex
+                let id_str = unsafe { core::str::from_utf8_unchecked(&id[0..id_len]) };
+                writeln!(
                     m.writer(),
                     "{:width$} {}",
-                    "Core temperature",
-                    "unavailable",
+                    "Unique ID",
+                    id_str,
                     width = LABEL_WIDTH
-                )?,
+                )?;
+                Ok(())
             }
-            writeln!(
-                m.writer(),
-                "{:width$} {}",
-                "Cycle count",
-                cortex_m::peripheral::DWT::get_cycle_count(),
-                width = LABEL_WIDTH
-            )?;
-            writeln!(
-                m.writer(),
-                "{:width$} {}",
-                "Instruction cache enabled",
-                cortex_m::peripheral::SCB::icache_enabled(),
-                width = LABEL_WIDTH
-            )?;
-            writeln!(
-                m.writer(),
-                "{:width$} {}",
-                "Data cache enabled",
-                cortex_m::peripheral::SCB::dcache_enabled(),
-                width = LABEL_WIDTH
-            )?;
-            Ok(())
-        },
-    },
-    MenuItem::Command {
-        name: "meminfo",
-        help: "meminfo - Get memory information",
-        description: "Get memory information",
-        action: |m, args| {
-            check_args_len(0, args.len())?;
-            writeln!(
-                m.writer(),
-                "{:width$} {}KiB",
-                "Internal RAM",
-                crate::system::ram_size() / 1024,
-                width = LABEL_WIDTH
-            )?;
-            writeln!(
-                m.writer(),
-                "{:width$} {}KiB",
-                "Internal FLASH",
-                crate::system::flash_size() / 1024,
-                width = LABEL_WIDTH
-            )?;
-            writeln!(
-                m.writer(),
-                "{:width$} {}KiB",
-                "External SDRAM",
-                crate::sdram::SDRAM_SIZE / 1024,
-                width = LABEL_WIDTH
-            )?;
-            writeln!(
-                m.writer(),
-                "{:width$} {}",
-                "External FLASH",
-                "unavailable",
-                width = LABEL_WIDTH
-            )?;
-            Ok(())
-        },
-    },
-    MenuItem::Command {
-        name: "sdcardinfo",
-        help: "sdcardinfo - Get SD Card information",
-        description: "Get SD Card information",
-        action: |m, args| {
-            check_args_len(0, args.len())?;
-            match interrupt_free(|cs| {
-                crate::sdmmc_fs::SD_CARD
-                    .borrow(cs)
-                    .borrow_mut()
-                    .as_mut()
-                    .map(|sdfs| (sdfs.is_mounted(), sdfs.card_size()))
-            }) {
-                Some((mounted, size)) => {
-                    writeln!(
+            &["cpu"] => {
+                writeln!(
+                    m.writer(),
+                    "{:width$} {}",
+                    "Core",
+                    "Cortex-M7F",
+                    width = LABEL_WIDTH
+                )?;
+                match interrupt_free(|cs| crate::system::cpu_freq(cs)) {
+                    Some(freq) => writeln!(
+                        m.writer(),
+                        "{:width$} {}MHz",
+                        "Core frequency",
+                        freq.0 / 1_000_000,
+                        width = LABEL_WIDTH
+                    )?,
+                    None => writeln!(
                         m.writer(),
                         "{:width$} {}",
-                        "SD Card mounted",
-                        mounted,
+                        "Core frequency",
+                        "unavailable",
                         width = LABEL_WIDTH
-                    )?;
-                    match size {
-                        Ok(bytes) => writeln!(
-                            m.writer(),
-                            "{:width$} {}GiB",
-                            "Size",
-                            bytes as f64 / (1024 * 1024 * 1024) as f64,
-                            width = LABEL_WIDTH
-                        ),
-                        Err(e) => {
-                            writeln!(m.writer(), "{:width$} {}", "Size", e, width = LABEL_WIDTH)
-                        }
-                    }
+                    )?,
                 }
-                None => writeln!(m.writer(), "SD Card controller not initialized"),
-            }?;
-            Ok(())
-        },
-    },
-    MenuItem::Command {
-        name: "osinfo",
-        help: "osinfo - Get OS information",
-        description: "Get OS information",
-        action: |m, args| {
-            check_args_len(0, args.len())?;
-            writeln!(
-                m.writer(),
-                "{:width$} {}",
-                "Version",
-                consts::GIT_DESCRIBE,
-                width = LABEL_WIDTH
-            )?;
-            writeln!(
-                m.writer(),
-                "{:width$} {}",
-                "Debug",
-                cfg!(debug_assertions),
-                width = LABEL_WIDTH
-            )?;
-            let dt = NaiveDate::from_ymd(
-                consts::COMPILE_TIME_YEAR,
-                consts::COMPILE_TIME_MONTH,
-                consts::COMPILE_TIME_DAY,
-            )
-            .and_hms(
-                consts::COMPILE_TIME_HOUR,
-                consts::COMPILE_TIME_MINUTE,
-                consts::COMPILE_TIME_SECOND,
-            );
-            writeln!(
-                m.writer(),
-                "{:width$} {weekday} {month} {day} {hh:02}:{mm:02}:{ss:02} {year}",
-                "Compiled",
-                weekday = dt.weekday(),
-                month = month_to_str(dt.month()),
-                day = dt.day(),
-                hh = dt.hour(),
-                mm = dt.minute(),
-                ss = dt.second(),
-                year = dt.year(),
-                width = LABEL_WIDTH
-            )?;
-            Ok(())
-        },
-    },
-    MenuItem::Command {
-        name: "sysinfo",
-        help: "sysinfo - Get system information",
-        description: "Get system information",
-        action: |m, args| {
-            check_args_len(0, args.len())?;
-            writeln!(m.writer(), "{:-^-width$}", " MCU ", width = HEADER_WIDTH)?;
-            m.run("mcuinfo", args)?;
-            writeln!(m.writer(), "{:-^-width$}", " CPU ", width = HEADER_WIDTH)?;
-            m.run("cpuinfo", args)?;
-            writeln!(m.writer(), "{:-^-width$}", " Memory ", width = HEADER_WIDTH)?;
-            m.run("meminfo", args)?;
-            writeln!(
-                m.writer(),
-                "{:-^-width$}",
-                " SD Card ",
-                width = HEADER_WIDTH
-            )?;
-            m.run("sdcardinfo", args)?;
-            writeln!(m.writer(), "{:-^-width$}", " OS ", width = HEADER_WIDTH)?;
-            m.run("osinfo", args)?;
-            writeln!(
-                m.writer(),
-                "{:-^-width$}",
-                " Date/Time ",
-                width = HEADER_WIDTH
-            )?;
-            m.run("date", args)?;
-            Ok(())
+                match interrupt_free(|cs| crate::system::cpu_temp(cs)) {
+                    Some(temp) => writeln!(
+                        m.writer(),
+                        "{:width$} {:.01}°C",
+                        "Core temperature",
+                        temp,
+                        width = LABEL_WIDTH
+                    )?,
+                    None => writeln!(
+                        m.writer(),
+                        "{:width$} {}",
+                        "Core temperature",
+                        "unavailable",
+                        width = LABEL_WIDTH
+                    )?,
+                }
+                writeln!(
+                    m.writer(),
+                    "{:width$} {}",
+                    "Cycle count",
+                    cortex_m::peripheral::DWT::cycle_count(),
+                    width = LABEL_WIDTH
+                )?;
+                writeln!(
+                    m.writer(),
+                    "{:width$} {}",
+                    "Instruction cache",
+                    bool_to_enabled_disabled_str(cortex_m::peripheral::SCB::icache_enabled()),
+                    width = LABEL_WIDTH
+                )?;
+                writeln!(
+                    m.writer(),
+                    "{:width$} {}",
+                    "Data cache",
+                    bool_to_enabled_disabled_str(cortex_m::peripheral::SCB::dcache_enabled()),
+                    width = LABEL_WIDTH
+                )?;
+                Ok(())
+            }
+            &["mem"] => {
+                writeln!(
+                    m.writer(),
+                    "{:width$} {}KiB",
+                    "Internal RAM",
+                    crate::system::ram_size() / 1024,
+                    width = LABEL_WIDTH
+                )?;
+                writeln!(
+                    m.writer(),
+                    "{:width$} {}KiB",
+                    "Internal FLASH",
+                    crate::system::flash_size() / 1024,
+                    width = LABEL_WIDTH
+                )?;
+                writeln!(
+                    m.writer(),
+                    "{:width$} {}KiB",
+                    "External SDRAM",
+                    crate::mem::sdram::SDRAM_SIZE / 1024,
+                    width = LABEL_WIDTH
+                )?;
+                writeln!(
+                    m.writer(),
+                    "{:width$} {}KiB",
+                    "External FLASH",
+                    crate::mem::qspi_fs::QSPI_FLASH_SIZE / 1024,
+                    width = LABEL_WIDTH
+                )?;
+                Ok(())
+            }
+            &["os"] => {
+                writeln!(
+                    m.writer(),
+                    "{:width$} {}",
+                    "Version",
+                    consts::GIT_DESCRIBE,
+                    width = LABEL_WIDTH
+                )?;
+                writeln!(
+                    m.writer(),
+                    "{:width$} {}",
+                    "Debug",
+                    cfg!(debug_assertions),
+                    width = LABEL_WIDTH
+                )?;
+                let dt = NaiveDate::from_ymd(
+                    consts::COMPILE_TIME_YEAR,
+                    consts::COMPILE_TIME_MONTH,
+                    consts::COMPILE_TIME_DAY,
+                )
+                .and_hms(
+                    consts::COMPILE_TIME_HOUR,
+                    consts::COMPILE_TIME_MINUTE,
+                    consts::COMPILE_TIME_SECOND,
+                );
+                writeln!(
+                    m.writer(),
+                    "{:width$} {weekday} {month} {day} {hh:02}:{mm:02}:{ss:02} {year}",
+                    "Compiled",
+                    weekday = dt.weekday(),
+                    month = month_to_str(dt.month()),
+                    day = dt.day(),
+                    hh = dt.hour(),
+                    mm = dt.minute(),
+                    ss = dt.second(),
+                    year = dt.year(),
+                    width = LABEL_WIDTH
+                )?;
+                Ok(())
+            }
+            &[] => {
+                writeln!(m.writer(), "{:-^-width$}", " MCU ", width = HEADER_WIDTH)?;
+                m.run("info", &["mcu"])?;
+                writeln!(m.writer(), "{:-^-width$}", " CPU ", width = HEADER_WIDTH)?;
+                m.run("info", &["cpu"])?;
+                writeln!(m.writer(), "{:-^-width$}", " Memory ", width = HEADER_WIDTH)?;
+                m.run("info", &["mem"])?;
+                writeln!(
+                    m.writer(),
+                    "{:-^-width$}",
+                    " SD Card ",
+                    width = HEADER_WIDTH
+                )?;
+                m.run("sdcard", &["info"])?;
+                writeln!(m.writer(), "{:-^-width$}", " OS ", width = HEADER_WIDTH)?;
+                m.run("info", &["os"])?;
+                writeln!(
+                    m.writer(),
+                    "{:-^-width$}",
+                    " Date/Time ",
+                    width = HEADER_WIDTH
+                )?;
+                m.run("date", args)?;
+                Ok(())
+            }
+            _ => {
+                writeln!(m.writer(), "Unknown query")?;
+                Ok(())
+            }
         },
     },
     MenuItem::Command {
@@ -414,8 +368,51 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
         action: |m, args| {
             check_args_len(1, args.len())?;
             match args[0] {
+                "i" | "info" => match interrupt_free(|cs| {
+                    crate::mem::sdmmc_fs::SD_CARD
+                        .borrow(cs)
+                        .borrow_mut()
+                        .as_mut()
+                        .map(|sdfs| (sdfs.is_mounted(), sdfs.card_size()))
+                }) {
+                    Some((mounted, size)) => {
+                        writeln!(
+                            m.writer(),
+                            "{:width$} {}",
+                            "SD Card mounted",
+                            mounted,
+                            width = LABEL_WIDTH
+                        )?;
+                        match size {
+                            Ok(bytes) => {
+                                writeln!(
+                                    m.writer(),
+                                    "{:width$} {}GiB",
+                                    "Size",
+                                    bytes as f64 / (1024 * 1024 * 1024) as f64,
+                                    width = LABEL_WIDTH
+                                )?;
+                                Ok(())
+                            }
+                            Err(e) => {
+                                writeln!(
+                                    m.writer(),
+                                    "{:width$} {}",
+                                    "Size",
+                                    e,
+                                    width = LABEL_WIDTH
+                                )?;
+                                Ok(())
+                            }
+                        }
+                    }
+                    None => {
+                        writeln!(m.writer(), "SD Card controller not initialized")?;
+                        Ok(())
+                    }
+                },
                 "m" | "mount" => interrupt_free(|cs| {
-                    match crate::sdmmc_fs::SD_CARD
+                    match crate::mem::sdmmc_fs::SD_CARD
                         .borrow(cs)
                         .borrow_mut()
                         .as_mut()
@@ -437,7 +434,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                     }
                 }),
                 "u" | "unmount" => interrupt_free(|cs| {
-                    match crate::sdmmc_fs::SD_CARD
+                    match crate::mem::sdmmc_fs::SD_CARD
                         .borrow(cs)
                         .borrow_mut()
                         .as_mut()
@@ -460,10 +457,27 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                 _ => {
                     writeln!(m.writer(), "Expected:")?;
                     writeln!(m.writer(), "\tm | mount - Mount SD Card")?;
-                    writeln!(m.writer(), "\tu | unmount - Unmount SD Card:")?;
+                    writeln!(m.writer(), "\tu | unmount - Unmount SD Card")?;
+                    writeln!(m.writer(), "\ti | info - SD Card Info")?;
                     Err(MenuError::InvalidArgument)
                 }
             }
+        },
+    },
+    MenuItem::Command {
+        name: "testfn",
+        help: "testnf",
+        description: "testfn",
+        action: |m, _| {
+            writeln!(m.writer(), "testfn")?;
+            // writeln!(m.writer(), "u64", mem::align_of::<64>())?;
+            // mem!(m, align_of, u32)?;
+            // mem!(m, align_of, &[u32])?;
+            // mem!(m, align_of, u64)?;
+            // mem!(m, align_of, &[u64])?;
+            // mem!(m, align_of, u128)?;
+            // mem!(m, align_of, &[u128])?;
+            Ok(())
         },
     },
     MenuItem::Alias {
@@ -487,6 +501,13 @@ fn month_to_str(month: u32) -> &'static str {
         11 => "Nov",
         12 => "Dec",
         n => unreachable!("Month {} does not exist", n),
+    }
+}
+
+fn bool_to_enabled_disabled_str(b: bool) -> &'static str {
+    match b {
+        true => "enabled",
+        false => "disabled",
     }
 }
 

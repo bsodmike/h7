@@ -32,15 +32,6 @@ macro_rules! fmc_pins {
     };
 }
 
-fn log2minus1(sz: u32) -> u32 {
-    for i in 5..=31 {
-        if sz == (1 << i) {
-            return i - 1;
-        }
-    }
-    panic!("Unknown SDRAM memory region size!");
-}
-
 pub fn configure(mpu: &cortex_m::peripheral::MPU, scb: &cortex_m::peripheral::SCB) {
     cortex_m::asm::dmb();
     unsafe {
@@ -52,7 +43,7 @@ pub fn configure(mpu: &cortex_m::peripheral::MPU, scb: &cortex_m::peripheral::SC
             (REGION_FULL_ACCESS << 24)
                 | (REGION_CACHEABLE << 17)
                 | (REGION_WRITE_BACK << 16)
-                | (log2minus1(SDRAM_SIZE as u32) << 1)
+                | ((SDRAM_SIZE.log2() - 1) << 1)
                 | REGION_ENABLE,
         );
         mpu.ctrl

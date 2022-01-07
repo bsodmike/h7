@@ -14,8 +14,8 @@ use {
 const VDDA: f64 = 3.100;
 
 extern "C" {
-    static mut _ram_start: u32;
-    static mut _ram_end: u32;
+    static _ram_start: u32;
+    static _ram_end: u32;
 }
 
 pub static CLOCK_FREQ: Mutex<RefCell<Option<Hertz>>> = Mutex::new(RefCell::new(None));

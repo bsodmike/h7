@@ -18,9 +18,9 @@ mod path;
 pub static SD_CARD: Mutex<RefCell<Option<SdmmcFs>>> = Mutex::new(RefCell::new(None));
 
 enum SdmmcState {
-    // Controller(Controller<SdmmcBlockDevice<Sdmmc<SDMMC2>>, TimeSource>),
-// Sdmmc(Sdmmc<SDMMC2>),
-// MidSwap,
+    Controller(Controller<SdmmcBlockDevice<Sdmmc<SDMMC2>>, TimeSource>),
+    Sdmmc(Sdmmc<SDMMC2>),
+    MidSwap,
 }
 
 pub struct SdmmcFs {
@@ -29,29 +29,29 @@ pub struct SdmmcFs {
 
 impl SdmmcFs {
     pub fn new(sdmmc: Sdmmc<SDMMC2>) -> Self {
-        // Self {
-        //     state: SdmmcState::Sdmmc(sdmmc),
-        // }
-        todo!()
+        Self {
+            state: SdmmcState::Sdmmc(sdmmc),
+        }
     }
 
     pub fn is_mounted(&self) -> bool {
-        // match &self.state {
-        //     &SdmmcState::Controller(_) => true,
-        //     &SdmmcState::Sdmmc(_) => false,
-        //     _ => unreachable!(),
-        // }
-        // todo!()
-        false
+        match &self.state {
+            &SdmmcState::Controller(_) => true,
+            &SdmmcState::Sdmmc(_) => false,
+            _ => unreachable!(),
+        }
     }
 
-    pub fn card_size(&mut self) -> Result<u32, SdmmcFsError> {
-        // match self.state {
-        //     SdmmcState::Controller(ref mut c) => Ok(c.device().num_blocks()?.0 * 512),
-        //     SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
-        //     SdmmcState::MidSwap => unreachable!(),
-        // }
-        todo!()
+    pub fn card_size(&mut self) -> Result<u64, SdmmcFsError> {
+        match self.state {
+            SdmmcState::Controller(ref mut c) => {
+                let blocks = c.device().num_blocks()?.0;
+                log::info!("Blocks: {}", blocks);
+                Ok(blocks as u64 * 512)
+            }
+            SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
+            SdmmcState::MidSwap => unreachable!(),
+        }
     }
 
     pub fn mount<D: DelayMs<u16>, H: Into<Hertz>>(
@@ -60,62 +60,62 @@ impl SdmmcFs {
         n_retry: u8,
         mut delay: Option<(u16, &mut D)>,
     ) -> Result<(), SdmmcFsError> {
-        // match &mut self.state {
-        //     SdmmcState::Controller(_) => return Err(SdmmcFsError::AlreadyMounted),
-        //     SdmmcState::Sdmmc(sdmmc) => {
-        //         let freq = freq.into();
-        //         for i in (0..n_retry).rev() {
-        //             match sdmmc.init_card(freq) {
-        //                 Ok(_) => {
-        //                     // We just got here because the state is SdmmcState::Sdmmc so this should never fail
-        //                     if let SdmmcState::Sdmmc(sd) =
-        //                         core::mem::replace(&mut self.state, SdmmcState::MidSwap)
-        //                     {
-        //                         self.state = SdmmcState::Controller(Controller::new(
-        //                             sd.sdmmc_block_device(),
-        //                             TimeSource,
-        //                         ));
-        //                     } else {
-        //                         unreachable!()
-        //                     }
-        //                     return Ok(());
-        //                 }
-        //                 Err(e) => {
-        //                     if i == 0 {
-        //                         return Err(SdmmcFsError::Sdmmc(e));
-        //                     } else {
-        //                         if let Some((time, ref mut delay)) = delay {
-        //                             delay.delay_ms(time);
-        //                         }
-        //                         continue;
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     SdmmcState::MidSwap => unreachable!(),
-        // };
-        // unreachable!()
-        todo!()
+        match &mut self.state {
+            SdmmcState::Controller(_) => return Err(SdmmcFsError::AlreadyMounted),
+            SdmmcState::Sdmmc(sdmmc) => {
+                let freq = freq.into();
+                for i in (0..n_retry).rev() {
+                    match sdmmc.init_card(freq) {
+                        Ok(_) => {
+                            // We just got here because the state is SdmmcState::Sdmmc so this should never fail
+                            if let SdmmcState::Sdmmc(sd) =
+                                core::mem::replace(&mut self.state, SdmmcState::MidSwap)
+                            {
+                                self.state = SdmmcState::Controller(Controller::new(
+                                    sd.sdmmc_block_device(),
+                                    TimeSource,
+                                ));
+                            } else {
+                                unreachable!()
+                            }
+                            return Ok(());
+                        }
+                        Err(e) => {
+                            if i == 0 {
+                                return Err(SdmmcFsError::Sdmmc(e));
+                            } else {
+                                if let Some((time, ref mut delay)) = delay {
+                                    delay.delay_ms(time);
+                                }
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+            SdmmcState::MidSwap => unreachable!(),
+        };
+        unreachable!()
     }
 
     /// Useless until https://github.com/stm32-rs/stm32h7xx-hal/issues/145 is fixed
     pub fn unmount(&mut self) -> Result<(), SdmmcFsError> {
-        // match &mut self.state {
-        //     SdmmcState::Controller(_) => {
-        //         if let SdmmcState::Controller(c) =
-        //             core::mem::replace(&mut self.state, SdmmcState::MidSwap)
-        //         {
-        //             self.state = SdmmcState::Sdmmc(c.free().0.free());
-        //             Ok(())
-        //         } else {
-        //             unreachable!()
-        //         }
-        //     }
-        //     SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
-        //     SdmmcState::MidSwap => unreachable!(),
-        // }
-        todo!()
+        match &mut self.state {
+            SdmmcState::Controller(_) => {
+                // if let SdmmcState::Controller(c) =
+                //     core::mem::replace(&mut self.state, SdmmcState::MidSwap)
+                // {
+                //     self.state = SdmmcState::Sdmmc(c.free().0.free());
+                //     Ok(())
+                // } else {
+                //     unreachable!()
+                // }
+                todo!()
+            }
+            SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
+            SdmmcState::MidSwap => unreachable!(),
+        }
+        // todo!()
     }
 
     pub fn read_file<P: AsRef<str>>(

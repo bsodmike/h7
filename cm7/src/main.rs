@@ -1,6 +1,12 @@
 #![no_main]
 #![no_std]
-#![feature(alloc_error_handler, result_into_ok_or_err)]
+#![feature(
+    alloc_error_handler,
+    result_into_ok_or_err,
+    const_for,
+    const_mut_refs,
+    int_log
+)]
 
 extern crate alloc;
 
@@ -31,11 +37,10 @@ mod consts;
 mod led;
 #[cfg(feature = "semihosting")]
 mod logger;
+mod mem;
 #[cfg(not(feature = "semihosting"))]
 mod panic;
 mod pmic;
-mod sdmmc_fs;
-mod sdram;
 mod system;
 mod terminal;
 mod time;
@@ -222,7 +227,7 @@ unsafe fn main() -> ! {
         };
 
         // Init SDRAM
-        sdram::configure(&cp.MPU, &cp.SCB);
+        mem::sdram::configure(&cp.MPU, &cp.SCB);
         let sdram_ptr = dp
             .FMC
             .sdram(
@@ -234,7 +239,7 @@ unsafe fn main() -> ! {
             .init(&mut delay);
 
         // Configure allocator
-        ALLOCATOR.init(sdram_ptr as usize, sdram::SDRAM_SIZE);
+        ALLOCATOR.init(sdram_ptr as usize, mem::sdram::SDRAM_SIZE);
     }
 
     // Enable osc
@@ -242,7 +247,7 @@ unsafe fn main() -> ! {
         let mut oscen = gpioh.ph1.into_push_pull_output();
         delay.delay_ms(10u32);
         oscen.set_high().unwrap();
-        delay.delay_ms(1000u32);
+        delay.delay_ms(10u32);
     }
 
     // SD Card
@@ -260,9 +265,33 @@ unsafe fn main() -> ! {
             &ccdr.clocks,
         );
         interrupt_free(|cs| {
-            sdmmc_fs::SD_CARD
+            mem::sdmmc_fs::SD_CARD
                 .borrow(cs)
-                .replace(Some(sdmmc_fs::SdmmcFs::new(sdcard)))
+                .replace(Some(mem::sdmmc_fs::SdmmcFs::new(sdcard)))
+        });
+    }
+
+    // QSPI Flash
+    {
+        let mut qspi_fs = mem::qspi_fs::QspiFs::new(
+            dp.QUADSPI.bank1(
+                (
+                    gpiof.pf10.into_alternate_af9().set_speed(Speed::VeryHigh),
+                    gpiod.pd11.into_alternate_af9().set_speed(Speed::VeryHigh),
+                    gpiod.pd12.into_alternate_af9().set_speed(Speed::VeryHigh),
+                    gpiof.pf7.into_alternate_af9().set_speed(Speed::VeryHigh),
+                    gpiod.pd13.into_alternate_af9().set_speed(Speed::VeryHigh),
+                ),
+                100.mhz(),
+                &ccdr.clocks,
+                ccdr.peripheral.QSPI,
+            ),
+            gpiog.pg6.into_push_pull_output().set_speed(Speed::VeryHigh),
+        );
+        qspi_fs.init().unwrap();
+
+        interrupt_free(|cs| {
+            mem::qspi_fs::QSPI_FS.borrow(cs).replace(Some(qspi_fs));
         });
     }
 
@@ -429,8 +458,8 @@ unsafe fn main() -> ! {
                     let mut parts = s.trim().split_whitespace().filter(|l| !l.trim().is_empty());
 
                     if let Some(cmd) = parts.next() {
-                        // Collect up to 8 arguments
-                        let mut args = [""; 8];
+                        // Collect up to 16 arguments
+                        let mut args = [""; 16];
                         let mut args_len = 0;
                         for i in 0..args.len() {
                             match parts.next() {

@@ -3,7 +3,7 @@
         {
             "cwd": "${workspaceRoot}",
             "executable": "/home/olback/.cargo-target/thumbv7em-none-eabihf/debug/cm7",
-            "name": "Debug CM7",
+            "name": "Debug CM7 (debug)",
             "request": "attach",
             "type": "cortex-debug",
             "showDevDebugOutput": false,
@@ -12,13 +12,17 @@
                 "interface/cmsis-dap.cfg",
                 "target/stm32h7x.cfg"
             ],
+            "openOCDLaunchCommands": [
+                "itm ports on"
+            ],
             "svdFile": "${workspaceRoot}/resources/stm32h747xi/svd/STM32H747_CM7.svd",
             "postAttachCommands": [
                 "monitor arm semihosting enable",
                 "break main"
             ],
             "breakAfterReset": true,
-            "numberOfProcessors": 2
+            "numberOfProcessors": 2,
+            "preLaunchTask": "rust: cargo run"
         }
     ]
 }
