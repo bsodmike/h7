@@ -10,7 +10,8 @@ build = "build.rs"
 # Core
 cortex-m = "0.7"
 cortex-m-rt = "0.7"
-stm32h7xx-hal = { git = "https://github.com/stm32-rs/stm32h7xx-hal", features = [ "stm32h747cm7", "unproven", "rt", "fmc", "sdmmc-fatfs", "ltdc", "rtc", "crc", "usb_hs", "xspi" ] }
+#stm32h7xx-hal = { git = "https://github.com/stm32-rs/stm32h7xx-hal", features = [ "stm32h747cm7", "unproven", "rt", "fmc", "sdmmc-fatfs", "ltdc", "rtc", "crc", "usb_hs", "xspi", "rand", "ethernet" ] }
+stm32h7xx-hal = { git = "https://github.com/stm32-rs/stm32h7xx-hal", features = [ "stm32h747cm7", "unproven", "rt", "fmc", "sdmmc-fatfs", "ltdc", "rtc", "usb_hs", "xspi" ] }
 #stm32h7xx-hal = { path = "../../stm32h7xx-hal", features = [ "stm32h747cm7", "unproven", "rt", "fmc", "sdmmc-fatfs", "ltdc", "rtc", "crc", "usb_hs" ] }
 embedded-hal = { version = "0.2", features = [ "unproven" ] }
 
@@ -30,8 +31,7 @@ synopsys-usb-otg = "0.2"
 usb-device = "0.2"
 usbd-serial = "0.1"
 
-# Terminal stuff
-ringfifo = { path = "../libs/ringfifo" }
+# Terminal
 menu = { path = "../libs/menu" }
 
 # Program API
@@ -39,17 +39,20 @@ api = { path = "../libs/api" }
 
 # Display
 embedded-display-controller = "0.1"
-# anx7625 = { path = "../../anx7625-2" } # MIPI to Displayport
+anx7625 = { path = "../../anx7625-2" } # MIPI to Displayport
+
+# Other
+hds = "0.3"
 
 # Logging / Semihosting
 log = { version = "0.4", default-features = false }
 cortex-m-log = { version = "0.7", features = [ "semihosting", "log-integration" ], optional = true }
+lazy_static = { version = "1.4", features = [ "spin_no_std" ], optional = true }
 panic-semihosting = { version = "0.5", optional = true }
 cortex-m-semihosting = { version = "0.3", optional = true }
-lazy_static = { version = "1.4", features = [ "spin_no_std" ], optional = true }
 
 [features]
-default = ["semihosting"]
+default = []
 semihosting = [
     "cortex-m-log",
     "panic-semihosting",

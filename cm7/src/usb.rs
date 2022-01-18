@@ -45,7 +45,7 @@ fn OTG_HS() {
                 if let Ok(len) = port.read(&mut buf) {
                     let mut fifo = terminal::TERMINAL_INPUT_FIFO.borrow(cs).borrow_mut();
                     for b in &buf[0..len] {
-                        fifo.push_back(*b);
+                        let _ = fifo.push(*b);
                     }
                 }
             }

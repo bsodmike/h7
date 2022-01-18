@@ -1,0 +1,143 @@
+anx7625_init: OTG_ON = 1 -> VBUS OFF
+anx7625_init: Powering on anx7625...
+anx7625_power_on_init: Init interface.
+anx7625_power_on_init: Firmware: ver 0x13, rev 00.
+anx7625_init: Powering on anx7625 successfull.
+anx7625_read_system_status: anx: - VCONN status ON
+anx7625_read_system_status: anx: - VBUS power consumer
+anx7625_read_system_status: anx: - Data Role: DFP
+anx7625_read_system_status: anx: - DP HPD low
+anx7625_wait_hpd_event: Waiting for hdmi hot plug event...
+anx7625_hpd_change_detect: HPD event received 0x7e:0x45=0xb5
+anx7625_start_dp_work: Secure OCM version=00
+sp_tx_get_edid_block: EDID Block = 2
+Extracted contents:
+header:          00 ff ff ff ff ff ff 00
+serial number:   10 ac da 41 4c 43 4c 41 25 1f
+version:         01 03
+basic params:    80 3c 22 78 ea
+chroma info:     8c b5 af 4f 43 ab 26 0e 50 54
+established:     a5 4b 00
+standard:        d1 00 d1 c0 b3 00 a9 40 81 80 81 00 71 4f e1 c0
+descriptor 1:    56 5e 00 a0 a0 a0 29 50 30 20 35 00 55 50 21 00 00 1a
+descriptor 2:    00 00 00 ff 00 46 4b 59 4b 30 39 33 0a 20 20 20 20 20
+descriptor 3:    00 00 00 fc 00 44 45 4c 4c 20 53 32 37 32 31 44 47 46
+descriptor 4:    00 00 00 fd 00 30 90 1e e6 3c 00 0a 20 20 20 20 20 20
+extensions:      01
+checksum:        d4
+
+Manufacturer: DEL Model 41da Serial Number 1095517004
+Made week 37 of 2021
+EDID version: 1.3
+Digital display
+Maximum image size: 60 cm x 34 cm
+Gamma: 220%
+Check DPMS levels
+DPMS levels: Standby Suspend Off
+Supported color formats: RGB 4:4:4, YCrCb 4:2:2
+First detailed timing is preferred timing
+Established timings supported:
+  720x400@70Hz
+  640x480@60Hz
+  640x480@75Hz
+  800x600@60Hz
+  800x600@75Hz
+  1024x768@60Hz
+  1024x768@75Hz
+  1280x1024@75Hz
+Standard timings supported:
+  1920x1200@60Hz
+  1920x1080@60Hz
+  1680x1050@60Hz
+  1600x1200@60Hz
+  1280x1024@60Hz
+  1280x800@60Hz
+  1152x864@75Hz
+  2048x1152@60Hz
+Detailed timings
+Hex of detail: 565e00a0a0a029503020350055502100001a
+Not supported on stm32
+Detailed mode (IN HEX): Clock 241500 KHz, 255 mm x 150 mm
+               0a00 0a30 0a50 0aa0 hborder 0
+               05a0 05a3 05a8 05c9 vborder 0
+               +hsync -vsync 
+Hex of detail: 000000ff00464b594b3039330a2020202020
+Serial number: FKYK093
+Hex of detail: 000000fc0044454c4c205332373231444746
+Monitor name: DELL S2721DGF
+Hex of detail: 000000fd0030901ee63c000a202020202020
+Monitor ranges (GTF): 48-144Hz V, 30-230kHz H, max dotclock 600MHz
+Has 1 extension blocks
+Checksum
+Checksum: 0xd4 (valid)
+
+CEA extension block
+Extension version: 3
+71 bytes of CEA data
+  Video data block
+    VIC 90 
+    VIC 63 
+    VIC 16 
+    VIC 31 
+    VIC 32 
+    VIC 05 
+    VIC 20 
+    VIC 04 
+    VIC 19 
+    VIC 18 
+    VIC 17 
+    VIC 03 
+    VIC 02 
+    VIC 01 
+    VIC 06 
+    VIC 07 
+    VIC 21 
+  Audio data block
+    Linear PCM, max channels 1
+    Supported sample rates (kHz): 48 44.1 32
+    Supported sample sizes (bits): 24 20 16
+  Speaker allocation data block
+  Vendor-specific data block, OUI 000c03 (HDMI)
+    Source physical address 1.0.0.0
+    DC_36bit
+    DC_30bit
+    DC_Y444
+    Maximum TMDS clock: 300MHz
+  Vendor-specific data block, OUI c45dd8
+  Vendor-specific data block, OUI 00001a
+  Extended tag: Colorimetry data block
+  Extended tag: video capability data block
+  Extended tag: Reserved video block (06)
+Underscans PC formats by default
+Basic audio support
+Supports YCbCr 4:4:4
+Supports YCbCr 4:2:2
+1 native detailed modes
+Hex of detail: 40e7006aa0a067500820980455502100001a
+Not supported on stm32
+Detailed mode (IN HEX): Clock 592000 KHz, 255 mm x 150 mm
+               0a00 0a08 0a28 0a6a hborder 0
+               05a0 05b9 05c1 0607 vborder 0
+               +hsync -vsync 
+Hex of detail: 6fc200a0a0a055503020350055502100001a
+Not supported on stm32
+Detailed mode (IN HEX): Clock 497750 KHz, 255 mm x 150 mm
+               0a00 0a30 0a50 0aa0 hborder 0
+               05a0 05a3 05a8 05f5 vborder 0
+               +hsync -vsync 
+Checksum: 0xe6 (valid)
+
+EDID block does NOT conform to EDID 1.3!
+	Missing name descriptor
+	Missing preferred timing
+ERROR: anx7625_dp_get_edid: Failed to decode EDID.
+anx7625_parse_edid: pixelclock(0).
+ hactive(0), hsync(0), hfp(0), hbp(0)
+ vactive(0), vsync(0), vfp(0), vbp(0)
+anx7625_dsi_config: config dsi.
+anx7625_dsi_video_config: compute M(12845056), N(983040), divider(12).
+anx7625_dsi_config: success to config DSI
+anx7625_dp_start: MIPI phy setup OK.
+FMC_SDRAM_DEVICE->SDCMR: 0
+initializing external ram
+malloc_addblock: allocate 7159808 bytes

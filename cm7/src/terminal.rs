@@ -3,8 +3,8 @@ use {
     chrono::{Datelike, NaiveDate, Timelike},
     core::{cell::RefCell, fmt::Write},
     cortex_m::interrupt::{free as interrupt_free, Mutex},
+    hds::Queue,
     menu::{check_args_len, MenuError, MenuItem},
-    ringfifo::RingFiFo,
     stm32h7xx_hal::{self as hal, interrupt, pac, prelude::*, serial},
 };
 
@@ -24,24 +24,12 @@ impl core::fmt::Write for TerminalWriter {
     }
 }
 
-macro_rules! mem {
-    ($w:expr, $method:ident, $type:ty) => {
-        writeln!(
-            $w,
-            "mem::{method}::<{type}>() = {val}",
-            method = stringify!($method),
-            r#type = stringify!($type),
-            val = core::mem::align_of::<$type>()
-        )
-    };
-}
-
 const HEADER_WIDTH: usize = 48;
 const LABEL_WIDTH: usize = 20;
 
 // Terminal
-pub static TERMINAL_INPUT_FIFO: Mutex<RefCell<RingFiFo<u8, 64>>> =
-    Mutex::new(RefCell::new(RingFiFo::new()));
+pub static TERMINAL_INPUT_FIFO: Mutex<RefCell<Queue<u8, 64>>> =
+    Mutex::new(RefCell::new(Queue::new()));
 pub static UART_TERMINAL_RX: Mutex<RefCell<Option<serial::Rx<pac::USART1>>>> =
     Mutex::new(RefCell::new(None));
 pub static UART_TERMINAL_TX: Mutex<RefCell<Option<serial::Tx<pac::USART1>>>> =
@@ -285,7 +273,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                     m.writer(),
                     "{:width$} {}KiB",
                     "External FLASH",
-                    crate::mem::qspi_fs::QSPI_FLASH_SIZE / 1024,
+                    crate::mem::qspi_store::QSPI_FLASH_SIZE / 1024,
                     width = LABEL_WIDTH
                 )?;
                 Ok(())
@@ -536,7 +524,7 @@ fn USART1() {
     interrupt_free(|cs| {
         if let Some(uart) = &mut *UART_TERMINAL_RX.borrow(cs).borrow_mut() {
             if let Ok(w) = uart.read() {
-                TERMINAL_INPUT_FIFO.borrow(cs).borrow_mut().push_back(w)
+                let _ = TERMINAL_INPUT_FIFO.borrow(cs).borrow_mut().push(w);
             }
         }
     });

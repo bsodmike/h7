@@ -8,17 +8,21 @@
     int_log
 )]
 
+// TODO: DSI
+// * DSI REGEN = 1
+// * Pins
+
 extern crate alloc;
 
 use {
-    // anx7625::Anx7625,
+    anx7625::Anx7625,
     chrono::{NaiveDate, Timelike},
     core::fmt::Write,
     cortex_m::interrupt::free as interrupt_free,
     cortex_m_alloc::CortexMHeap,
-    // embedded_display_controller::{
-    //     DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
-    // },
+    embedded_display_controller::{
+        DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
+    },
     led::LED,
     stm32h7xx_hal::{
         self as hal, adc,
@@ -34,8 +38,8 @@ use {
 };
 
 mod consts;
+mod dsi;
 mod led;
-#[cfg(feature = "semihosting")]
 mod logger;
 mod mem;
 #[cfg(not(feature = "semihosting"))]
@@ -52,7 +56,6 @@ pub static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
 
 #[cortex_m_rt::entry]
 unsafe fn main() -> ! {
-    #[cfg(feature = "semihosting")]
     logger::init();
 
     // Get peripherals
@@ -128,6 +131,49 @@ unsafe fn main() -> ! {
     led_g.set_high().unwrap();
     led_b.set_low().unwrap();
 
+    // Internal I2C bus
+    let mut internal_i2c = dp.I2C1.i2c(
+        (
+            gpiob.pb6.into_alternate_af4().set_open_drain(),
+            gpiob.pb7.into_alternate_af4().set_open_drain(),
+        ),
+        100.khz(),
+        ccdr.peripheral.I2C1,
+        &ccdr.clocks,
+    );
+    // Configure PMIC (NXP PF1550)
+    pmic::configure(&mut internal_i2c).unwrap();
+
+    // UART1 terminal
+    {
+        let mut uart = dp
+            .USART1
+            .serial(
+                (
+                    gpioa.pa9.into_alternate_af7(),
+                    gpioa.pa10.into_alternate_af7(),
+                ),
+                terminal::UART_TERMINAL_BAUD.bps(),
+                ccdr.peripheral.USART1,
+                &ccdr.clocks,
+            )
+            .unwrap();
+
+        // UART interrupt
+        uart.listen(hal::serial::Event::Rxne);
+        cortex_m::peripheral::NVIC::unmask(pac::Interrupt::USART1);
+
+        let (terminal_tx, terminal_rx) = uart.split();
+        interrupt_free(|cs| {
+            terminal::UART_TERMINAL_TX
+                .borrow(cs)
+                .replace(Some(terminal_tx));
+            terminal::UART_TERMINAL_RX
+                .borrow(cs)
+                .replace(Some(terminal_rx));
+        });
+    };
+
     // gpiok.pk3.into_push_pull_output().set_high().unwrap(); // cable
     // gpiok.pk4.into_push_pull_output().set_low().unwrap(); // alt
 
@@ -186,19 +232,6 @@ unsafe fn main() -> ! {
                 .replace(Some((temp_adc, channel)));
         });
     }
-
-    // Internal I2C bus
-    let mut internal_i2c = dp.I2C1.i2c(
-        (
-            gpiob.pb6.into_alternate_af4().set_open_drain(),
-            gpiob.pb7.into_alternate_af4().set_open_drain(),
-        ),
-        100.khz(),
-        ccdr.peripheral.I2C1,
-        &ccdr.clocks,
-    );
-    // Configure PMIC (NXP PF1550)
-    pmic::configure(&mut internal_i2c).unwrap();
 
     // SDRAM
     {
@@ -273,7 +306,7 @@ unsafe fn main() -> ! {
 
     // QSPI Flash
     {
-        let mut qspi_fs = mem::qspi_fs::QspiFs::new(
+        let mut qspi_store = mem::qspi_store::QspiStore::new(
             dp.QUADSPI.bank1(
                 (
                     gpiof.pf10.into_alternate_af9().set_speed(Speed::VeryHigh),
@@ -288,153 +321,138 @@ unsafe fn main() -> ! {
             ),
             gpiog.pg6.into_push_pull_output().set_speed(Speed::VeryHigh),
         );
-        qspi_fs.init().unwrap();
+        qspi_store.init().unwrap();
 
         interrupt_free(|cs| {
-            mem::qspi_fs::QSPI_FS.borrow(cs).replace(Some(qspi_fs));
+            mem::qspi_store::QSPI_STORE
+                .borrow(cs)
+                .replace(Some(qspi_store));
         });
     }
 
+    // (&*pac::DSIHOST::ptr());
+
     // Display config
-    // {
-    //     let mut anx = Anx7625::new(
-    //         gpiok.pk2.into_push_pull_output(),
-    //         gpioj.pj3.into_push_pull_output(),
-    //         gpioj.pj6.into_push_pull_output(),
-    //     );
-    //     anx.init(&mut internal_i2c, &mut delay).unwrap();
-    //     anx.wait_hpd_event(&mut internal_i2c, &mut delay); // Blocks until monitor is connected
-    //     log::info!("Monitor connected");
-    //     let edid = anx
-    //         .dp_get_edid(&mut internal_i2c, &mut delay)
-    //         .map_err(|(_, edid)| unsafe { edid.assume_init() })
-    //         .into_ok_or_err();
-    //     log::warn!("{:#?}", edid);
-    //     anx.dp_start(
-    //         &mut internal_i2c,
-    //         &mut delay,
-    //         &edid,
-    //         anx7625::EdidModes::EDID_MODE_640x480_60Hz,
-    //     )
-    //     .unwrap();
-    // }
-
-    // let mut display = stm32h7xx_hal::ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
-    // let display_config = DisplayConfiguration {
-    //     active_width: 1280,
-    //     active_height: 768,
-    //     h_back_porch: 120,
-    //     h_front_porch: 32,
-    //     v_back_porch: 10,
-    //     v_front_porch: 45,
-    //     h_sync: 20,
-    //     v_sync: 12,
-
-    //     /// horizontal synchronization: `false`: active low, `true`: active high
-    //     h_sync_pol: true,
-    //     /// vertical synchronization: `false`: active low, `true`: active high
-    //     v_sync_pol: true,
-    //     /// data enable: `false`: active low, `true`: active high
-    //     not_data_enable_pol: false,
-    //     /// pixel_clock: `false`: active low, `true`: active high
-    //     pixel_clock_pol: false,
-    // };
-    // display.init(display_config);
-    // let mut layer1 = display.split();
-    // // let framebuf = alloc::boxed::Box::new([0u8; 640 * 480]);
-    // let framebuf = [0u8; 1280 * 768];
-    // let framebuf = alloc::vec::Vec::<u8>::with_capacity(1280 * 768);
-    // let framebuf = alloc::vec![0xf81fu16; 640 * 480 * 2];
-    // layer1.enable(framebuf.as_ptr(), PixelFormat::L8);
-    // layer1.swap_framebuffer(framebuf.as_ptr());
-
-    // UART1 terminal
     {
-        let mut uart = dp
-            .USART1
-            .serial(
-                (
-                    gpioa.pa9.into_alternate_af7(),
-                    gpioa.pa10.into_alternate_af7(),
-                ),
-                terminal::UART_TERMINAL_BAUD.bps(),
-                ccdr.peripheral.USART1,
-                &ccdr.clocks,
-            )
-            .unwrap();
+        let mut anx = Anx7625::new(
+            gpiok.pk2.into_push_pull_output(),
+            gpioj.pj3.into_push_pull_output(),
+            gpioj.pj6.into_push_pull_output(),
+        );
+        anx.init(&mut internal_i2c, &mut delay).unwrap();
+        anx.wait_hpd_event(&mut internal_i2c, &mut delay); // Blocks until monitor is connected
+        log::info!("Monitor connected");
+        let edid = anx
+            .dp_get_edid(&mut internal_i2c, &mut delay)
+            .map_err(|(_, edid)| unsafe { edid.assume_init() })
+            .into_ok_or_err();
+        log::warn!("{:#?}", edid);
+        anx.dp_start(
+            &mut internal_i2c,
+            &mut delay,
+            &edid,
+            anx7625::EdidModes::EDID_MODE_640x480_60Hz,
+        )
+        .unwrap();
+    }
 
-        // UART interrupt
-        uart.listen(hal::serial::Event::Rxne);
-        cortex_m::peripheral::NVIC::unmask(pac::Interrupt::USART1);
+    let mut display = stm32h7xx_hal::ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
+    let display_config = DisplayConfiguration {
+        active_width: 1280,
+        active_height: 768,
+        h_back_porch: 120,
+        h_front_porch: 32,
+        v_back_porch: 10,
+        v_front_porch: 45,
+        h_sync: 20,
+        v_sync: 12,
 
-        let (terminal_tx, terminal_rx) = uart.split();
-        interrupt_free(|cs| {
-            terminal::UART_TERMINAL_TX
-                .borrow(cs)
-                .replace(Some(terminal_tx));
-            terminal::UART_TERMINAL_RX
-                .borrow(cs)
-                .replace(Some(terminal_rx));
-        });
+        /// horizontal synchronization: `false`: active low, `true`: active high
+        h_sync_pol: false,
+        /// vertical synchronization: `false`: active low, `true`: active high
+        v_sync_pol: false,
+        /// data enable: `false`: active low, `true`: active high
+        not_data_enable_pol: true,
+        /// pixel_clock: `false`: active low, `true`: active high
+        pixel_clock_pol: false,
     };
+    display.init(display_config);
+    let mut layer1 = display.split();
+    // // let framebuf = alloc::boxed::Box::new([0u8; 640 * 480]);
+    // // let framebuf = [0u8; 1280 * 768];
+    // // let framebuf = alloc::vec::Vec::<u8>::with_capacity(1280 * 768);
+    let framebuf = alloc::vec![
+        0xf81fu16;
+        display_config.active_width as usize * display_config.active_height as usize * 2
+    ];
+    layer1.enable(framebuf.as_ptr(), PixelFormat::RGB565);
+    layer1.swap_framebuffer(framebuf.as_ptr());
+
+    let dsihost = dsi::Dsi::new(
+        dsi::DsiLanes::Two,
+        &display_config,
+        dp.DSIHOST,
+        ccdr.peripheral.DSI,
+        &ccdr.clocks,
+    );
 
     // USB Serial
     {
-        // Set OTG pin floating
-        let mut _usb_otg = gpioj.pj6.into_floating_input();
+        // // Set OTG pin floating
+        // let mut _usb_otg = gpioj.pj6.into_floating_input();
 
-        // Reset USB Phy
-        let mut usb_phy_rst = gpioj.pj4.into_push_pull_output();
-        usb_phy_rst.set_low().unwrap();
-        delay.delay_ms(10u8);
-        usb_phy_rst.set_high().unwrap();
-        delay.delay_ms(10u8);
+        // // Reset USB Phy
+        // let mut usb_phy_rst = gpioj.pj4.into_push_pull_output();
+        // usb_phy_rst.set_low().unwrap();
+        // delay.delay_ms(10u8);
+        // usb_phy_rst.set_high().unwrap();
+        // delay.delay_ms(10u8);
 
-        // Enable USB OTG_HS interrupt
-        cortex_m::peripheral::NVIC::unmask(pac::Interrupt::OTG_HS);
+        // // Enable USB OTG_HS interrupt
+        // cortex_m::peripheral::NVIC::unmask(pac::Interrupt::OTG_HS);
 
-        let usb = USB1_ULPI::new(
-            dp.OTG1_HS_GLOBAL,
-            dp.OTG1_HS_DEVICE,
-            dp.OTG1_HS_PWRCLK,
-            gpioa.pa5.into_alternate_af10(),
-            gpioi.pi11.into_alternate_af10(),
-            gpioh.ph4.into_alternate_af10(),
-            gpioc.pc0.into_alternate_af10(),
-            gpioa.pa3.into_alternate_af10(),
-            gpiob.pb0.into_alternate_af10(),
-            gpiob.pb1.into_alternate_af10(),
-            gpiob.pb10.into_alternate_af10(),
-            gpiob.pb11.into_alternate_af10(),
-            gpiob.pb12.into_alternate_af10(),
-            gpiob.pb13.into_alternate_af10(),
-            gpiob.pb5.into_alternate_af10(),
-            ccdr.peripheral.USB1OTG,
-            &ccdr.clocks,
-        );
+        // let usb = USB1_ULPI::new(
+        //     dp.OTG1_HS_GLOBAL,
+        //     dp.OTG1_HS_DEVICE,
+        //     dp.OTG1_HS_PWRCLK,
+        //     gpioa.pa5.into_alternate_af10(),
+        //     gpioi.pi11.into_alternate_af10(),
+        //     gpioh.ph4.into_alternate_af10(),
+        //     gpioc.pc0.into_alternate_af10(),
+        //     gpioa.pa3.into_alternate_af10(),
+        //     gpiob.pb0.into_alternate_af10(),
+        //     gpiob.pb1.into_alternate_af10(),
+        //     gpiob.pb10.into_alternate_af10(),
+        //     gpiob.pb11.into_alternate_af10(),
+        //     gpiob.pb12.into_alternate_af10(),
+        //     gpiob.pb13.into_alternate_af10(),
+        //     gpiob.pb5.into_alternate_af10(),
+        //     ccdr.peripheral.USB1OTG,
+        //     &ccdr.clocks,
+        // );
 
-        usb::USB_BUS_ALLOCATOR = Some(UsbBus::new(usb, &mut usb::USB_MEMORY_1));
+        // usb::USB_BUS_ALLOCATOR = Some(UsbBus::new(usb, &mut usb::USB_MEMORY_1));
 
-        let usb_serial = usbd_serial::SerialPort::new(usb::USB_BUS_ALLOCATOR.as_ref().unwrap());
+        // let usb_serial = usbd_serial::SerialPort::new(usb::USB_BUS_ALLOCATOR.as_ref().unwrap());
 
-        let usb_dev = UsbDeviceBuilder::new(
-            usb::USB_BUS_ALLOCATOR.as_ref().unwrap(),
-            UsbVidPid(usb::VID, usb::PID),
-        )
-        .manufacturer("Arduino")
-        .product("H7 Embedded Computer")
-        .serial_number("dev-01")
-        .device_class(usbd_serial::USB_CLASS_CDC)
-        .device_sub_class(2)
-        .self_powered(false)
-        .max_power(500)
-        .max_packet_size_0(64)
-        .build();
+        // let usb_dev = UsbDeviceBuilder::new(
+        //     usb::USB_BUS_ALLOCATOR.as_ref().unwrap(),
+        //     UsbVidPid(usb::VID, usb::PID),
+        // )
+        // .manufacturer("Arduino")
+        // .product("H7 Embedded Computer")
+        // .serial_number("dev-01")
+        // .device_class(usbd_serial::USB_CLASS_CDC)
+        // .device_sub_class(2)
+        // .self_powered(false)
+        // .max_power(500)
+        // .max_packet_size_0(64)
+        // .build();
 
-        interrupt_free(|cs| {
-            usb::USB_DEVICE.borrow(cs).replace(Some(usb_dev));
-            usb::SERIAL_PORT.borrow(cs).replace(Some(usb_serial));
-        });
+        // interrupt_free(|cs| {
+        //     usb::USB_DEVICE.borrow(cs).replace(Some(usb_dev));
+        //     usb::SERIAL_PORT.borrow(cs).replace(Some(usb_serial));
+        // });
     }
 
     let mut menu = menu::Menu::new(terminal::TerminalWriter, terminal::MENU);
@@ -447,12 +465,7 @@ unsafe fn main() -> ! {
     let _ = write!(menu.writer(), "> ");
 
     loop {
-        match interrupt_free(|cs| {
-            terminal::TERMINAL_INPUT_FIFO
-                .borrow(cs)
-                .borrow_mut()
-                .pop_front()
-        }) {
+        match interrupt_free(|cs| terminal::TERMINAL_INPUT_FIFO.borrow(cs).borrow_mut().pop()) {
             Some(10) => match core::str::from_utf8(&cmd_buf[0..cmd_buf_len]) {
                 Ok(s) => {
                     let mut parts = s.trim().split_whitespace().filter(|l| !l.trim().is_empty());

@@ -18,8 +18,8 @@ openocd_bin="/bin/openocd"
 openocd_src="/usr/share/openocd/scripts"
 openocd_interface='interface/cmsis-dap.cfg'
 #openocd_interface='interface/stlink.cfg'
-#openocd_target='target/stm32h7x_dual_bank.cfg'
-openocd_target='target/stm32h7x.cfg'
+openocd_target='target/stm32h7x_dual_bank.cfg'
+#openocd_target='target/stm32h7x.cfg'
 
 openocd_cmd_program="program ${boot_elf}"
 

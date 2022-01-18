@@ -1,8 +1,0 @@
-[build]
-#target = "aarch64-unknown-linux-musl"
-
-# Arm 64-bit MUSL
-[target.aarch64-unknown-linux-musl]
-#cc = "aarch64-linux-gnu-gcc" ??? Hello where is this documented??
-linker = "aarch64-linux-gnu-gcc"
-runner = "./runner.sh"
