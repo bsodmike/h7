@@ -24,7 +24,7 @@ pub static CORE_TEMP: Mutex<
 > = Mutex::new(RefCell::new(None));
 
 pub fn cpu_freq(cs: &CriticalSection) -> Option<Hertz> {
-    CLOCK_FREQ.borrow(cs).borrow().clone()
+    *CLOCK_FREQ.borrow(cs).borrow()
 }
 
 pub fn cpu_temp(cs: &CriticalSection) -> Option<f64> {
@@ -32,14 +32,11 @@ pub fn cpu_temp(cs: &CriticalSection) -> Option<f64> {
         .borrow(cs)
         .borrow_mut()
         .as_mut()
-        .map(|(adc, channel)| adc.read(channel).ok())
-        .flatten()
+        .and_then(|(adc, channel)| adc.read(channel).ok())
         .map(|word: u32| {
-            let temperature = ((110.0 - 30.0) / (TS_CAL_110::read() - TS_CAL_30::read()) as f64)
+            ((110.0 - 30.0) / (TS_CAL_110::read() - TS_CAL_30::read()) as f64)
                 * ((word as f64 * (VDDA / 3.3)) - TS_CAL_30::read() as f64)
-                + 30.0;
-
-            temperature
+                + 30.0
         })
 }
 

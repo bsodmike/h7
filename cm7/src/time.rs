@@ -38,8 +38,7 @@ impl TimeSource {
             RTC.borrow(cs)
                 .borrow()
                 .as_ref()
-                .map(|dt| dt.date_time())
-                .flatten()
+                .and_then(|dt| dt.date_time())
         })
     }
 }

@@ -74,3 +74,4 @@ opt-level = "s" # optimize for binary size, if size is availabe, change to 3?
 
 [build-dependencies]
 chrono = "0.4"
+rustc_version = "0.4.0"

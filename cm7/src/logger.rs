@@ -82,7 +82,6 @@ mod uart {
     pub fn init() {
         log::set_max_level(LOGGER.level);
         unsafe { log::set_logger_racy(&LOGGER) }.unwrap();
-        // cortex_m_log::log::init(&LOGGER).unwrap();
     }
 }
 

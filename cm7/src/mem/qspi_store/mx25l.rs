@@ -1,6 +1,5 @@
 use {
     embedded_hal::digital::v2::OutputPin,
-    embedded_sdmmc::BlockDevice,
     stm32h7xx_hal::{
         pac::QUADSPI,
         rcc,
@@ -180,6 +179,7 @@ impl<CS: OutputPin> Mx25L<CS> {
         self.qspi.free()
     }
 
+    #[allow(clippy::wrong_self_convention)]
     fn is_busy(&mut self) -> Result<bool, QspiError> {
         Ok((self.read_status()? & MX25L_STATUS_WIP) != 0)
     }

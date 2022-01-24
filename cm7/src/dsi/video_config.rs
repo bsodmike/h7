@@ -15,33 +15,33 @@ macro_rules! op_eq {
 }
 
 pub struct DsiVideoConfig {
-    pub VirtualChannelID: u32,
-    pub ColorCoding: u32,
-    pub LooselyPacked: u32,
-    pub Mode: u32,
-    pub PacketSize: u32,
-    pub NumberOfChunks: u32,
-    pub NullPacketSize: u32,
-    pub HSPolarity: u32,
-    pub VSPolarity: u32,
-    pub DEPolarity: u32,
-    pub HorizontalSyncActive: u32,
-    pub HorizontalBackPorch: u32,
-    pub HorizontalLine: u32,
-    pub VerticalSyncActive: u32,
-    pub VerticalBackPorch: u32,
-    pub VerticalFrontPorch: u32,
-    pub VerticalActive: u32,
-    pub LPCommandEnable: u32,
-    pub LPLargestPacketSize: u32,
-    pub LPVACTLargestPacketSize: u32,
-    pub LPHorizontalFrontPorchEnable: u32,
-    pub LPHorizontalBackPorchEnable: u32,
-    pub LPVerticalActiveEnable: u32,
-    pub LPVerticalFrontPorchEnable: u32,
-    pub LPVerticalBackPorchEnable: u32,
-    pub LPVerticalSyncActiveEnable: u32,
-    pub FrameBTAAcknowledgeEnable: u32,
+    pub virtual_channel_id: u32,
+    pub color_coding: u32,
+    pub loosely_packed: u32,
+    pub mode: u32,
+    pub packet_size: u32,
+    pub number_of_chunks: u32,
+    pub null_packet_size: u32,
+    pub hspolarity: u32,
+    pub vspolarity: u32,
+    pub depolarity: u32,
+    pub horizontal_sync_active: u32,
+    pub horizontal_back_porch: u32,
+    pub horizontal_line: u32,
+    pub vertical_sync_active: u32,
+    pub vertical_back_porch: u32,
+    pub vertical_front_porch: u32,
+    pub vertical_active: u32,
+    pub lpcommand_enable: u32,
+    pub lplargest_packet_size: u32,
+    pub lpvactlargest_packet_size: u32,
+    pub lphorizontal_front_porch_enable: u32,
+    pub lphorizontal_back_porch_enable: u32,
+    pub lpvertical_active_enable: u32,
+    pub lpvertical_front_porch_enable: u32,
+    pub lpvertical_back_porch_enable: u32,
+    pub lpvertical_sync_active_enable: u32,
+    pub frame_btaacknowledge_enable: u32,
 }
 
 // HAL_StatusTypeDef HAL_DSI_ConfigVideoMode(DSI_HandleTypeDef *hdsi, DSI_VidCfgTypeDef *VidCfg)
@@ -188,8 +188,8 @@ pub struct DsiVideoConfig {
 
 impl DsiVideoConfig {
     pub unsafe fn apply(&self, dsihost: &DSIHOST) {
-        if self.ColorCoding == DSI_RGB666 {
-            assert!(self.LooselyPacked == DSI_LOOSELY_PACKED_ENABLE);
+        if self.color_coding == DSI_RGB666 {
+            assert!(self.loosely_packed == DSI_LOOSELY_PACKED_ENABLE);
         }
 
         //   /* Select video mode by resetting CMDM and DSIM bits */
@@ -202,49 +202,49 @@ impl DsiVideoConfig {
         //   hdsi->Instance->VMCR &= ~DSI_VMCR_VMT;
         op_eq!(dsihost, vmcr, &, !DSI_VMCR_VMT);
         //   hdsi->Instance->VMCR |= VidCfg->Mode;
-        op_eq!(dsihost, vmcr, |, self.Mode);
+        op_eq!(dsihost, vmcr, |, self.mode);
 
         //   /* Configure the video packet size */
         //   hdsi->Instance->VPCR &= ~DSI_VPCR_VPSIZE;
         op_eq!(dsihost, vpcr, &, !DSI_VPCR_VPSIZE);
         //   hdsi->Instance->VPCR |= VidCfg->PacketSize;
-        op_eq!(dsihost, vpcr, |, self.PacketSize);
+        op_eq!(dsihost, vpcr, |, self.packet_size);
 
         //   /* Set the chunks number to be transmitted through the DSI link */
         //   hdsi->Instance->VCCR &= ~DSI_VCCR_NUMC;
         op_eq!(dsihost, vccr, &, !DSI_VCCR_NUMC);
         //   hdsi->Instance->VCCR |= VidCfg->NumberOfChunks;
-        op_eq!(dsihost, vccr, |, self.NumberOfChunks);
+        op_eq!(dsihost, vccr, |, self.number_of_chunks);
 
         //   /* Set the size of the null packet */
         //   hdsi->Instance->VNPCR &= ~DSI_VNPCR_NPSIZE;
         op_eq!(dsihost, vnpcr, &, !DSI_VNPCR_NPSIZE);
         //   hdsi->Instance->VNPCR |= VidCfg->NullPacketSize;
-        op_eq!(dsihost, vnpcr, |, self.NullPacketSize);
+        op_eq!(dsihost, vnpcr, |, self.null_packet_size);
 
         //   /* Select the virtual channel for the LTDC interface traffic */
         //   hdsi->Instance->LVCIDR &= ~DSI_LVCIDR_VCID;
         op_eq!(dsihost, lvcidr, &, !DSI_LVCIDR_VCID);
         //   hdsi->Instance->LVCIDR |= VidCfg->VirtualChannelID;
-        op_eq!(dsihost, lvcidr, |, self.VirtualChannelID);
+        op_eq!(dsihost, lvcidr, |, self.virtual_channel_id);
 
         //   /* Configure the polarity of control signals */
         //   hdsi->Instance->LPCR &= ~(DSI_LPCR_DEP | DSI_LPCR_VSP | DSI_LPCR_HSP);
         op_eq!(dsihost, lpcr, &, !(DSI_LPCR_DEP | DSI_LPCR_VSP | DSI_LPCR_HSP));
         //   hdsi->Instance->LPCR |= (VidCfg->DEPolarity | VidCfg->VSPolarity | VidCfg->HSPolarity);
-        op_eq!(dsihost, lpcr, |, (self.DEPolarity | self.VSPolarity | self.HSPolarity));
+        op_eq!(dsihost, lpcr, |, (self.depolarity | self.vspolarity | self.hspolarity));
 
         //   /* Select the color coding for the host */
         //   hdsi->Instance->LCOLCR &= ~DSI_LCOLCR_COLC;
         op_eq!(dsihost, lcolcr, &, !DSI_LCOLCR_COLC);
         //   hdsi->Instance->LCOLCR |= VidCfg->ColorCoding;
-        op_eq!(dsihost, lcolcr, |, self.ColorCoding);
+        op_eq!(dsihost, lcolcr, |, self.color_coding);
 
         //   /* Select the color coding for the wrapper */
         //   hdsi->Instance->WCFGR &= ~DSI_WCFGR_COLMUX;
         op_eq!(dsihost, wcfgr, &, !DSI_WCFGR_COLMUX);
         //   hdsi->Instance->WCFGR |= ((VidCfg->ColorCoding) << 1U);
-        op_eq!(dsihost, wcfgr, |, (self.ColorCoding << 1));
+        op_eq!(dsihost, wcfgr, |, (self.color_coding << 1));
 
         //   /* Enable/disable the loosely packed variant to 18-bit configuration */
         //   if (VidCfg->ColorCoding == DSI_RGB666)
@@ -252,111 +252,111 @@ impl DsiVideoConfig {
         //     hdsi->Instance->LCOLCR &= ~DSI_LCOLCR_LPE;
         //     hdsi->Instance->LCOLCR |= VidCfg->LooselyPacked;
         //   }
-        if self.ColorCoding == DSI_RGB666 {
+        if self.color_coding == DSI_RGB666 {
             op_eq!(dsihost, lcolcr, &, !DSI_LCOLCR_LPE);
-            op_eq!(dsihost, lcolcr, |, self.LooselyPacked);
+            op_eq!(dsihost, lcolcr, |, self.loosely_packed);
         }
 
         //   /* Set the Horizontal Synchronization Active (HSA) in lane byte clock cycles */
         //   hdsi->Instance->VHSACR &= ~DSI_VHSACR_HSA;
         op_eq!(dsihost, vhsacr, &, !DSI_VHSACR_HSA);
         //   hdsi->Instance->VHSACR |= VidCfg->HorizontalSyncActive;
-        op_eq!(dsihost, vhsacr, |, self.HorizontalSyncActive);
+        op_eq!(dsihost, vhsacr, |, self.horizontal_sync_active);
 
         //   /* Set the Horizontal Back Porch (HBP) in lane byte clock cycles */
         //   hdsi->Instance->VHBPCR &= ~DSI_VHBPCR_HBP;
         op_eq!(dsihost, vhbpcr, &, !DSI_VHBPCR_HBP);
         //   hdsi->Instance->VHBPCR |= VidCfg->HorizontalBackPorch;
-        op_eq!(dsihost, vhbpcr, |, self.HorizontalBackPorch);
+        op_eq!(dsihost, vhbpcr, |, self.horizontal_back_porch);
 
         //   /* Set the total line time (HLINE=HSA+HBP+HACT+HFP) in lane byte clock cycles */
         //   hdsi->Instance->VLCR &= ~DSI_VLCR_HLINE;
         op_eq!(dsihost, vlcr, &, !DSI_VLCR_HLINE);
         //   hdsi->Instance->VLCR |= VidCfg->HorizontalLine;
-        op_eq!(dsihost, vlcr, |, self.HorizontalLine);
+        op_eq!(dsihost, vlcr, |, self.horizontal_line);
 
         //   /* Set the Vertical Synchronization Active (VSA) */
         //   hdsi->Instance->VVSACR &= ~DSI_VVSACR_VSA;
         op_eq!(dsihost, vvsacr, &, !DSI_VVSACR_VSA);
         //   hdsi->Instance->VVSACR |= VidCfg->VerticalSyncActive;
-        op_eq!(dsihost, vvsacr, |, self.VerticalSyncActive);
+        op_eq!(dsihost, vvsacr, |, self.vertical_sync_active);
 
         //   /* Set the Vertical Back Porch (VBP)*/
         //   hdsi->Instance->VVBPCR &= ~DSI_VVBPCR_VBP;
         op_eq!(dsihost, vvbpcr, &, !DSI_VVBPCR_VBP);
         //   hdsi->Instance->VVBPCR |= VidCfg->VerticalBackPorch;
-        op_eq!(dsihost, vvbpcr, |, self.VerticalBackPorch);
+        op_eq!(dsihost, vvbpcr, |, self.vertical_back_porch);
 
         //   /* Set the Vertical Front Porch (VFP)*/
         //   hdsi->Instance->VVFPCR &= ~DSI_VVFPCR_VFP;
         op_eq!(dsihost, vvfpcr, &, !DSI_VVFPCR_VFP);
         //   hdsi->Instance->VVFPCR |= VidCfg->VerticalFrontPorch;
-        op_eq!(dsihost, vvfpcr, |, self.VerticalFrontPorch);
+        op_eq!(dsihost, vvfpcr, |, self.vertical_front_porch);
 
         //   /* Set the Vertical Active period*/
         //   hdsi->Instance->VVACR &= ~DSI_VVACR_VA;
         op_eq!(dsihost, vvacr, &, !DSI_VVACR_VA);
         //   hdsi->Instance->VVACR |= VidCfg->VerticalActive;
-        op_eq!(dsihost, vvacr, |, self.VerticalActive);
+        op_eq!(dsihost, vvacr, |, self.vertical_active);
 
         //   /* Configure the command transmission mode */
         //   hdsi->Instance->VMCR &= ~DSI_VMCR_LPCE;
         op_eq!(dsihost, vmcr, &, !DSI_VMCR_LPCE);
         //   hdsi->Instance->VMCR |= VidCfg->LPCommandEnable;
-        op_eq!(dsihost, vmcr, |, self.LPCommandEnable);
+        op_eq!(dsihost, vmcr, |, self.lpcommand_enable);
 
         //   /* Low power largest packet size */
         //   hdsi->Instance->LPMCR &= ~DSI_LPMCR_LPSIZE;
         op_eq!(dsihost, lpmcr, &, !DSI_LPMCR_LPSIZE);
         //   hdsi->Instance->LPMCR |= ((VidCfg->LPLargestPacketSize) << 16U);
-        op_eq!(dsihost, lpmcr, |, (self.LPLargestPacketSize << 16));
+        op_eq!(dsihost, lpmcr, |, (self.lplargest_packet_size << 16));
 
         //   /* Low power VACT largest packet size */
         //   hdsi->Instance->LPMCR &= ~DSI_LPMCR_VLPSIZE;
         op_eq!(dsihost, lpmcr, &, !DSI_LPMCR_VLPSIZE);
         //   hdsi->Instance->LPMCR |= VidCfg->LPVACTLargestPacketSize;
-        op_eq!(dsihost, lpmcr, |, self.LPVACTLargestPacketSize);
+        op_eq!(dsihost, lpmcr, |, self.lpvactlargest_packet_size);
 
         //   /* Enable LP transition in HFP period */
         //   hdsi->Instance->VMCR &= ~DSI_VMCR_LPHFPE;
         op_eq!(dsihost, vmcr, &, !DSI_VMCR_LPHFPE);
         //   hdsi->Instance->VMCR |= VidCfg->LPHorizontalFrontPorchEnable;
-        op_eq!(dsihost, vmcr, |, self.LPHorizontalFrontPorchEnable);
+        op_eq!(dsihost, vmcr, |, self.lphorizontal_front_porch_enable);
 
         //   /* Enable LP transition in HBP period */
         //   hdsi->Instance->VMCR &= ~DSI_VMCR_LPHBPE;
         op_eq!(dsihost, vmcr, &, !DSI_VMCR_LPHBPE);
         //   hdsi->Instance->VMCR |= VidCfg->LPHorizontalBackPorchEnable;
-        op_eq!(dsihost, vmcr, |, self.LPHorizontalBackPorchEnable);
+        op_eq!(dsihost, vmcr, |, self.lphorizontal_back_porch_enable);
 
         //   /* Enable LP transition in VACT period */
         //   hdsi->Instance->VMCR &= ~DSI_VMCR_LPVAE;
         op_eq!(dsihost, vmcr, &, !DSI_VMCR_LPVAE);
         //   hdsi->Instance->VMCR |= VidCfg->LPVerticalActiveEnable;
-        op_eq!(dsihost, vmcr, |, self.LPVerticalActiveEnable);
+        op_eq!(dsihost, vmcr, |, self.lpvertical_active_enable);
 
         //   /* Enable LP transition in VFP period */
         //   hdsi->Instance->VMCR &= ~DSI_VMCR_LPVFPE;
         op_eq!(dsihost, vmcr, &, !DSI_VMCR_LPVFPE);
         //   hdsi->Instance->VMCR |= VidCfg->LPVerticalFrontPorchEnable;
-        op_eq!(dsihost, vmcr, |, self.LPVerticalFrontPorchEnable);
+        op_eq!(dsihost, vmcr, |, self.lpvertical_front_porch_enable);
 
         //   /* Enable LP transition in VBP period */
         //   hdsi->Instance->VMCR &= ~DSI_VMCR_LPVBPE;
         op_eq!(dsihost, vmcr, &, !DSI_VMCR_LPVBPE);
         //   hdsi->Instance->VMCR |= VidCfg->LPVerticalBackPorchEnable;
-        op_eq!(dsihost, vmcr, |, self.LPVerticalBackPorchEnable);
+        op_eq!(dsihost, vmcr, |, self.lpvertical_back_porch_enable);
 
         //   /* Enable LP transition in vertical sync period */
         //   hdsi->Instance->VMCR &= ~DSI_VMCR_LPVSAE;
         op_eq!(dsihost, vmcr, &, !DSI_VMCR_LPVSAE);
         //   hdsi->Instance->VMCR |= VidCfg->LPVerticalSyncActiveEnable;
-        op_eq!(dsihost, vmcr, |, self.LPVerticalSyncActiveEnable);
+        op_eq!(dsihost, vmcr, |, self.lpvertical_sync_active_enable);
 
         //   /* Enable the request for an acknowledge response at the end of a frame */
         //   hdsi->Instance->VMCR &= ~DSI_VMCR_FBTAAE;
         op_eq!(dsihost, vmcr, &, !DSI_VMCR_FBTAAE);
         //   hdsi->Instance->VMCR |= VidCfg->FrameBTAAcknowledgeEnable;
-        op_eq!(dsihost, vmcr, |, self.FrameBTAAcknowledgeEnable);
+        op_eq!(dsihost, vmcr, |, self.frame_btaacknowledge_enable);
     }
 }

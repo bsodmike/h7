@@ -9,20 +9,20 @@ use {
 /// DSI PHY Timings definition
 #[derive(Debug, Clone)]
 pub struct DsiPhyTimerConfig {
-    pub ClockLaneHS2LPTime: u32,
-    pub ClockLaneLP2HSTime: u32,
-    pub DataLaneHS2LPTime: u32,
-    pub DataLaneLP2HSTime: u32,
-    pub DataLaneMaxReadTime: u32,
-    pub StopWaitTime: u32,
+    pub clock_lane_hs2_lptime: u32,
+    pub clock_lane_lp2_hstime: u32,
+    pub data_lane_hs2_lptime: u32,
+    pub data_lane_lp2_hstime: u32,
+    pub data_lane_max_read_time: u32,
+    pub stop_wait_time: u32,
 }
 
 impl DsiPhyTimerConfig {
     pub unsafe fn apply(&self, dsihost: &DSIHOST) {
-        let max_time = if self.ClockLaneLP2HSTime > self.ClockLaneHS2LPTime {
-            self.ClockLaneLP2HSTime
+        let max_time = if self.clock_lane_lp2_hstime > self.clock_lane_hs2_lptime {
+            self.clock_lane_lp2_hstime
         } else {
-            self.ClockLaneHS2LPTime
+            self.clock_lane_hs2_lptime
         };
 
         // hdsi->Instance->CLTCR &= ~(DSI_CLTCR_LP2HS_TIME | DSI_CLTCR_HS2LP_TIME);
@@ -47,9 +47,9 @@ impl DsiPhyTimerConfig {
         dsihost.dltcr.write(|w| {
             w.bits(
                 dsihost.dltcr.read().bits()
-                    | (self.DataLaneMaxReadTime
-                        | ((self.DataLaneLP2HSTime) << 16)
-                        | ((self.DataLaneHS2LPTime) << 24)),
+                    | (self.data_lane_max_read_time
+                        | ((self.data_lane_lp2_hstime) << 16)
+                        | ((self.data_lane_hs2_lptime) << 24)),
             )
         });
 
@@ -61,6 +61,6 @@ impl DsiPhyTimerConfig {
         // hdsi->Instance->PCONFR |= ((PhyTimers->StopWaitTime) << 8U);
         dsihost
             .pconfr
-            .write(|w| w.bits(dsihost.pconfr.read().bits() | self.StopWaitTime));
+            .write(|w| w.bits(dsihost.pconfr.read().bits() | self.stop_wait_time));
     }
 }

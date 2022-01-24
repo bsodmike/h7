@@ -1,5 +1,5 @@
 use {
-    crate::{consts, time::TimeSource, usb},
+    crate::{consts, time::TimeSource},
     chrono::{Datelike, NaiveDate, Timelike},
     core::{cell::RefCell, fmt::Write},
     cortex_m::interrupt::{free as interrupt_free, Mutex},
@@ -15,9 +15,6 @@ impl core::fmt::Write for TerminalWriter {
         interrupt_free(|cs| {
             if let Some(tx) = &mut *UART_TERMINAL_TX.borrow(cs).borrow_mut() {
                 write!(tx, "{}", s)?
-            }
-            if let Some(tx) = &mut *usb::SERIAL_PORT.borrow(cs).borrow_mut() {
-                write!(usb::SerialWriter(tx), "{}", s)?
             }
             Ok(())
         })
@@ -163,12 +160,11 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
         help: "info - Query information from the system",
         description: "Query information from the system",
         action: |m, args| match args {
-            &["mcu"] => {
+            ["mcu"] => {
                 writeln!(
                     m.writer(),
-                    "{:width$} {}",
+                    "{:width$} STM32H747",
                     "MCU",
-                    "STM32H747",
                     width = LABEL_WIDTH
                 )?;
                 // Uid is 12 byts, hex string will be 24.
@@ -184,15 +180,14 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                 )?;
                 Ok(())
             }
-            &["cpu"] => {
+            ["cpu"] => {
                 writeln!(
                     m.writer(),
-                    "{:width$} {}",
+                    "{:width$} Cortex-M7F",
                     "Core",
-                    "Cortex-M7F",
                     width = LABEL_WIDTH
                 )?;
-                match interrupt_free(|cs| crate::system::cpu_freq(cs)) {
+                match interrupt_free(crate::system::cpu_freq) {
                     Some(freq) => writeln!(
                         m.writer(),
                         "{:width$} {}MHz",
@@ -202,13 +197,12 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                     )?,
                     None => writeln!(
                         m.writer(),
-                        "{:width$} {}",
+                        "{:width$} unavailable",
                         "Core frequency",
-                        "unavailable",
                         width = LABEL_WIDTH
                     )?,
                 }
-                match interrupt_free(|cs| crate::system::cpu_temp(cs)) {
+                match interrupt_free(crate::system::cpu_temp) {
                     Some(temp) => writeln!(
                         m.writer(),
                         "{:width$} {:.01}°C",
@@ -218,9 +212,8 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                     )?,
                     None => writeln!(
                         m.writer(),
-                        "{:width$} {}",
+                        "{:width$} unavailable",
                         "Core temperature",
-                        "unavailable",
                         width = LABEL_WIDTH
                     )?,
                 }
@@ -247,7 +240,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                 )?;
                 Ok(())
             }
-            &["mem"] => {
+            ["mem"] => {
                 writeln!(
                     m.writer(),
                     "{:width$} {}KiB",
@@ -278,7 +271,25 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                 )?;
                 Ok(())
             }
-            &["os"] => {
+            ["os"] => {
+                writeln!(
+                    m.writer(),
+                    "{:width$} {used}b/{total}b ({fraction:.02}%)",
+                    "Memory usage",
+                    used = crate::ALLOCATOR.used(),
+                    total = crate::mem::sdram::SDRAM_SIZE,
+                    fraction = (crate::ALLOCATOR.used() as f64
+                        / crate::mem::sdram::SDRAM_SIZE as f64)
+                        * 100.0,
+                    width = LABEL_WIDTH
+                )?;
+                writeln!(
+                    m.writer(),
+                    "{:width$} {}",
+                    "Rust version",
+                    consts::RUSTC_VERSION,
+                    width = LABEL_WIDTH
+                )?;
                 writeln!(
                     m.writer(),
                     "{:width$} {}",
@@ -318,7 +329,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                 )?;
                 Ok(())
             }
-            &[] => {
+            [] => {
                 writeln!(m.writer(), "{:-^-width$}", " MCU ", width = HEADER_WIDTH)?;
                 m.run("info", &["mcu"])?;
                 writeln!(m.writer(), "{:-^-width$}", " CPU ", width = HEADER_WIDTH)?;
@@ -510,11 +521,11 @@ fn nibble_to_char(nibble: u8, lowercase: bool) -> Option<u8> {
 fn to_hex<const N: usize>(data: &[u8], lowercase: bool) -> ([u8; N], usize) {
     let mut res = [0u8; N];
     let len = data.len().min(N / 2);
-    for i in 0..len {
+    for (i, byte) in data.iter().enumerate() {
         let idx = i * 2;
         // These unwraps can never fail as long as nibble_to_char handles the tange 0..=15
-        res[idx] = nibble_to_char(data[i] >> 4, lowercase).unwrap();
-        res[idx + 1] = nibble_to_char(data[i] & 0x0f, lowercase).unwrap();
+        res[idx] = nibble_to_char(byte >> 4, lowercase).unwrap();
+        res[idx + 1] = nibble_to_char(byte & 0x0f, lowercase).unwrap();
     }
     (res, len * 2)
 }

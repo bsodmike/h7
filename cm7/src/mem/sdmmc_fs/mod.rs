@@ -36,8 +36,8 @@ impl SdmmcFs {
 
     pub fn is_mounted(&self) -> bool {
         match &self.state {
-            &SdmmcState::Controller(_) => true,
-            &SdmmcState::Sdmmc(_) => false,
+            SdmmcState::Controller(_) => true,
+            SdmmcState::Sdmmc(_) => false,
             _ => unreachable!(),
         }
     }

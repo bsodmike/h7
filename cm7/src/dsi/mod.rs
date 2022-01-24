@@ -9,6 +9,7 @@ use {
     video_config::DsiVideoConfig,
 };
 
+#[allow(unused, non_upper_case_globals, dead_code)]
 mod dsi_consts;
 mod phy_timer_config;
 mod video_config;
@@ -54,71 +55,72 @@ impl Dsi {
 
             // TODO: HAL_DSI_ConfigVideoMode
             DsiVideoConfig {
-                VirtualChannelID: 0,
-                ColorCoding: DSI_RGB565, // TODO
-                LooselyPacked: DSI_LOOSELY_PACKED_DISABLE,
-                VSPolarity: if display_config.v_sync_pol {
+                virtual_channel_id: 0,
+                color_coding: DSI_RGB565, // TODO
+                loosely_packed: DSI_LOOSELY_PACKED_DISABLE,
+                vspolarity: if display_config.v_sync_pol {
                     DSI_VSYNC_ACTIVE_HIGH
                 } else {
                     DSI_VSYNC_ACTIVE_LOW
                 },
-                HSPolarity: if display_config.h_sync_pol {
+                hspolarity: if display_config.h_sync_pol {
                     DSI_HSYNC_ACTIVE_HIGH
                 } else {
                     DSI_HSYNC_ACTIVE_LOW
                 },
-                DEPolarity: if display_config.not_data_enable_pol {
+                depolarity: if display_config.not_data_enable_pol {
                     DSI_DATA_ENABLE_ACTIVE_HIGH
                 } else {
                     DSI_DATA_ENABLE_ACTIVE_LOW
                 },
-                Mode: DSI_VID_MODE_BURST,
-                NullPacketSize: 0xFFF,
-                NumberOfChunks: 1,
+                mode: DSI_VID_MODE_BURST,
+                null_packet_size: 0xFFF,
+                number_of_chunks: 1,
                 // lcd_x_size,
-                PacketSize: display_config.active_width as u32,
+                packet_size: display_config.active_width as u32,
                 // dt->hsync_len * LANE_BYTE_CLOCK / dt->pixelclock,
-                HorizontalSyncActive: display_config.h_sync as u32 * LANE_BYTE_CLOCK / PIXEL_CLOCK,
+                horizontal_sync_active: display_config.h_sync as u32 * LANE_BYTE_CLOCK
+                    / PIXEL_CLOCK,
                 // dt->hback_porch * LANE_BYTE_CLOCK / dt->pixelclock,
-                HorizontalBackPorch: display_config.h_back_porch as u32 * LANE_BYTE_CLOCK
+                horizontal_back_porch: display_config.h_back_porch as u32 * LANE_BYTE_CLOCK
                     / PIXEL_CLOCK,
                 // (dt->hactive + dt->hsync_len + dt->hback_porch + dt->hfront_porch) * LANE_BYTE_CLOCK / dt->pixelclock,
-                HorizontalLine: (display_config.active_height as u32
+                horizontal_line: (display_config.active_height as u32
                     + display_config.h_sync as u32
                     + display_config.h_back_porch as u32
                     + display_config.h_front_porch as u32)
                     * LANE_BYTE_CLOCK
                     / PIXEL_CLOCK,
                 // dt->vsync_len,
-                VerticalSyncActive: display_config.v_sync as u32,
+                vertical_sync_active: display_config.v_sync as u32,
                 // dt->vback_porch,
-                VerticalBackPorch: display_config.v_back_porch as u32,
+                vertical_back_porch: display_config.v_back_porch as u32,
                 // dt->vfront_porch,
-                VerticalFrontPorch: display_config.v_front_porch as u32,
+                vertical_front_porch: display_config.v_front_porch as u32,
                 // dt->vactive,
-                VerticalActive: display_config.active_height as u32,
-                LPCommandEnable: DSI_LP_COMMAND_ENABLE,
-                LPLargestPacketSize: 16,
-                LPVACTLargestPacketSize: 0,
-                LPHorizontalFrontPorchEnable: DSI_LP_HFP_ENABLE,
-                LPHorizontalBackPorchEnable: DSI_LP_HBP_ENABLE,
-                LPVerticalActiveEnable: DSI_LP_VACT_ENABLE,
-                LPVerticalFrontPorchEnable: DSI_LP_VFP_ENABLE,
-                LPVerticalBackPorchEnable: DSI_LP_VBP_ENABLE,
-                LPVerticalSyncActiveEnable: DSI_LP_VSYNC_ENABLE,
-                FrameBTAAcknowledgeEnable: 0,
+                vertical_active: display_config.active_height as u32,
+                lpcommand_enable: DSI_LP_COMMAND_ENABLE,
+                lplargest_packet_size: 16,
+                lpvactlargest_packet_size: 0,
+                lphorizontal_front_porch_enable: DSI_LP_HFP_ENABLE,
+                lphorizontal_back_porch_enable: DSI_LP_HBP_ENABLE,
+                lpvertical_active_enable: DSI_LP_VACT_ENABLE,
+                lpvertical_front_porch_enable: DSI_LP_VFP_ENABLE,
+                lpvertical_back_porch_enable: DSI_LP_VBP_ENABLE,
+                lpvertical_sync_active_enable: DSI_LP_VSYNC_ENABLE,
+                frame_btaacknowledge_enable: 0,
             }
             .apply(&dsihost);
 
             // HAL_DSI_ConfigPhyTimer
             // Configure DSI PHY HS2LP and LP2HS timings
             DsiPhyTimerConfig {
-                ClockLaneHS2LPTime: 35,
-                ClockLaneLP2HSTime: 35,
-                DataLaneHS2LPTime: 35,
-                DataLaneLP2HSTime: 35,
-                DataLaneMaxReadTime: 0,
-                StopWaitTime: 10,
+                clock_lane_hs2_lptime: 35,
+                clock_lane_lp2_hstime: 35,
+                data_lane_hs2_lptime: 35,
+                data_lane_lp2_hstime: 35,
+                data_lane_max_read_time: 0,
+                stop_wait_time: 10,
             }
             .apply(&dsihost);
 

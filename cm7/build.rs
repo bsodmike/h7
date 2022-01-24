@@ -13,6 +13,10 @@ fn main() {
     let mut rows = HashMap::<&'static str, (&'static str, String)>::new();
 
     // Time
+    rows.insert(
+        "RUSTC_VERSION",
+        ("&str", rustc_version::version().unwrap().to_string()),
+    );
     let now = Local::now();
     rows.insert("COMPILE_TIME_YEAR", ("i32", now.year().to_string()));
     rows.insert("COMPILE_TIME_MONTH", ("u32", now.month().to_string()));

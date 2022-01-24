@@ -9,6 +9,7 @@ use {
     },
 };
 
+#[allow(dead_code)]
 pub mod mx25l;
 
 pub const QSPI_FLASH_SIZE: usize = 16 * 1024 * 1024;

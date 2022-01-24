@@ -1,5 +1,5 @@
 use {
-    crate::{terminal, usb, LED},
+    crate::{terminal, LED},
     core::{fmt::Write, panic::PanicInfo},
     cortex_m::interrupt::free as interrupt_free,
 };
@@ -11,9 +11,6 @@ impl Write for PanicLogger {
         interrupt_free(|cs| {
             if let Some(tx) = &mut *terminal::UART_TERMINAL_TX.borrow(cs).borrow_mut() {
                 write!(tx, "{}", s)?
-            }
-            if let Some(tx) = &mut *usb::SERIAL_PORT.borrow(cs).borrow_mut() {
-                write!(usb::SerialWriter(tx), "{}", s)?
             }
             Ok(())
         })
