@@ -50,7 +50,19 @@ unsafe fn main() -> ! {
     let mut cp = cortex_m::Peripherals::take().unwrap();
     let dp = pac::Peripherals::take().unwrap();
 
+    dp.RCC.ahb2enr.modify(|_, w| {
+        w.sram1en()
+            .set_bit()
+            .sram2en()
+            .set_bit()
+            .sram3en()
+            .set_bit()
+    });
+
+    // TODO: RAMECC1, RAMECC2, RAMECC3
+
     pac::DWT::unlock();
+    cp.DCB.enable_trace();
     cp.DWT.enable_cycle_counter();
     cp.SCB.enable_icache();
     cp.SCB.enable_dcache(&mut cp.CPUID);

@@ -46,7 +46,6 @@ impl SdmmcFs {
         match self.state {
             SdmmcState::Controller(ref mut c) => {
                 let blocks = c.device().num_blocks()?.0;
-                log::info!("Blocks: {}", blocks);
                 Ok(blocks as u64 * 512)
             }
             SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),

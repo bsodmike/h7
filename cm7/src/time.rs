@@ -1,5 +1,5 @@
 use {
-    chrono::{Datelike, NaiveDateTime, Timelike},
+    chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike},
     core::cell::RefCell,
     cortex_m::interrupt::{self, Mutex},
     stm32h7xx_hal::rtc::Rtc,
@@ -23,7 +23,45 @@ impl TimeSource {
         interrupt::free(|cs| RTC.borrow(cs).replace(Some(rtc)));
     }
 
-    pub fn set_date_time(dt: chrono::NaiveDateTime) -> Result<(), ()> {
+    pub fn set_date(d: NaiveDate) -> Result<(), ()> {
+        interrupt::free(|cs| {
+            match RTC
+                .borrow(cs)
+                .borrow_mut()
+                .as_mut()
+                .and_then(|rtc| match rtc.time() {
+                    Some(t) => Some((rtc, t)),
+                    _ => None,
+                }) {
+                Some((rtc, t)) => {
+                    rtc.set_date_time(NaiveDateTime::new(d, t));
+                    Ok(())
+                }
+                _ => Err(()),
+            }
+        })
+    }
+
+    pub fn set_time(t: NaiveTime) -> Result<(), ()> {
+        interrupt::free(|cs| {
+            match RTC
+                .borrow(cs)
+                .borrow_mut()
+                .as_mut()
+                .and_then(|rtc| match rtc.date() {
+                    Some(d) => Some((rtc, d)),
+                    _ => None,
+                }) {
+                Some((rtc, d)) => {
+                    rtc.set_date_time(NaiveDateTime::new(d, t));
+                    Ok(())
+                }
+                _ => Err(()),
+            }
+        })
+    }
+
+    pub fn set_date_time(dt: NaiveDateTime) -> Result<(), ()> {
         interrupt::free(|cs| match &mut *RTC.borrow(cs).borrow_mut() {
             Some(rtc) => {
                 rtc.set_date_time(dt);

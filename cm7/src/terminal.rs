@@ -1,6 +1,6 @@
 use {
     crate::{consts, time::TimeSource},
-    chrono::{Datelike, NaiveDate, Timelike},
+    chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike},
     core::{cell::RefCell, fmt::Write},
     cortex_m::interrupt::{free as interrupt_free, Mutex},
     hds::Queue,
@@ -23,6 +23,8 @@ impl core::fmt::Write for TerminalWriter {
 
 const HEADER_WIDTH: usize = 48;
 const LABEL_WIDTH: usize = 20;
+const DATE_PARSE_FORMAT: &str = "%Y-%m-%d";
+const TIME_PARSE_FORMAT: &str = "%H:%M:%S";
 
 // Terminal
 pub static TERMINAL_INPUT_FIFO: Mutex<RefCell<Queue<u8, 64>>> =
@@ -137,21 +139,78 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
         help: "date - Get system date and time",
         description: "Get system date and time",
         action: |m, args| {
-            check_args_len(0, args.len())?;
-            match TimeSource::get_date_time() {
-                Some(dt) => writeln!(
-                    m.writer(),
-                    "{weekday} {month} {day} {hh:02}:{mm:02}:{ss:02} {year}",
-                    weekday = dt.weekday(),
-                    month = month_to_str(dt.month()),
-                    day = dt.day(),
-                    hh = dt.hour(),
-                    mm = dt.minute(),
-                    ss = dt.second(),
-                    year = dt.year()
-                ),
-                None => writeln!(m.writer(), "Error: RTC not initialized"),
+            match args {
+                ["set", date, time] => match (
+                    NaiveDate::parse_from_str(date, DATE_PARSE_FORMAT),
+                    NaiveTime::parse_from_str(time, TIME_PARSE_FORMAT),
+                ) {
+                    (Ok(date), Ok(time)) => {
+                        writeln!(m.writer(), "Setting new date and time")?;
+                        match TimeSource::set_date_time(NaiveDateTime::new(date, time)) {
+                            Ok(_) => {
+                                write!(m.writer(), "New date and time: ")?;
+                                m.run("date", &[])?;
+                                Ok(())
+                            }
+                            Err(_) => writeln!(m.writer(), "Error: RTC not initialized"),
+                        }
+                    }
+                    (Err(_), _) => writeln!(m.writer(), "Date parsing failed"),
+                    (_, Err(_)) => writeln!(m.writer(), "Time parsing failed"),
+                },
+                ["set", date_or_time] => {
+                    if let Ok(date) = NaiveDate::parse_from_str(date_or_time, DATE_PARSE_FORMAT) {
+                        match TimeSource::set_date(date) {
+                            Ok(_) => {
+                                write!(m.writer(), "New date and time: ")?;
+                                m.run("date", &[])?;
+                                Ok(())
+                            }
+                            Err(_) => writeln!(m.writer(), "Error: RTC not initialized"),
+                        }
+                    } else if let Ok(time) =
+                        NaiveTime::parse_from_str(date_or_time, TIME_PARSE_FORMAT)
+                    {
+                        match TimeSource::set_time(time) {
+                            Ok(_) => {
+                                write!(m.writer(), "New date and time: ")?;
+                                m.run("date", &[])?;
+                                Ok(())
+                            }
+                            Err(_) => writeln!(m.writer(), "Error: RTC not initialized"),
+                        }
+                    } else {
+                        writeln!(m.writer(), "Invalid date or time '{}'", date_or_time)
+                    }
+                }
+                ["set"] => {
+                    writeln!(m.writer(), "Set new system date and time:")?;
+                    writeln!(
+                        m.writer(),
+                        "Set date and time: date set {} {}",
+                        DATE_PARSE_FORMAT,
+                        TIME_PARSE_FORMAT
+                    )?;
+                    writeln!(m.writer(), "Set date: date set {}", DATE_PARSE_FORMAT)?;
+                    writeln!(m.writer(), "Set time: date set {}", TIME_PARSE_FORMAT)
+                }
+                [] => match TimeSource::get_date_time() {
+                    Some(dt) => writeln!(
+                        m.writer(),
+                        "{weekday} {month} {day} {hh:02}:{mm:02}:{ss:02} {year}",
+                        weekday = dt.weekday(),
+                        month = month_to_str(dt.month()),
+                        day = dt.day(),
+                        hh = dt.hour(),
+                        mm = dt.minute(),
+                        ss = dt.second(),
+                        year = dt.year()
+                    ),
+                    None => writeln!(m.writer(), "Error: RTC not initialized"),
+                },
+                _ => writeln!(m.writer(), "Invalid usage"),
             }?;
+            // check_args_len(0, args.len())?;
             Ok(())
         },
     },

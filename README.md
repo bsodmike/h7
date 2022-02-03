@@ -23,7 +23,7 @@
 * [ ] CPU Temp ADC interrupt.
 * [ ] Watchdog info in mcuinfo.
 * [ ] Watchdog control command.
-* [ ] RTC control command.
+* [x] RTC control command. `date set [date time|date|time]`
 * [ ] Render to display. Interrupt driven frame-updates.
 * [ ] USB input with interrupts.
 * [ ] User login using secure element.

@@ -1,0 +1,49 @@
+[config]
+skip_core_tasks = true
+
+[tasks.build-debug]
+env = { RELEASE_DEBUG = "debug" }
+run_task = { name = [ "_build", "_arm_none_eabi_size" ] }
+
+[tasks.build-release]
+env = { RELEASE_DEBUG = "release" }
+run_task = { name = [ "_build", "_arm_none_eabi_size" ] }
+
+[tasks.flash-debug]
+env = { RELEASE_DEBUG = "debug" }
+run_task = "_flash"
+
+[tasks.flash-release]
+env = { RELEASE_DEBUG = "release" }
+run_task = "_flash"
+
+[tasks.build-flash-debug]
+run_task = { name = [ "build-debug", "flash-debug" ] }
+
+[tasks.build-flash-release]
+run_task = { name = [ "build-release", "flash-release" ] }
+
+# ==== Private tasks ====
+
+[tasks._flash]
+private = true
+condition = { env_set = [ "RELEASE_DEBUG" ] }
+script = "../flash.sh ${CARGO_MAKE_CRATE_CUSTOM_TRIPLE_TARGET_DIRECTORY}/${RELEASE_DEBUG}/${CARGO_MAKE_PROJECT_NAME}"
+
+[tasks._arm_none_eabi_size]
+private = true
+condition = { env_set = [ "RELEASE_DEBUG" ] }
+command = "arm-none-eabi-size"
+args = [ "${CARGO_MAKE_CRATE_CUSTOM_TRIPLE_TARGET_DIRECTORY}/${RELEASE_DEBUG}/${CARGO_MAKE_PROJECT_NAME}", "-A", "-x" ]
+
+[tasks._build]
+private = true
+condition = { env_set = [ "RELEASE_DEBUG" ] }
+script = '''
+if [ ${RELEASE_DEBUG} == "release" ]; then
+    cargo build --release ${@}
+else
+    cargo build ${@}
+fi
+'''
+
