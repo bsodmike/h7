@@ -31,6 +31,7 @@ mod dsi;
 mod led;
 mod logger;
 mod mem;
+mod menu;
 #[cfg(not(feature = "semihosting"))]
 mod panic;
 mod pmic;

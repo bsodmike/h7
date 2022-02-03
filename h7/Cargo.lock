@@ -52,13 +52,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "api"
-version = "0.1.0"
-dependencies = [
- "cbindgen",
-]
-
-[[package]]
 name = "as-slice"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -229,34 +222,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cm7"
-version = "0.1.0"
-dependencies = [
- "alloc-cortex-m",
- "anx7625",
- "api",
- "chrono",
- "cortex-m 0.7.4",
- "cortex-m-log",
- "cortex-m-rt",
- "cortex-m-semihosting",
- "embedded-display-controller",
- "embedded-hal",
- "embedded-sdmmc",
- "hds",
- "lazy_static",
- "log",
- "menu",
- "panic-semihosting",
- "rustc_version 0.4.0",
- "stm32-fmc",
- "stm32h7xx-hal",
- "synopsys-usb-otg",
- "usb-device",
- "usbd-serial",
-]
-
-[[package]]
 name = "cortex-m"
 version = "0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -421,6 +386,40 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 
 [[package]]
+name = "h7"
+version = "0.1.0"
+dependencies = [
+ "alloc-cortex-m",
+ "anx7625",
+ "chrono",
+ "cortex-m 0.7.4",
+ "cortex-m-log",
+ "cortex-m-rt",
+ "cortex-m-semihosting",
+ "embedded-display-controller",
+ "embedded-hal",
+ "embedded-sdmmc",
+ "h7-api",
+ "hds",
+ "lazy_static",
+ "log",
+ "panic-semihosting",
+ "rustc_version 0.4.0",
+ "stm32-fmc",
+ "stm32h7xx-hal",
+ "synopsys-usb-otg",
+ "usb-device",
+ "usbd-serial",
+]
+
+[[package]]
+name = "h7-api"
+version = "0.1.0"
+dependencies = [
+ "cbindgen",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -532,10 +531,6 @@ name = "memchr"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "308cc39be01b73d0d18f82a0e7b2a3df85245f84af96fdddc5d202d27e47b86a"
-
-[[package]]
-name = "menu"
-version = "0.1.0"
 
 [[package]]
 name = "minimal-lexical"

@@ -1,10 +1,13 @@
 use {
-    crate::{consts, time::TimeSource},
+    crate::{
+        consts,
+        menu::{check_args_len, MenuError, MenuItem},
+        time::TimeSource,
+    },
     chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike},
     core::{cell::RefCell, fmt::Write},
     cortex_m::interrupt::{free as interrupt_free, Mutex},
     hds::Queue,
-    menu::{check_args_len, MenuError, MenuItem},
     stm32h7xx_hal::{self as hal, interrupt, pac, prelude::*, serial},
 };
 

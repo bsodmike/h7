@@ -29,10 +29,8 @@ impl TimeSource {
                 .borrow(cs)
                 .borrow_mut()
                 .as_mut()
-                .and_then(|rtc| match rtc.time() {
-                    Some(t) => Some((rtc, t)),
-                    _ => None,
-                }) {
+                .and_then(|rtc| rtc.time().map(|t| (rtc, t)))
+            {
                 Some((rtc, t)) => {
                     rtc.set_date_time(NaiveDateTime::new(d, t));
                     Ok(())
@@ -48,10 +46,8 @@ impl TimeSource {
                 .borrow(cs)
                 .borrow_mut()
                 .as_mut()
-                .and_then(|rtc| match rtc.date() {
-                    Some(d) => Some((rtc, d)),
-                    _ => None,
-                }) {
+                .and_then(|rtc| rtc.date().map(|d| (rtc, d)))
+            {
                 Some((rtc, d)) => {
                     rtc.set_date_time(NaiveDateTime::new(d, t));
                     Ok(())

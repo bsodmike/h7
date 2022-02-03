@@ -1,5 +1,5 @@
 [package]
-name = "cm7"
+name = "h7"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
@@ -31,11 +31,8 @@ synopsys-usb-otg = "0.2"
 usb-device = "0.2"
 usbd-serial = "0.1"
 
-# Terminal
-menu = { path = "../libs/menu" }
-
 # Program API
-api = { path = "../libs/api" }
+h7-api = { path = "../h7-api" }
 
 # Display
 embedded-display-controller = "0.1"

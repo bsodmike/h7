@@ -19,6 +19,7 @@ extern "C" {
 }
 
 pub static CLOCK_FREQ: Mutex<RefCell<Option<Hertz>>> = Mutex::new(RefCell::new(None));
+#[allow(clippy::type_complexity)]
 pub static CORE_TEMP: Mutex<
     RefCell<Option<(Adc<hal::device::ADC3, adc::Enabled>, adc::Temperature)>>,
 > = Mutex::new(RefCell::new(None));
