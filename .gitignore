@@ -6,6 +6,7 @@
 *.ko
 *.obj
 *.elf
+*.bin
 
 # Allow Arduino default bootloader elf
 !/arduino_bootloader/portentah7_bootloader_mbed_hs_v2.elf

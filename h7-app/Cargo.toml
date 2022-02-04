@@ -16,3 +16,4 @@ h7-api = { path = "../h7-api" }
 embedded-graphics-simulator = "0.3.0"
 embedded-graphics = "0.7.1"
 fontdue = "0.6.2"
+pc-keyboard = { git = "https://github.com/rust-embedded-community/pc-keyboard" }

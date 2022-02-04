@@ -11,17 +11,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-typedef struct H7Gpu {
-    int32_t (*dot)(uint32_t x1, uint32_t y1, uint16_t color);
-    int32_t (*line)(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2, uint32_t stroke, uint16_t color);
-    int32_t (*square)(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2, uint32_t stroke, uint16_t color);
-    int32_t (*square_fill)(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2, uint16_t color);
-} H7Gpu;
-
 typedef struct H7Api {
-    struct H7Gpu gpu;
-    uint8_t (*getc)(void);
-    int32_t (*putc)(uint8_t c);
     int32_t (*puts)(const uint8_t *start, size_t len);
 } H7Api;
 

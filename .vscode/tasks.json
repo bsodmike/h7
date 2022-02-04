@@ -2,13 +2,13 @@
     "tasks": [
         {
             "type": "cargo",
-            "command": "run",
+            "command": "make",
             "problemMatcher": [
                 "$rustc"
             ],
-            "label": "rust: cargo run",
+            "label": "rust: cargo make build-flash-debug",
             "options": {
-                "cwd": "cm7"
+                "cwd": "${workspaceFolder}/h7",
             }
         }
     ]

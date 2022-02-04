@@ -13,13 +13,13 @@ pub enum SdmmcFsError {
     BufferTooSmall,
     AlreadyMounted,
     NotMounted,
-    // Internal(SdmmcFsErrorInternal),
-    Sdmmc(Error),
+    Sdmmc(embedded_sdmmc::Error<stm32h7xx_hal::sdmmc::Error>),
+    HalSdmmc(Error),
 }
 
 impl From<Error> for SdmmcFsError {
     fn from(err: Error) -> Self {
-        Self::Sdmmc(err)
+        Self::HalSdmmc(err)
     }
 }
 
@@ -31,12 +31,20 @@ impl core::fmt::Display for SdmmcFsError {
             Self::AlreadyMounted => write!(f, "Already mounted"),
             Self::NotMounted => write!(f, "Not Mounted"),
             Self::Sdmmc(e) => write!(f, "Sdmmc: {:?}", e),
+            Self::HalSdmmc(e) => write!(f, "HalSdmmc: {:?}", e),
         }
     }
 }
 
-// impl From<SdmmcFsErrorInternal> for SdmmcFsError {
+impl From<embedded_sdmmc::Error<stm32h7xx_hal::sdmmc::Error>> for SdmmcFsError {
+    fn from(err: embedded_sdmmc::Error<stm32h7xx_hal::sdmmc::Error>) -> Self {
+        Self::Sdmmc(err)
+    }
+}
+
+// impl<E, B: BlockDevice<Error = E>> From<E> for SdmmcFsError {
 //     fn from(err: SdmmcFsErrorInternal) -> Self {
-//         Self::Internal(err)
+//         // Self::Internal(err)
+//         todo!()
 //     }
 // }

@@ -103,9 +103,26 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
         name: "pload",
         help: "pload <path/to/bin.h7> - Load a program into ram",
         description: "Load a program into ram",
-        action: |_, args| {
+        action: |m, args| {
             check_args_len(1, args.len())?;
-            Err(MenuError::CommandNotImplemented)
+            interrupt_free(|cs| {
+                match crate::mem::sdmmc_fs::SD_CARD
+                    .borrow(cs)
+                    .borrow_mut()
+                    .as_mut()
+                    .map(|sdfs| sdfs.read_file(args[0], &mut []))
+                {
+                    Some(Ok(_)) => Ok(()),
+                    Some(Err(e)) => {
+                        writeln!(m.writer(), "Error: {}", e)?;
+                        Ok(())
+                    }
+                    None => {
+                        writeln!(m.writer(), "Error: SD Card controller not initialized")?;
+                        Ok(())
+                    }
+                }
+            })
         },
     },
     MenuItem::Command {
@@ -426,108 +443,145 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
         name: "sdcard",
         help: "sdcard <action> - Mount/Unmount SD Card",
         description: "Mount/Unmount SD Card",
-        action: |m, args| {
-            check_args_len(1, args.len())?;
-            match args[0] {
-                "i" | "info" => match interrupt_free(|cs| {
-                    crate::mem::sdmmc_fs::SD_CARD
-                        .borrow(cs)
-                        .borrow_mut()
-                        .as_mut()
-                        .map(|sdfs| (sdfs.is_mounted(), sdfs.card_size()))
-                }) {
-                    Some((mounted, size)) => {
-                        writeln!(
-                            m.writer(),
-                            "{:width$} {}",
-                            "SD Card mounted",
-                            mounted,
-                            width = LABEL_WIDTH
-                        )?;
-                        match size {
-                            Ok(bytes) => {
-                                writeln!(
-                                    m.writer(),
-                                    "{:width$} {}GiB",
-                                    "Size",
-                                    bytes as f64 / (1024 * 1024 * 1024) as f64,
-                                    width = LABEL_WIDTH
-                                )?;
-                                Ok(())
-                            }
-                            Err(e) => {
-                                writeln!(
-                                    m.writer(),
-                                    "{:width$} {}",
-                                    "Size",
-                                    e,
-                                    width = LABEL_WIDTH
-                                )?;
-                                Ok(())
-                            }
+        action: |m, args| match args {
+            ["i" | "info"] => match interrupt_free(|cs| {
+                crate::mem::sdmmc_fs::SD_CARD
+                    .borrow(cs)
+                    .borrow_mut()
+                    .as_mut()
+                    .map(|sdfs| (sdfs.is_mounted(), sdfs.card_size()))
+            }) {
+                Some((mounted, size)) => {
+                    writeln!(
+                        m.writer(),
+                        "{:width$} {}",
+                        "SD Card mounted",
+                        mounted,
+                        width = LABEL_WIDTH
+                    )?;
+                    match size {
+                        Ok(bytes) => {
+                            writeln!(
+                                m.writer(),
+                                "{:width$} {}GiB",
+                                "Size",
+                                bytes as f64 / (1024 * 1024 * 1024) as f64,
+                                width = LABEL_WIDTH
+                            )?;
+                            Ok(())
                         }
+                        Err(e) => {
+                            writeln!(m.writer(), "{:width$} {}", "Size", e, width = LABEL_WIDTH)?;
+                            Ok(())
+                        }
+                    }
+                }
+                None => {
+                    writeln!(m.writer(), "SD Card controller not initialized")?;
+                    Ok(())
+                }
+            },
+            ["m" | "mount"] => m.run("sdcard", &["mount", "400"]),
+            ["m" | "mount", freq_str] => interrupt_free(|cs| {
+                let freq = freq_str
+                    .parse::<u32>()
+                    .map_err(|_| MenuError::InvalidArgument)?;
+                writeln!(m.writer(), "Attempting to mount SD Card @ {}kHz", freq)?;
+                match crate::mem::sdmmc_fs::SD_CARD
+                    .borrow(cs)
+                    .borrow_mut()
+                    .as_mut()
+                    .map(|sdfs| sdfs.mount::<hal::delay::Delay, _>(freq.khz(), 10, None))
+                {
+                    Some(Ok(_)) => {
+                        writeln!(m.writer(), "SD Card mounted")?;
+                        Ok(())
+                    }
+                    Some(Err(e)) => {
+                        writeln!(m.writer(), "{}", e)?;
+                        Ok(())
                     }
                     None => {
                         writeln!(m.writer(), "SD Card controller not initialized")?;
+                        Err(MenuError::CommandError(None))
+                    }
+                }
+            }),
+            ["u" | "unmount"] => interrupt_free(|cs| {
+                match crate::mem::sdmmc_fs::SD_CARD
+                    .borrow(cs)
+                    .borrow_mut()
+                    .as_mut()
+                    .map(|sdfs| sdfs.unmount())
+                {
+                    Some(Ok(_)) => {
+                        writeln!(m.writer(), "SD Card unmounted")?;
                         Ok(())
                     }
-                },
-                "m" | "mount" => interrupt_free(|cs| {
-                    match crate::mem::sdmmc_fs::SD_CARD
-                        .borrow(cs)
-                        .borrow_mut()
-                        .as_mut()
-                        // TODO: Inc to 50MHz?
-                        .map(|sdfs| sdfs.mount::<hal::delay::Delay, _>(20.mhz(), 5, None))
-                    {
-                        Some(Ok(_)) => {
-                            writeln!(m.writer(), "SD Card mounted")?;
-                            Ok(())
-                        }
-                        Some(Err(e)) => {
-                            writeln!(m.writer(), "{}", e)?;
-                            Ok(())
-                        }
-                        None => {
-                            writeln!(m.writer(), "SD Card controller not initialized")?;
-                            Err(MenuError::CommandError(None))
-                        }
+                    Some(Err(e)) => {
+                        writeln!(m.writer(), "{}", e)?;
+                        Ok(())
                     }
-                }),
-                "u" | "unmount" => interrupt_free(|cs| {
-                    match crate::mem::sdmmc_fs::SD_CARD
-                        .borrow(cs)
-                        .borrow_mut()
-                        .as_mut()
-                        .map(|sdfs| sdfs.unmount())
-                    {
-                        Some(Ok(_)) => {
-                            writeln!(m.writer(), "SD Card unmounted")?;
-                            Ok(())
-                        }
-                        Some(Err(e)) => {
-                            writeln!(m.writer(), "{}", e)?;
-                            Ok(())
-                        }
-                        None => {
-                            writeln!(m.writer(), "SD Card controller not initialized")?;
-                            Err(MenuError::CommandError(None))
-                        }
+                    None => {
+                        writeln!(m.writer(), "SD Card controller not initialized")?;
+                        Err(MenuError::CommandError(None))
                     }
-                }),
-                _ => {
-                    writeln!(m.writer(), "Expected:")?;
-                    writeln!(m.writer(), "\tm | mount - Mount SD Card")?;
-                    writeln!(m.writer(), "\tu | unmount - Unmount SD Card")?;
-                    writeln!(m.writer(), "\ti | info - SD Card Info")?;
-                    Err(MenuError::InvalidArgument)
                 }
+            }),
+            _ => {
+                writeln!(m.writer(), "Expected:")?;
+                writeln!(m.writer(), "\tm | mount - Mount SD Card")?;
+                writeln!(m.writer(), "\tu | unmount - Unmount SD Card")?;
+                writeln!(m.writer(), "\ti | info - SD Card Info")?;
+                Err(MenuError::InvalidArgument)
             }
         },
     },
     MenuItem::Command {
+        name: "ls",
+        help: "List files",
+        description: "List files",
+        action: |m, _| {
+            interrupt_free(|cs| {
+                match crate::mem::sdmmc_fs::SD_CARD
+                    .borrow(cs)
+                    .borrow_mut()
+                    .as_mut()
+                    .map(|sdfs| {
+                        sdfs.files(|e| {
+                            if !e.attributes.is_volume() {
+                                let kind = if e.attributes.is_directory() {
+                                    "D"
+                                } else {
+                                    "F"
+                                };
+                                drop(writeln!(
+                                    m.writer(),
+                                    "{date} {kind} {size:size_width$} {name}",
+                                    date = e.mtime,
+                                    size = e.size,
+                                    name = e.name,
+                                    size_width = 5
+                                ));
+                            }
+                        })
+                    }) {
+                    Some(Ok(_)) => Ok(()),
+                    Some(Err(e)) => {
+                        writeln!(m.writer(), "Error: {}", e)?;
+                        Ok(())
+                    }
+                    None => {
+                        writeln!(m.writer(), "Error: SD Card controller not initialized")?;
+                        Ok(())
+                    }
+                }
+            })
+        },
+    },
+    MenuItem::Command {
         name: "testfn",
-        help: "testnf",
+        help: "testfn",
         description: "testfn",
         action: |m, _| {
             writeln!(m.writer(), "testfn")?;

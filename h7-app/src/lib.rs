@@ -98,7 +98,7 @@ pub mod target {
                 mpsc::{channel, Receiver},
                 Arc, Mutex,
             },
-            time::Duration,
+            time::{Duration, Instant},
         },
     };
 
@@ -114,24 +114,38 @@ pub mod target {
     const ROWS: usize = HEIGHT as usize / GLYPH_HEIGHT;
     const COLS: usize = WIDTH as usize / GLYPH_WIDTH;
 
-    static mut TEXT_GRID: [[u8; COLS]; ROWS] = [[b' '; COLS]; ROWS];
+    static mut TEXT_GRID: [[(char, u16); COLS]; ROWS] = [[(b' ' as char, 0xffff); COLS]; ROWS];
     static mut KC_RECEIVER: Option<Receiver<i32>> = None;
-    static mut CONTEXT: Context = Context { x: 0, y: 0 };
+    static mut CONTEXT: Context = Context {
+        x: 0,
+        y: (ROWS - 1) as u32,
+    };
     static mut DISPLAY: Option<Arc<Mutex<Display<SimulatorDisplay<Rgb565>>>>> = None;
     static REDRAW: AtomicBool = AtomicBool::new(true);
 
     fn draw_text_grid() {
         let mut lock = unsafe { DISPLAY.as_mut().unwrap().lock().unwrap() };
 
-        for (n, line) in unsafe { TEXT_GRID }.iter().enumerate() {
-            if let Ok(s) = core::str::from_utf8(line) {
+        for (y, line) in unsafe { TEXT_GRID }.iter().enumerate() {
+            for (x, (c, color)) in line.iter().enumerate() {
+                let mut tmp = [0u8; 4];
                 let _ = lock.draw_text(
-                    s,
+                    c.encode_utf8(&mut tmp),
                     &ISO_FONT_10X20,
-                    Rgb565::from(RawU16::new(0xffff)),
-                    XPos::Absolute(0),
-                    YPos::Absolute((n * GLYPH_HEIGHT) as i32 + 18),
+                    Rgb565::from(RawU16::new(*color)),
+                    XPos::Absolute((x * GLYPH_WIDTH) as i32),
+                    YPos::Absolute((y * GLYPH_HEIGHT) as i32 + 18),
                 );
+            }
+        }
+    }
+
+    fn scroll(n: usize) {
+        for _ in 0..n {
+            for line in 0..unsafe { TEXT_GRID }.len() - 1 {
+                unsafe {
+                    core::mem::swap(&mut TEXT_GRID[line], &mut TEXT_GRID[line + 1]);
+                }
             }
         }
     }
@@ -140,6 +154,7 @@ pub mod target {
         pub fn init() {
             let (tx, rx) = channel();
             unsafe {
+                println!("Text buffer: {}", core::mem::size_of_val(&TEXT_GRID));
                 KC_RECEIVER = Some(rx);
                 DISPLAY = Some(Arc::new(Mutex::new(Display::new(
                     SimulatorDisplay::<Rgb565>::new(Size::new(WIDTH, HEIGHT)),
@@ -151,23 +166,44 @@ pub mod target {
                 let output_settings = OutputSettingsBuilder::new().build();
                 let mut w = Window::new(env!("CARGO_PKG_NAME"), &output_settings);
 
+                let mut kb = pc_keyboard::Keyboard::new(
+                    pc_keyboard::layouts::Us104Key,
+                    pc_keyboard::ScancodeSet2,
+                    pc_keyboard::HandleControl::Ignore,
+                );
+
                 loop {
-                    if let Ok(_) =
-                        REDRAW.compare_exchange(true, false, Ordering::SeqCst, Ordering::SeqCst)
-                    {
+                    if REDRAW.load(Ordering::SeqCst) {
                         println!("REDRAW!");
                         draw_text_grid();
-                        w.update(&disp.lock().unwrap().display);
+                        if let Ok(lock) = disp.try_lock() {
+                            w.update(&lock.display);
+                            REDRAW.store(false, Ordering::SeqCst);
+                        }
                     }
                     for e in w.events() {
                         match e {
                             SimulatorEvent::Quit => std::process::exit(1),
+                            SimulatorEvent::KeyUp { keycode, .. } => {
+                                if let Some(k) = kb.process_keyevent(pc_keyboard::KeyEvent {
+                                    code: convert_keycode(keycode),
+                                    state: pc_keyboard::KeyState::Up,
+                                }) {
+                                    println!("{:?}", k);
+                                }
+                            }
                             SimulatorEvent::KeyDown { keycode, .. } => {
+                                if let Some(k) = kb.process_keyevent(pc_keyboard::KeyEvent {
+                                    code: convert_keycode(keycode),
+                                    state: pc_keyboard::KeyState::Down,
+                                }) {
+                                    println!("{:?}", k);
+                                }
                                 // HOME key
                                 if keycode as i32 == 1073741898 {
                                     REDRAW.store(true, Ordering::SeqCst);
                                 }
-                                drop(tx.send(keycode as i32))
+                                drop(tx.send(keycode as i32));
                             }
                             _ => {}
                         }
@@ -190,14 +226,12 @@ pub mod target {
             match c {
                 b'\r' => unsafe { CONTEXT.x = 0 },
                 b'\n' => unsafe {
-                    CONTEXT.y = (CONTEXT.y + 1) % ROWS as u32;
+                    scroll(1);
+                    TEXT_GRID[(ROWS - 1) as usize].fill((b' ' as char, 0xffff));
                 },
                 b'\t' => unsafe { CONTEXT.x = (CONTEXT.x + 4) % COLS as u32 },
                 b => unsafe {
-                    if CONTEXT.x == 0 {
-                        TEXT_GRID[CONTEXT.y as usize].fill(b' ');
-                    }
-                    TEXT_GRID[CONTEXT.y as usize][CONTEXT.x as usize] = b;
+                    TEXT_GRID[CONTEXT.y as usize][CONTEXT.x as usize].0 = b as char;
                     CONTEXT.x += 1;
                 },
             }
@@ -241,6 +275,247 @@ pub mod target {
         fn write_str(&mut self, s: &str) -> std::fmt::Result {
             Self::puts(s);
             Ok(())
+        }
+    }
+
+    fn convert_keycode(sdl_kc: embedded_graphics_simulator::sdl2::Keycode) -> pc_keyboard::KeyCode {
+        use embedded_graphics_simulator::sdl2 as sdl;
+        match sdl_kc {
+            sdl::Keycode::Backspace => pc_keyboard::KeyCode::Backspace,
+            sdl::Keycode::Tab => pc_keyboard::KeyCode::Tab,
+            sdl::Keycode::Return => pc_keyboard::KeyCode::Enter,
+            sdl::Keycode::Escape => pc_keyboard::KeyCode::Escape,
+            sdl::Keycode::Space => pc_keyboard::KeyCode::Spacebar,
+            sdl::Keycode::Exclaim => todo!(),
+            sdl::Keycode::Quotedbl => todo!(),
+            sdl::Keycode::Hash => todo!(),
+            sdl::Keycode::Dollar => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Percent => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Ampersand => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Quote => pc_keyboard::KeyCode::A,
+            sdl::Keycode::LeftParen => pc_keyboard::KeyCode::A,
+            sdl::Keycode::RightParen => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Asterisk => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Plus => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Comma => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Minus => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Period => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Slash => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Num0 => pc_keyboard::KeyCode::Numpad0,
+            sdl::Keycode::Num1 => pc_keyboard::KeyCode::Numpad1,
+            sdl::Keycode::Num2 => pc_keyboard::KeyCode::Numpad2,
+            sdl::Keycode::Num3 => pc_keyboard::KeyCode::Numpad3,
+            sdl::Keycode::Num4 => pc_keyboard::KeyCode::Numpad4,
+            sdl::Keycode::Num5 => pc_keyboard::KeyCode::Numpad5,
+            sdl::Keycode::Num6 => pc_keyboard::KeyCode::Numpad6,
+            sdl::Keycode::Num7 => pc_keyboard::KeyCode::Numpad7,
+            sdl::Keycode::Num8 => pc_keyboard::KeyCode::Numpad8,
+            sdl::Keycode::Num9 => pc_keyboard::KeyCode::Numpad9,
+            sdl::Keycode::Colon => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Semicolon => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Less => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Equals => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Greater => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Question => pc_keyboard::KeyCode::A,
+            sdl::Keycode::At => pc_keyboard::KeyCode::A,
+            sdl::Keycode::LeftBracket => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Backslash => pc_keyboard::KeyCode::A,
+            sdl::Keycode::RightBracket => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Caret => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Underscore => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Backquote => pc_keyboard::KeyCode::A,
+            sdl::Keycode::A => pc_keyboard::KeyCode::A,
+            sdl::Keycode::B => pc_keyboard::KeyCode::B,
+            sdl::Keycode::C => pc_keyboard::KeyCode::C,
+            sdl::Keycode::D => pc_keyboard::KeyCode::D,
+            sdl::Keycode::E => pc_keyboard::KeyCode::E,
+            sdl::Keycode::F => pc_keyboard::KeyCode::F,
+            sdl::Keycode::G => pc_keyboard::KeyCode::G,
+            sdl::Keycode::H => pc_keyboard::KeyCode::H,
+            sdl::Keycode::I => pc_keyboard::KeyCode::I,
+            sdl::Keycode::J => pc_keyboard::KeyCode::J,
+            sdl::Keycode::K => pc_keyboard::KeyCode::K,
+            sdl::Keycode::L => pc_keyboard::KeyCode::L,
+            sdl::Keycode::M => pc_keyboard::KeyCode::M,
+            sdl::Keycode::N => pc_keyboard::KeyCode::N,
+            sdl::Keycode::O => pc_keyboard::KeyCode::O,
+            sdl::Keycode::P => pc_keyboard::KeyCode::P,
+            sdl::Keycode::Q => pc_keyboard::KeyCode::Q,
+            sdl::Keycode::R => pc_keyboard::KeyCode::R,
+            sdl::Keycode::S => pc_keyboard::KeyCode::S,
+            sdl::Keycode::T => pc_keyboard::KeyCode::T,
+            sdl::Keycode::U => pc_keyboard::KeyCode::U,
+            sdl::Keycode::V => pc_keyboard::KeyCode::V,
+            sdl::Keycode::W => pc_keyboard::KeyCode::W,
+            sdl::Keycode::X => pc_keyboard::KeyCode::X,
+            sdl::Keycode::Y => pc_keyboard::KeyCode::Y,
+            sdl::Keycode::Z => pc_keyboard::KeyCode::Z,
+            sdl::Keycode::Delete => pc_keyboard::KeyCode::Delete,
+            sdl::Keycode::CapsLock => pc_keyboard::KeyCode::CapsLock,
+            sdl::Keycode::F1 => pc_keyboard::KeyCode::F1,
+            sdl::Keycode::F2 => pc_keyboard::KeyCode::F2,
+            sdl::Keycode::F3 => pc_keyboard::KeyCode::F3,
+            sdl::Keycode::F4 => pc_keyboard::KeyCode::F4,
+            sdl::Keycode::F5 => pc_keyboard::KeyCode::F5,
+            sdl::Keycode::F6 => pc_keyboard::KeyCode::F6,
+            sdl::Keycode::F7 => pc_keyboard::KeyCode::F7,
+            sdl::Keycode::F8 => pc_keyboard::KeyCode::F8,
+            sdl::Keycode::F9 => pc_keyboard::KeyCode::F9,
+            sdl::Keycode::F10 => pc_keyboard::KeyCode::F10,
+            sdl::Keycode::F11 => pc_keyboard::KeyCode::F11,
+            sdl::Keycode::F12 => pc_keyboard::KeyCode::F12,
+            sdl::Keycode::PrintScreen => pc_keyboard::KeyCode::PrintScreen,
+            sdl::Keycode::ScrollLock => pc_keyboard::KeyCode::ScrollLock,
+            sdl::Keycode::Pause => pc_keyboard::KeyCode::PauseBreak,
+            sdl::Keycode::Insert => pc_keyboard::KeyCode::Insert,
+            sdl::Keycode::Home => pc_keyboard::KeyCode::Home,
+            sdl::Keycode::PageUp => pc_keyboard::KeyCode::PageUp,
+            sdl::Keycode::End => pc_keyboard::KeyCode::End,
+            sdl::Keycode::PageDown => pc_keyboard::KeyCode::PageDown,
+            sdl::Keycode::Right => pc_keyboard::KeyCode::ArrowRight,
+            sdl::Keycode::Left => pc_keyboard::KeyCode::ArrowLeft,
+            sdl::Keycode::Down => pc_keyboard::KeyCode::ArrowDown,
+            sdl::Keycode::Up => pc_keyboard::KeyCode::ArrowUp,
+            sdl::Keycode::NumLockClear => todo!(),
+            sdl::Keycode::KpDivide => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpMultiply => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpMinus => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpPlus => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpEnter => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Kp1 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Kp2 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Kp3 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Kp4 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Kp5 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Kp6 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Kp7 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Kp8 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Kp9 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Kp0 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpPeriod => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Application => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Power => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpEquals => pc_keyboard::KeyCode::A,
+            sdl::Keycode::F13 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::F14 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::F15 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::F16 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::F17 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::F18 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::F19 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::F20 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::F21 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::F22 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::F23 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::F24 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Execute => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Help => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Menu => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Select => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Stop => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Again => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Undo => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Cut => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Copy => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Paste => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Find => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Mute => pc_keyboard::KeyCode::A,
+            sdl::Keycode::VolumeUp => pc_keyboard::KeyCode::A,
+            sdl::Keycode::VolumeDown => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpComma => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpEqualsAS400 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::AltErase => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Sysreq => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Cancel => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Clear => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Prior => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Return2 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Separator => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Out => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Oper => pc_keyboard::KeyCode::A,
+            sdl::Keycode::ClearAgain => pc_keyboard::KeyCode::A,
+            sdl::Keycode::CrSel => pc_keyboard::KeyCode::A,
+            sdl::Keycode::ExSel => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Kp00 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Kp000 => pc_keyboard::KeyCode::A,
+            sdl::Keycode::ThousandsSeparator => pc_keyboard::KeyCode::A,
+            sdl::Keycode::DecimalSeparator => pc_keyboard::KeyCode::A,
+            sdl::Keycode::CurrencyUnit => pc_keyboard::KeyCode::A,
+            sdl::Keycode::CurrencySubUnit => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpLeftParen => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpRightParen => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpLeftBrace => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpRightBrace => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpTab => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpBackspace => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpA => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpB => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpC => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpD => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpE => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpF => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpXor => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpPower => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpPercent => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpLess => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpGreater => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpAmpersand => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpDblAmpersand => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpVerticalBar => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpDblVerticalBar => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpColon => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpHash => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpSpace => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpAt => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpExclam => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpMemStore => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpMemRecall => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpMemClear => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpMemAdd => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpMemSubtract => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpMemMultiply => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpMemDivide => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpPlusMinus => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpClear => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpClearEntry => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpBinary => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpOctal => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpDecimal => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KpHexadecimal => pc_keyboard::KeyCode::A,
+            sdl::Keycode::LCtrl => pc_keyboard::KeyCode::ControlLeft,
+            sdl::Keycode::LShift => pc_keyboard::KeyCode::ShiftLeft,
+            sdl::Keycode::LAlt => pc_keyboard::KeyCode::AltLeft,
+            sdl::Keycode::LGui => pc_keyboard::KeyCode::WindowsLeft,
+            sdl::Keycode::RCtrl => pc_keyboard::KeyCode::ControlRight,
+            sdl::Keycode::RShift => pc_keyboard::KeyCode::ShiftRight,
+            sdl::Keycode::RAlt => pc_keyboard::KeyCode::AltRight,
+            sdl::Keycode::RGui => pc_keyboard::KeyCode::WindowsRight,
+            sdl::Keycode::Mode => pc_keyboard::KeyCode::A,
+            sdl::Keycode::AudioNext => pc_keyboard::KeyCode::NextTrack,
+            sdl::Keycode::AudioPrev => pc_keyboard::KeyCode::PrevTrack,
+            sdl::Keycode::AudioStop => pc_keyboard::KeyCode::Stop,
+            sdl::Keycode::AudioPlay => pc_keyboard::KeyCode::Play,
+            sdl::Keycode::AudioMute => pc_keyboard::KeyCode::Mute,
+            sdl::Keycode::MediaSelect => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Www => pc_keyboard::KeyCode::WWWHome,
+            sdl::Keycode::Mail => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Calculator => pc_keyboard::KeyCode::Calculator,
+            sdl::Keycode::Computer => pc_keyboard::KeyCode::A,
+            sdl::Keycode::AcSearch => pc_keyboard::KeyCode::A,
+            sdl::Keycode::AcHome => pc_keyboard::KeyCode::A,
+            sdl::Keycode::AcBack => pc_keyboard::KeyCode::A,
+            sdl::Keycode::AcForward => pc_keyboard::KeyCode::A,
+            sdl::Keycode::AcStop => pc_keyboard::KeyCode::A,
+            sdl::Keycode::AcRefresh => pc_keyboard::KeyCode::A,
+            sdl::Keycode::AcBookmarks => pc_keyboard::KeyCode::A,
+            sdl::Keycode::BrightnessDown => pc_keyboard::KeyCode::A,
+            sdl::Keycode::BrightnessUp => pc_keyboard::KeyCode::A,
+            sdl::Keycode::DisplaySwitch => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KbdIllumToggle => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KbdIllumDown => pc_keyboard::KeyCode::A,
+            sdl::Keycode::KbdIllumUp => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Eject => pc_keyboard::KeyCode::A,
+            sdl::Keycode::Sleep => pc_keyboard::KeyCode::A,
         }
     }
 }

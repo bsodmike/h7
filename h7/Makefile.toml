@@ -1,6 +1,9 @@
 [config]
 skip_core_tasks = true
 
+[tasks.default]
+alias = "build-flash-debug"
+
 [tasks.build-debug]
 env = { RELEASE_DEBUG = "debug" }
 run_task = { name = [ "_build", "_arm_none_eabi_size" ] }

@@ -1,12 +1,12 @@
 {
     "configurations": [
         {
-            "cwd": "${workspaceRoot}",
-            "executable": "/home/olback/.cargo-target/thumbv7em-none-eabihf/debug/cm7",
+            "cwd": "${workspaceRoot}/h7",
+            "executable": "/home/olback/.cargo-target/thumbv7em-none-eabihf/debug/h7",
             "name": "Debug CM7 (debug)",
             "request": "attach",
             "type": "cortex-debug",
-            "showDevDebugOutput": false,
+            "showDevDebugOutput": "none",
             "servertype": "openocd",
             "configFiles": [
                 "interface/cmsis-dap.cfg",
@@ -22,7 +22,6 @@
             ],
             "breakAfterReset": true,
             "numberOfProcessors": 2,
-            "preLaunchTask": "rust: cargo run"
         }
     ]
 }

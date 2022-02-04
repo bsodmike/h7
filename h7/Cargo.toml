@@ -20,8 +20,7 @@ cortex-m-alloc = { version = "0.4", package = "alloc-cortex-m" }
 stm32-fmc = "0.2"
 
 # SD Card / FAT
-embedded-sdmmc = "0.3"
-#embedded-sdmmc = { git = "https://github.com/rust-embedded-community/embedded-sdmmc-rs" }
+embedded-sdmmc = { git = "https://github.com/rust-embedded-community/embedded-sdmmc-rs" }
 
 # Time
 chrono = { version = "0.4", default-features = false }
@@ -47,6 +46,9 @@ cortex-m-log = { version = "0.7", features = [ "semihosting", "log-integration" 
 lazy_static = { version = "1.4", features = [ "spin_no_std" ], optional = true }
 panic-semihosting = { version = "0.5", optional = true }
 cortex-m-semihosting = { version = "0.3", optional = true }
+
+[patch.crates-io]
+embedded-sdmmc = { git = "https://github.com/rust-embedded-community/embedded-sdmmc-rs" }
 
 [features]
 default = []

@@ -322,6 +322,7 @@ dependencies = [
  "embedded-graphics-simulator",
  "fontdue",
  "h7-api",
+ "pc-keyboard",
 ]
 
 [[package]]
@@ -526,6 +527,11 @@ name = "once_cell"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da32515d9f6e6e489d7bc9d84c71b060db7247dc035bbe44eac88cf87486d8d5"
+
+[[package]]
+name = "pc-keyboard"
+version = "0.5.1"
+source = "git+https://github.com/rust-embedded-community/pc-keyboard#7bd7bce69bab8c2bc410573e9287924d5e2fa266"
 
 [[package]]
 name = "png"

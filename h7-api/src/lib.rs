@@ -3,9 +3,9 @@
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct H7Api {
-    pub gpu: H7Gpu,
-    pub getc: extern "C" fn() -> u8,
-    pub putc: extern "C" fn(c: u8) -> i32,
+    // pub gpu: H7Gpu,
+    // pub getc: extern "C" fn() -> u8,
+    // pub putc: extern "C" fn(c: u8) -> i32,
     pub puts: extern "C" fn(start: *const u8, len: usize) -> i32,
 }
 

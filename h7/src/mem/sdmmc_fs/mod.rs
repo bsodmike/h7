@@ -81,8 +81,9 @@ impl SdmmcFs {
                         }
                         Err(e) => {
                             if i == 0 {
-                                return Err(SdmmcFsError::Sdmmc(e));
+                                return Err(SdmmcFsError::HalSdmmc(e));
                             } else {
+                                let _ = log::info!("SD Card mount failed, retrying...");
                                 if let Some((time, ref mut delay)) = delay {
                                     delay.delay_ms(time);
                                 }
@@ -101,20 +102,18 @@ impl SdmmcFs {
     pub fn unmount(&mut self) -> Result<(), SdmmcFsError> {
         match &mut self.state {
             SdmmcState::Controller(_) => {
-                // if let SdmmcState::Controller(c) =
-                //     core::mem::replace(&mut self.state, SdmmcState::MidSwap)
-                // {
-                //     self.state = SdmmcState::Sdmmc(c.free().0.free());
-                //     Ok(())
-                // } else {
-                //     unreachable!()
-                // }
-                todo!()
+                if let SdmmcState::Controller(c) =
+                    core::mem::replace(&mut self.state, SdmmcState::MidSwap)
+                {
+                    self.state = SdmmcState::Sdmmc(c.free().0.free());
+                    Ok(())
+                } else {
+                    unreachable!()
+                }
             }
             SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
             SdmmcState::MidSwap => unreachable!(),
         }
-        // todo!()
     }
 
     pub fn read_file<P: AsRef<str>>(
@@ -157,6 +156,23 @@ impl SdmmcFs {
         //     SdmmcState::MidSwap => unreachable!(),
         // }
         todo!()
+    }
+
+    pub fn files(
+        &mut self,
+        mut l: impl FnMut(&embedded_sdmmc::DirEntry) -> (),
+    ) -> Result<(), SdmmcFsError> {
+        match self.state {
+            SdmmcState::Controller(ref mut controller) => {
+                let sd_fatfs_volume = controller.get_volume(embedded_sdmmc::VolumeIdx(0))?;
+                let sd_fatfs_root_dir = controller.open_root_dir(&sd_fatfs_volume)?;
+                controller.iterate_dir(&sd_fatfs_volume, &sd_fatfs_root_dir, |entry| l(entry))?;
+                controller.close_dir(&sd_fatfs_volume, sd_fatfs_root_dir);
+                Ok(())
+            }
+            SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
+            SdmmcState::MidSwap => unreachable!(),
+        }
     }
 }
 

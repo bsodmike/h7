@@ -1,42 +1,41 @@
 MEMORY
 {
-    FLASH (rx) : ORIGIN = 0x24000000, LENGTH = 512K
-    RAM   (rw) : ORIGIN = 0x30000000, LENGTH = 288K
+    SRAM (rxw) : ORIGIN = 0x24000000, LENGTH = 512K
 }
 
 EXTERN(ENTRY_POINT);
 
 SECTIONS
 {
-    .entry ORIGIN(FLASH) :
+    .entry ORIGIN(SRAM) :
     {
         KEEP(*(.entry_point))
-    } > FLASH
+    } > SRAM
 
     .text :
     {
         *    (.text .text.*)
         *    (.init)
         *    (.fini)
-    } > FLASH
+    } > SRAM
 
     .rodata : ALIGN(4)
     {
         *(.rodata .rodata.*);
         . = ALIGN(4);
-    } > FLASH
+    } > SRAM
 
     .data : ALIGN(4)
     {
         *    (.data .data.*)
         . = ALIGN(4);
-    }  > RAM
+    }  > SRAM
 
     .bss (NOLOAD) : ALIGN(4)
     {
         *    (.bss .bss.*)
         . = ALIGN(4);
-    } > RAM
+    } > SRAM
 
     /* ## .got */
     /* Dynamic relocations are unsupported. This section is only used to detect relocatable code in
