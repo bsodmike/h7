@@ -1,6 +1,0 @@
-r0: Delay time, HAL_Delay(r0)
-r1: 8-bit I2C Address
-r2: var_8h, data ?? 
-r3: Data length
-
-int write ( int address, const char * data, int length, bool repeated = false) 	

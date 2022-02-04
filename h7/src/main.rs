@@ -26,7 +26,7 @@ use {
     time::TimeSource,
 };
 
-mod api;
+mod app;
 mod consts;
 mod dsi;
 mod led;
@@ -39,6 +39,7 @@ mod pmic;
 mod system;
 mod terminal;
 mod time;
+mod utils;
 
 // Heap allocator
 #[global_allocator]
@@ -107,6 +108,13 @@ unsafe fn main() -> ! {
             .kernel_usb_clk_mux(rcc::rec::UsbClkSel::HSI48);
         ccdr
     };
+
+    // Make CRC available
+    interrupt_free(|cs| {
+        utils::CRC
+            .borrow(cs)
+            .replace(Some(dp.CRC.crc(ccdr.peripheral.CRC)))
+    });
 
     // GPIO
     let (gpioa, gpiob, gpioc, gpiod, gpioe, gpiof, gpiog, gpioh, gpioi, gpioj, gpiok) = {
@@ -466,7 +474,24 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
 
 #[cortex_m_rt::exception]
 unsafe fn DefaultHandler(irqn: i16) -> ! {
-    panic!("IRQn {:?}", irqn);
+    // https://www.keil.com/pack/doc/CMSIS/Core/html/group__NVIC__gr.html
+    let name = match irqn {
+        -14 => "NonMaskableInt_IRQn",
+        -13 => "HardFault_IRQn",
+        -12 => "MemoryManagement_IRQn",
+        -11 => "BusFault_IRQn",
+        -10 => "UsageFault_IRQn",
+        -9 => "SecureFault_IRQn",
+        -5 => "SVCall_IRQn",
+        -4 => "DebugMonitor_IRQn",
+        -2 => "PendSV_IRQn",
+        -1 => "SysTick_IRQn",
+        0 => "WWDG_STM_IRQn",
+        1 => "PVD_STM_IRQn",
+        _ => "<Unknown>",
+    };
+
+    panic!("IRQn: {} ({})", irqn, name);
 }
 
 #[cortex_m_rt::exception]

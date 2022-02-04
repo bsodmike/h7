@@ -12,7 +12,7 @@ pub fn main() {
 
 #[no_mangle]
 pub extern "C" fn h7_main() -> i32 {
-    Host::puts("Hello, World!\r\n");
+    // Host::puts("Hello, World!\r\n");
 
     // loop {
     //     Host::delay(1);
@@ -32,5 +32,5 @@ pub extern "C" fn h7_main() -> i32 {
     //     }
     // }
 
-    0
+    5
 }

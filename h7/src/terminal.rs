@@ -1,8 +1,9 @@
 use {
     crate::{
-        consts,
+        app, consts,
         menu::{check_args_len, MenuError, MenuItem},
         time::TimeSource,
+        utils,
     },
     chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike},
     core::{cell::RefCell, fmt::Write},
@@ -105,14 +106,40 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
         description: "Load a program into ram",
         action: |m, args| {
             check_args_len(1, args.len())?;
+            let app_slice =
+                unsafe { core::slice::from_raw_parts_mut(app::APP_START, app::APP_SIZE) };
+            // .bss
+            app_slice.fill(0);
             interrupt_free(|cs| {
                 match crate::mem::sdmmc_fs::SD_CARD
                     .borrow(cs)
                     .borrow_mut()
                     .as_mut()
-                    .map(|sdfs| sdfs.read_file(args[0], &mut []))
+                    .map(|sdfs| sdfs.read_file(args[0], app_slice))
                 {
-                    Some(Ok(_)) => Ok(()),
+                    Some(Ok(len)) => {
+                        let crc = utils::crc(cs, &app_slice[..(len - 4)]);
+                        writeln!(m.writer(), "Program '{}' loaded ({} bytes)", args[0], len)?;
+                        writeln!(
+                            m.writer(),
+                            "Address: {addr:p}, CRC: 0x{crc:08x} ({check}), Size: 0x{size:x}",
+                            addr = app::get_address(app_slice),
+                            check = if crc
+                                == u32::from_be_bytes([
+                                    app_slice[len - 4],
+                                    app_slice[len - 3],
+                                    app_slice[len - 2],
+                                    app_slice[len - 1]
+                                ]) {
+                                "passed"
+                            } else {
+                                "failed"
+                            },
+                            size = len
+                        )?;
+                        // writeln!(m.writer(), "Data: {:?}", &app_slice[..len])?;
+                        Ok(())
+                    }
                     Some(Err(e)) => {
                         writeln!(m.writer(), "Error: {}", e)?;
                         Ok(())
@@ -129,9 +156,15 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
         name: "prun",
         help: "prun - Run program loaded in ram",
         description: "Run program loaded in ram",
-        action: |_, args| {
+        action: |m, args| {
             check_args_len(0, args.len())?;
-            Err(MenuError::CommandNotImplemented)
+            let app_slice =
+                unsafe { core::slice::from_raw_parts_mut(app::APP_START, app::APP_SIZE) };
+            let app_fn = app::get_address(app_slice);
+            writeln!(m.writer(), "Executing from {:p}", app_fn)?;
+            let ret = app_fn(&app::API);
+            writeln!(m.writer(), "Exit: {}", ret)?;
+            Ok(())
         },
     },
     MenuItem::Command {

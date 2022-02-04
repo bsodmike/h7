@@ -12,29 +12,29 @@ SECTIONS
         KEEP(*(.entry_point))
     } > SRAM
 
-    .text :
+    .text : ALIGN(8)
     {
         *    (.text .text.*)
         *    (.init)
         *    (.fini)
     } > SRAM
 
-    .rodata : ALIGN(4)
+    .rodata : ALIGN(8)
     {
         *(.rodata .rodata.*);
-        . = ALIGN(4);
+        . = ALIGN(8);
     } > SRAM
 
-    .data : ALIGN(4)
+    .data : ALIGN(8)
     {
         *    (.data .data.*)
-        . = ALIGN(4);
+        . = ALIGN(8);
     }  > SRAM
 
-    .bss (NOLOAD) : ALIGN(4)
+    .bss (NOLOAD) : ALIGN(8)
     {
         *    (.bss .bss.*)
-        . = ALIGN(4);
+        . = ALIGN(8);
     } > SRAM
 
     /* ## .got */

@@ -120,15 +120,33 @@ impl SdmmcFs {
         &mut self,
         path: P,
         data: &mut [u8],
-    ) -> Result<(), SdmmcFsError> {
-        // match &mut self.state {
-        //     SdmmcState::Controller(controller) => {
-        //         todo!()
-        //     }
-        //     SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
-        //     SdmmcState::MidSwap => unreachable!(),
-        // }
-        todo!()
+    ) -> Result<usize, SdmmcFsError> {
+        match &mut self.state {
+            SdmmcState::Controller(controller) => {
+                let mut volume = controller.get_volume(embedded_sdmmc::VolumeIdx(0))?;
+                let root_dir = controller.open_root_dir(&volume)?;
+
+                let open_result = match controller.open_file_in_dir(
+                    &mut volume,
+                    &root_dir,
+                    path.as_ref(),
+                    embedded_sdmmc::Mode::ReadOnly,
+                ) {
+                    Ok(mut file) => {
+                        assert!(file.length() as usize <= crate::app::APP_SIZE);
+                        let read_result = controller.read(&volume, &mut file, data);
+                        controller.close_file(&volume, file)?;
+                        read_result
+                    }
+                    Err(e) => Err(e),
+                };
+
+                controller.close_dir(&volume, root_dir);
+                Ok(open_result?)
+            }
+            SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
+            SdmmcState::MidSwap => unreachable!(),
+        }
     }
 
     pub fn write_file<P: AsRef<str>>(
@@ -164,10 +182,10 @@ impl SdmmcFs {
     ) -> Result<(), SdmmcFsError> {
         match self.state {
             SdmmcState::Controller(ref mut controller) => {
-                let sd_fatfs_volume = controller.get_volume(embedded_sdmmc::VolumeIdx(0))?;
-                let sd_fatfs_root_dir = controller.open_root_dir(&sd_fatfs_volume)?;
-                controller.iterate_dir(&sd_fatfs_volume, &sd_fatfs_root_dir, |entry| l(entry))?;
-                controller.close_dir(&sd_fatfs_volume, sd_fatfs_root_dir);
+                let volume = controller.get_volume(embedded_sdmmc::VolumeIdx(0))?;
+                let root_dir = controller.open_root_dir(&volume)?;
+                controller.iterate_dir(&volume, &root_dir, |entry| l(entry))?;
+                controller.close_dir(&volume, root_dir);
                 Ok(())
             }
             SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
