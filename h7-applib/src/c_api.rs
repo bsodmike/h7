@@ -10,10 +10,9 @@ pub unsafe extern "C" fn h7_puts(s: *const u8) -> i32 {
 }
 
 mod util {
-    pub(crate) unsafe fn strlen(mut s: *const u8) -> usize {
+    pub(crate) unsafe fn strlen(s: *const u8) -> usize {
         let mut result = 0;
-        while *s != 0 {
-            s = s.offset(1);
+        while *s.add(result) != 0 {
             result += 1;
         }
         result
