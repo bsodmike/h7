@@ -31,7 +31,7 @@
 * [ ] Application API.
 * [x] Load binaries from SD Card [~~(async?)~~](https://github.com/stm32-rs/stm32h7xx-hal/issues/227)
 * [x] CRC with verification
-* [ ] Run programs without crashing (duh)
+* [x] Run programs without crashing (duh)
 * [ ] Settings storage? NOR-Flash/SD Card?
 * [ ] Settings using hds::Kv
 * [ ] Show long names on SD Card
