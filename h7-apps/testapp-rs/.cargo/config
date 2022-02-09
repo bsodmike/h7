@@ -1,0 +1,12 @@
+[target.thumbv7em-none-eabihf]
+rustflags = [
+  "-C", "link-arg=-Th7-app.ld",
+]
+
+[target.thumbv7em-none-eabi]
+rustflags = [
+  "-C", "link-arg=-Th7-app.ld",
+]
+
+[build]
+target = "thumbv7em-none-eabihf" # Cortex-M4F and Cortex-M7F (with FPU)

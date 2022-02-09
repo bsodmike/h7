@@ -1,9 +1,0 @@
-[package]
-name = "testapp"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-h7-app = { path = "../../h7-app" }

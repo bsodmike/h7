@@ -1,5 +1,7 @@
 #![no_std]
 
+pub type AppEntryPoint = extern "C" fn(*const H7Api) -> i32;
+
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct H7Api {

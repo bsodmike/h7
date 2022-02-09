@@ -47,5 +47,5 @@ private = true
 condition = { env_set = [ "RELEASE_DEBUG" ] }
 script = '''
 cd ../../h7-mkapp
-cargo run --release -- ../h7-apps/testapp/dist/${CARGO_MAKE_PROJECT_NAME}-${RELEASE_DEBUG}.bin ../h7-apps/testapp/dist/${CARGO_MAKE_PROJECT_NAME}-${RELEASE_DEBUG}.h7
+cargo run --release -- ../h7-apps/${CARGO_MAKE_PROJECT_NAME}/dist/${CARGO_MAKE_PROJECT_NAME}-${RELEASE_DEBUG}.bin ../h7-apps/${CARGO_MAKE_PROJECT_NAME}/dist/${CARGO_MAKE_PROJECT_NAME}-${RELEASE_DEBUG}.h7
 '''

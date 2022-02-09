@@ -3,54 +3,107 @@
 #[cfg(not(target_os = "none"))]
 mod display;
 
+#[cfg(feature = "c-api")]
+pub mod c_api;
+
+#[cfg(feature = "alloc")]
+extern crate alloc;
+
 pub struct Host;
+
+#[cfg(feature = "alloc")]
+mod h7_alloc {
+    pub struct H7Allocator;
+
+    impl H7Allocator {
+        pub(crate) unsafe fn dealloc_all(&self) {
+            // TODO
+        }
+    }
+
+    unsafe impl core::alloc::GlobalAlloc for H7Allocator {
+        #[inline(always)]
+        unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
+            super::Host::alloc(layout)
+        }
+
+        #[inline(always)]
+        unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
+            super::Host::free(ptr, layout)
+        }
+    }
+}
+
+#[cfg(feature = "alloc")]
+pub use h7_alloc::H7Allocator;
 
 /// Implementation used when building code for the H7
 #[cfg(target_os = "none")]
 pub mod target {
 
-    use super::*;
-    use h7_api::H7Api;
+    use {
+        super::*,
+        core::mem::MaybeUninit,
+        h7_api::{AppEntryPoint, H7Api},
+    };
 
     #[link_section = ".entry_point"]
     #[no_mangle]
     #[used]
-    /// The pointer Monotron calls to start running this application.
-    pub static ENTRY_POINT: extern "C" fn(*const H7Api) -> i32 = entry_point;
-    static mut API_POINTER: Option<&'static H7Api> = None;
+    pub static ENTRY_POINT: AppEntryPoint = entry_point;
+    static mut API_POINTER: MaybeUninit<&'static H7Api> = MaybeUninit::uninit();
 
-    #[no_mangle]
     /// The function called by the host to start us up. Does some setup, then
-    /// jumps to a function called `main` defined by the actual application using
+    /// jumps to a function called `h7_main` defined by the actual application using
     /// this crate.
+    #[no_mangle]
     pub extern "C" fn entry_point(table: *const H7Api) -> i32 {
         // Turn the pointer into a reference and store in a static.
         unsafe {
-            API_POINTER = Some(&*table);
+            API_POINTER.write(&*table);
         };
 
         extern "C" {
             fn h7_main() -> i32;
         }
-        // call the user application
-        unsafe { h7_main() }
+        // Call the user application
+        let ret = unsafe { h7_main() };
+
+        // Free leaked memory
+        #[cfg(feature = "alloc")]
+        unsafe {
+            H7Allocator.dealloc_all()
+        };
+
+        ret
     }
 
+    #[inline(always)]
     fn get_api() -> &'static H7Api {
-        unsafe {
-            if let Some(api) = API_POINTER {
-                api
-            } else {
-                unreachable!()
-            }
-        }
+        unsafe { API_POINTER.assume_init() }
     }
 
     impl Host {
+        pub(crate) fn alloc(layout: core::alloc::Layout) -> *mut u8 {
+            todo!()
+        }
+
+        pub(crate) fn free(ptr: *mut u8, layout: core::alloc::Layout) {
+            todo!()
+        }
+
+        pub fn panic(msg: &str) -> ! {
+            // todo!()
+            loop {
+                core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
+            }
+        }
+
         pub fn delay(ms: u32) {}
 
-        pub fn puts(s: &str) {
-            (get_api().puts)(s.as_ptr(), s.len());
+        #[inline(always)]
+        pub fn puts(s: &str) -> i32 {
+            (get_api().puts)(s.as_ptr(), s.len())
         }
 
         pub fn clear() -> i32 {
@@ -69,12 +122,11 @@ pub mod target {
         }
     }
 
+    #[cfg(feature = "default-panic-handler")]
     #[inline(never)]
     #[panic_handler]
     fn panic(_info: &core::panic::PanicInfo) -> ! {
-        loop {
-            core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
-        }
+        Host::panic("User application paniced")
     }
 }
 
@@ -93,6 +145,7 @@ pub mod target {
             OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
         },
         std::{
+            alloc::GlobalAlloc,
             sync::{
                 atomic::{AtomicBool, Ordering},
                 mpsc::{channel, Receiver},
@@ -211,6 +264,20 @@ pub mod target {
                     std::thread::sleep(Duration::from_millis(1));
                 }
             });
+        }
+
+        #[inline(always)]
+        pub(crate) fn alloc(layout: core::alloc::Layout) -> *mut u8 {
+            unsafe { std::alloc::System.alloc(layout) }
+        }
+
+        #[inline(always)]
+        pub(crate) fn free(ptr: *mut u8, layout: core::alloc::Layout) {
+            unsafe { std::alloc::System.dealloc(ptr, layout) }
+        }
+
+        pub fn panic(msg: &str) -> ! {
+            panic!("{}", msg)
         }
 
         pub fn delay(ms: u32) {

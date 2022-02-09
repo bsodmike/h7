@@ -1,1 +1,1 @@
-[{"node":"PWR","expanded":true,"format":0,"pinned":true},{"node":"PWR.CR3","expanded":true,"format":0}]
+[{"node":"PWR","expanded":false,"format":0,"pinned":true},{"node":"PWR.CR3","expanded":true,"format":0},{"node":"MPU","expanded":true,"format":0,"pinned":false},{"node":"MPU.MPU_TYPER","expanded":true,"format":0},{"node":"MPU.MPU_CTRL","expanded":true,"format":0},{"node":"MPU.MPU_RNR","expanded":true,"format":0},{"node":"MPU.MPU_RBAR","expanded":true,"format":0},{"node":"MPU.MPU_RASR","expanded":true,"format":0}]

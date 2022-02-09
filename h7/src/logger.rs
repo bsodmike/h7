@@ -29,9 +29,8 @@ pub use semihosting::init;
 mod uart {
 
     use {
-        crate::terminal::UART_TERMINAL_TX,
+        crate::{terminal::UART_TERMINAL_TX, utils::interrupt_free},
         core::fmt::Write,
-        cortex_m::interrupt::free as interrupt_free,
         log::{LevelFilter, Log, Metadata, Record},
     };
 

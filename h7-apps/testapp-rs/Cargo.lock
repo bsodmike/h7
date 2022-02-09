@@ -315,9 +315,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "h7-app"
+name = "h7-applib"
 version = "0.1.0"
 dependencies = [
+ "cbindgen",
  "embedded-graphics",
  "embedded-graphics-simulator",
  "fontdue",
@@ -826,10 +827,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "testapp"
+name = "testapp-rs"
 version = "0.1.0"
 dependencies = [
- "h7-app",
+ "h7-applib",
 ]
 
 [[package]]

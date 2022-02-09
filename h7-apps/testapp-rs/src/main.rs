@@ -1,7 +1,10 @@
 #![cfg_attr(target_os = "none", no_std)]
 #![cfg_attr(target_os = "none", no_main)]
 
-use {core::fmt::Write, h7_app::Host};
+use {core::fmt::Write, h7_applib::Host};
+
+// #[global_allocator]
+// static A: H7Allocator = H7Allocator;
 
 #[cfg(not(target_os = "none"))]
 pub fn main() {
@@ -12,7 +15,7 @@ pub fn main() {
 
 #[no_mangle]
 pub extern "C" fn h7_main() -> i32 {
-    // Host::puts("Hello, World!\r\n");
+    Host::puts("Hello from Rust test app!\r\n");
 
     // loop {
     //     Host::delay(1);
@@ -32,5 +35,5 @@ pub extern "C" fn h7_main() -> i32 {
     //     }
     // }
 
-    5
+    0
 }

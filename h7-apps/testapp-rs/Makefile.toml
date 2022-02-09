@@ -1,0 +1,51 @@
+[config]
+skip_core_tasks = true
+
+[tasks.default]
+alias = "build-release"
+
+[tasks.build-debug]
+env = { RELEASE_DEBUG = "debug" }
+run_task = { name = [ "_build", "_dir", "_elf", "_bin", "_h7" ] }
+
+[tasks.build-release]
+env = { RELEASE_DEBUG = "release" }
+run_task = { name = [ "_build", "_dir", "_elf", "_bin", "_h7" ] }
+
+# ==== Private tasks ====
+
+[tasks._build]
+private = true
+condition = { env_set = [ "RELEASE_DEBUG" ] }
+script = '''
+if [ ${RELEASE_DEBUG} == "release" ]; then
+    cargo build --release --target thumbv7em-none-eabihf ${@}
+else
+    cargo build --target thumbv7em-none-eabihf ${@}
+fi
+'''
+
+[tasks._dir]
+private = true
+script = "mkdir -p dist"
+
+[tasks._elf]
+private = true
+script = '''
+cp ${CARGO_MAKE_CRATE_CUSTOM_TRIPLE_TARGET_DIRECTORY}/${RELEASE_DEBUG}/${CARGO_MAKE_PROJECT_NAME} dist/${CARGO_MAKE_PROJECT_NAME}-${RELEASE_DEBUG}.elf
+'''
+
+[tasks._bin]
+private = true
+condition = { env_set = [ "RELEASE_DEBUG" ] }
+script = '''
+arm-none-eabi-objcopy -O binary dist/${CARGO_MAKE_PROJECT_NAME}-${RELEASE_DEBUG}.elf dist/${CARGO_MAKE_PROJECT_NAME}-${RELEASE_DEBUG}.bin
+'''
+
+[tasks._h7]
+private = true
+condition = { env_set = [ "RELEASE_DEBUG" ] }
+script = '''
+cd ../../h7-mkapp
+cargo run --release -- ../h7-apps/${CARGO_MAKE_PROJECT_NAME}/dist/${CARGO_MAKE_PROJECT_NAME}-${RELEASE_DEBUG}.bin ../h7-apps/${CARGO_MAKE_PROJECT_NAME}/dist/${CARGO_MAKE_PROJECT_NAME}-${RELEASE_DEBUG}.h7
+'''

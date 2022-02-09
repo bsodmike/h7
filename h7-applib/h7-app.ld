@@ -1,6 +1,8 @@
 MEMORY
 {
     SRAM (rxw) : ORIGIN = 0x24000000, LENGTH = 512K
+    /*SRAM (rxw) : ORIGIN = 0x30000000, LENGTH = 128K*/
+    /*SRAM (rxw) : ORIGIN = 0x00000000, LENGTH = 64K*/
 }
 
 EXTERN(ENTRY_POINT);
@@ -12,29 +14,29 @@ SECTIONS
         KEEP(*(.entry_point))
     } > SRAM
 
-    .text : ALIGN(8)
-    {
+    .text : ALIGN(4)
+    {   *    (.entry_point_fn)
         *    (.text .text.*)
         *    (.init)
         *    (.fini)
     } > SRAM
 
-    .rodata : ALIGN(8)
+    .rodata : ALIGN(4)
     {
         *(.rodata .rodata.*);
-        . = ALIGN(8);
+        . = ALIGN(4);
     } > SRAM
 
-    .data : ALIGN(8)
+    .data : ALIGN(4)
     {
         *    (.data .data.*)
-        . = ALIGN(8);
+        . = ALIGN(4);
     }  > SRAM
 
-    .bss (NOLOAD) : ALIGN(8)
+    .bss (NOLOAD) : ALIGN(4)
     {
         *    (.bss .bss.*)
-        . = ALIGN(8);
+        . = ALIGN(4);
     } > SRAM
 
     /* ## .got */

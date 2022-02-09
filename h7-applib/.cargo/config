@@ -7,3 +7,7 @@ rustflags = [
 rustflags = [
   "-C", "link-arg=-Th7-app.ld",
 ]
+
+[build]
+target = "thumbv7em-none-eabihf" # Cortex-M4F and Cortex-M7F (with FPU)
+

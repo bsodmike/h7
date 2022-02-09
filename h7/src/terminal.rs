@@ -3,11 +3,11 @@ use {
         app, consts,
         menu::{check_args_len, MenuError, MenuItem},
         time::TimeSource,
-        utils,
+        utils::{self, interrupt_free},
     },
     chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike},
     core::{cell::RefCell, fmt::Write},
-    cortex_m::interrupt::{free as interrupt_free, Mutex},
+    cortex_m::interrupt::Mutex,
     hds::Queue,
     stm32h7xx_hal::{self as hal, interrupt, pac, prelude::*, serial},
 };
@@ -106,8 +106,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
         description: "Load a program into ram",
         action: |m, args| {
             check_args_len(1, args.len())?;
-            let app_slice =
-                unsafe { core::slice::from_raw_parts_mut(app::APP_START, app::APP_SIZE) };
+            let app_slice = app::app_slice();
             // .bss
             app_slice.fill(0);
             interrupt_free(|cs| {
@@ -118,26 +117,8 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                     .map(|sdfs| sdfs.read_file(args[0], app_slice))
                 {
                     Some(Ok(len)) => {
-                        let crc = utils::crc(cs, &app_slice[..(len - 4)]);
                         writeln!(m.writer(), "Program '{}' loaded ({} bytes)", args[0], len)?;
-                        writeln!(
-                            m.writer(),
-                            "Address: {addr:p}, CRC: 0x{crc:08x} ({check}), Size: 0x{size:x}",
-                            addr = app::get_address(app_slice),
-                            check = if crc
-                                == u32::from_be_bytes([
-                                    app_slice[len - 4],
-                                    app_slice[len - 3],
-                                    app_slice[len - 2],
-                                    app_slice[len - 1]
-                                ]) {
-                                "passed"
-                            } else {
-                                "failed"
-                            },
-                            size = len
-                        )?;
-                        // writeln!(m.writer(), "Data: {:?}", &app_slice[..len])?;
+                        app::print_info(m.writer(), &app_slice[..len])?;
                         Ok(())
                     }
                     Some(Err(e)) => {
@@ -158,23 +139,61 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
         description: "Run program loaded in ram",
         action: |m, args| {
             check_args_len(0, args.len())?;
-            let app_slice =
-                unsafe { core::slice::from_raw_parts_mut(app::APP_START, app::APP_SIZE) };
+            let app_slice = app::app_slice();
             let app_fn = app::get_address(app_slice);
-            writeln!(m.writer(), "Executing from {:p}", app_fn)?;
-            let ret = app_fn(&app::API);
-            writeln!(m.writer(), "Exit: {}", ret)?;
+            let api = &app::API as *const h7_api::H7Api;
+            writeln!(m.writer(), "Executing from {:p}, API: {:p}", app_fn, api)?;
+            let ret = unsafe {
+                // Disable cache
+                let mut cp = cortex_m::Peripherals::steal();
+                cp.SCB.disable_icache();
+                cp.SCB.invalidate_icache();
+                cp.SCB.disable_dcache(&mut cp.CPUID);
+                cp.SCB.clean_dcache(&mut cp.CPUID);
+
+                // Sync
+                cortex_m::asm::dmb();
+                cortex_m::asm::dsb();
+                cortex_m::asm::isb();
+
+                // Run
+                let ret = app_fn(&app::API);
+
+                // Enable cache
+                cp.SCB.enable_icache();
+                cp.SCB.enable_dcache(&mut cp.CPUID);
+
+                ret
+            };
+            writeln!(
+                m.writer(),
+                "Exit: {} ({})",
+                ret,
+                if ret == 0 { "ok" } else { "error" }
+            )?;
+
             Ok(())
         },
     },
     MenuItem::Command {
-        name: "panic",
-        help: "panic - Cause a panic",
+        name: "sys",
+        help: "sys - Test system functionality",
         description: "Cause a panic",
-        action: |m, args| {
-            check_args_len(0, args.len())?;
-            writeln!(m.writer(), "Panicing!")?;
-            panic!("Panic command")
+        action: |m, args| match args {
+            ["panic"] => {
+                writeln!(m.writer(), "Panicing!")?;
+                panic!("User caused a panic")
+            }
+            ["bkpt"] => {
+                writeln!(m.writer(), "Breakpoint!")?;
+                cortex_m::asm::bkpt();
+                Ok(())
+            }
+            ["udf"] => {
+                writeln!(m.writer(), "Undefined instruction!")?;
+                cortex_m::asm::udf();
+            }
+            _ => check_args_len(1, args.len()),
         },
     },
     MenuItem::Command {
@@ -613,6 +632,115 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
         },
     },
     MenuItem::Command {
+        name: "upload",
+        help: "Load program into RAM via serial. Data is sent in ascii hex.",
+        description: "Load program into RAM via serial. Data is sent in ascii hex.",
+        action: |m, args| {
+            let mut n = 0usize;
+            let app_slice = app::app_slice();
+            app_slice.fill(0);
+            match args {
+                [bin] => match bin.as_bytes().chunks(2).try_for_each(|s| match s.len() {
+                    1 => Err((s[0], None)),
+                    2 => {
+                        let b = from_hex(s[0], s[1]).ok_or((s[0], Some(s[1])))?;
+                        app_slice[n] = b;
+                        n += 1;
+                        Ok(())
+                    }
+                    _ => unreachable!(),
+                }) {
+                    Ok(_) => {}
+                    Err((a, None)) => {
+                        writeln!(
+                            m.writer(),
+                            "Invalid byte: '0x{} None' (half a byte missing)",
+                            a as char
+                        )?;
+                        Err(MenuError::InvalidArgument)?;
+                    }
+                    Err((a, Some(b))) => {
+                        writeln!(
+                            m.writer(),
+                            "Invalid byte: '0x{} 0x{}'",
+                            a as char,
+                            b as char
+                        )?;
+                        Err(MenuError::InvalidArgument)?;
+                    }
+                },
+                _ => {
+                    writeln!(m.writer(), "Waiting for data...")?;
+                    let mut byte = None::<u8>;
+                    loop {
+                        match (
+                            byte,
+                            interrupt_free(|cs| TERMINAL_INPUT_FIFO.borrow(cs).borrow_mut().pop()),
+                        ) {
+                            (b, Some(b'\n')) => {
+                                if let Some(b) = b {
+                                    writeln!(
+                                        m.writer(),
+                                        "Invalid byte: '0x{} None' (half a byte missing)",
+                                        b as char
+                                    )?;
+                                    Err(MenuError::InvalidArgument)?;
+                                } else {
+                                    break;
+                                }
+                            }
+                            (Some(x), Some(y)) => match from_hex(x, y) {
+                                Some(b) => {
+                                    app_slice[n] = b;
+                                    n += 1;
+                                    byte = None;
+                                }
+                                None => {
+                                    writeln!(
+                                        m.writer(),
+                                        "Invalid byte: '0x{} 0x{}'",
+                                        x as char,
+                                        y as char
+                                    )?;
+                                    Err(MenuError::InvalidArgument)?;
+                                }
+                            },
+                            (None, n) => byte = n,
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            writeln!(m.writer(), "Read {} bytes", n)?;
+            if n > 8 {
+                app::print_info(m.writer(), &app_slice[..n])?;
+            } else {
+                writeln!(m.writer(), "Not enough data")?;
+            }
+
+            Ok(())
+        },
+    },
+    MenuItem::Command {
+        name: "inspect",
+        help: "Show application memory",
+        description: "Show application memory",
+        action: |m, args| {
+            check_args_len(1, args.len())?;
+            let end = args[0]
+                .parse::<usize>()
+                .map_err(|_| MenuError::InvalidArgument)?;
+            let slice = &app::app_slice()[..end];
+            writeln!(m.writer(), "Data:")?;
+            for b in slice {
+                write!(m.writer(), "{:02x}", b)?;
+            }
+            writeln!(m.writer())?;
+            // writeln!(m.writer(), "{:?}", slice)?;
+            Ok(())
+        },
+    },
+    MenuItem::Command {
         name: "testfn",
         help: "testfn",
         description: "testfn",
@@ -677,6 +805,25 @@ fn to_hex<const N: usize>(data: &[u8], lowercase: bool) -> ([u8; N], usize) {
         res[idx + 1] = nibble_to_char(byte & 0x0f, lowercase).unwrap();
     }
     (res, len * 2)
+}
+
+fn from_hex(nibble1: u8, nibble2: u8) -> Option<u8> {
+    let a = nibble1 | 0b0010_0000;
+    let b = nibble2 | 0b0010_0000;
+
+    let n1 = match a {
+        b'0'..=b'9' => a - 48,
+        b'a'..=b'f' => a - 87,
+        _ => return None,
+    };
+
+    let n2 = match b {
+        b'0'..=b'9' => b - 48,
+        b'a'..=b'f' => b - 87,
+        _ => return None,
+    };
+
+    Some((n1 << 4) | (n2 & 0x0f))
 }
 
 #[interrupt]

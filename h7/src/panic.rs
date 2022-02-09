@@ -1,7 +1,6 @@
 use {
-    crate::{terminal, LED},
+    crate::{terminal, utils::interrupt_free, LED},
     core::{fmt::Write, panic::PanicInfo},
-    cortex_m::interrupt::free as interrupt_free,
 };
 
 struct PanicLogger;

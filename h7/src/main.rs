@@ -5,16 +5,17 @@
     result_into_ok_or_err,
     const_for,
     const_mut_refs,
-    int_log
+    int_log,
+    asm_sym
 )]
 
 extern crate alloc;
 
 use {
-    anx7625::Anx7625,
+    crate::utils::interrupt_free,
+    // anx7625::Anx7625,
     chrono::{NaiveDate, Timelike},
     core::fmt::Write,
-    cortex_m::interrupt::free as interrupt_free,
     cortex_m_alloc::CortexMHeap,
     embedded_display_controller::{
         DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
@@ -138,8 +139,8 @@ unsafe fn main() -> ! {
     let mut led_g = gpiok.pk6.into_push_pull_output();
     let mut led_b = gpiok.pk7.into_push_pull_output();
     led_r.set_high().unwrap();
-    led_g.set_high().unwrap();
-    led_b.set_low().unwrap();
+    led_g.set_low().unwrap();
+    led_b.set_high().unwrap();
 
     // Internal I2C bus
     let mut internal_i2c = dp.I2C1.i2c(
@@ -244,46 +245,46 @@ unsafe fn main() -> ! {
     }
 
     // SDRAM
-    {
-        // Configure SDRAM pins
-        let sdram_pins = fmc_pins! {
-            // A0-A12
-            gpiof.pf0, gpiof.pf1, gpiof.pf2, gpiof.pf3,
-            gpiof.pf4, gpiof.pf5, gpiof.pf12, gpiof.pf13,
-            gpiof.pf14, gpiof.pf15, gpiog.pg0, gpiog.pg1,
-            gpiog.pg2,
-            // BA0-BA1
-            gpiog.pg4, gpiog.pg5,
-            // D0-D15
-            gpiod.pd14, gpiod.pd15, gpiod.pd0, gpiod.pd1,
-            gpioe.pe7, gpioe.pe8, gpioe.pe9, gpioe.pe10,
-            gpioe.pe11, gpioe.pe12, gpioe.pe13, gpioe.pe14,
-            gpioe.pe15, gpiod.pd8, gpiod.pd9, gpiod.pd10,
-            // NBL0 - NBL1
-            gpioe.pe0, gpioe.pe1,
-            gpioh.ph2, // SDCKE1
-            gpiog.pg8, // SDCLK
-            gpiog.pg15, // SDCAS
-            gpioh.ph3, // SDNE1 (!CS)
-            gpiof.pf11, // SDRAS
-            gpioh.ph5 // SDNWE
-        };
+    // {
+    //     // Configure SDRAM pins
+    //     let sdram_pins = fmc_pins! {
+    //         // A0-A12
+    //         gpiof.pf0, gpiof.pf1, gpiof.pf2, gpiof.pf3,
+    //         gpiof.pf4, gpiof.pf5, gpiof.pf12, gpiof.pf13,
+    //         gpiof.pf14, gpiof.pf15, gpiog.pg0, gpiog.pg1,
+    //         gpiog.pg2,
+    //         // BA0-BA1
+    //         gpiog.pg4, gpiog.pg5,
+    //         // D0-D15
+    //         gpiod.pd14, gpiod.pd15, gpiod.pd0, gpiod.pd1,
+    //         gpioe.pe7, gpioe.pe8, gpioe.pe9, gpioe.pe10,
+    //         gpioe.pe11, gpioe.pe12, gpioe.pe13, gpioe.pe14,
+    //         gpioe.pe15, gpiod.pd8, gpiod.pd9, gpiod.pd10,
+    //         // NBL0 - NBL1
+    //         gpioe.pe0, gpioe.pe1,
+    //         gpioh.ph2, // SDCKE1
+    //         gpiog.pg8, // SDCLK
+    //         gpiog.pg15, // SDCAS
+    //         gpioh.ph3, // SDNE1 (!CS)
+    //         gpiof.pf11, // SDRAS
+    //         gpioh.ph5 // SDNWE
+    //     };
 
-        // Init SDRAM
-        mem::sdram::configure(&cp.MPU, &cp.SCB);
-        let sdram_ptr = dp
-            .FMC
-            .sdram(
-                sdram_pins,
-                stm32_fmc::devices::as4c4m16sa_6::As4c4m16sa {},
-                ccdr.peripheral.FMC,
-                &ccdr.clocks,
-            )
-            .init(&mut delay);
+    //     // Init SDRAM
+    //     mem::sdram::configure(&cp.MPU, &cp.SCB);
+    //     let sdram_ptr = dp
+    //         .FMC
+    //         .sdram(
+    //             sdram_pins,
+    //             stm32_fmc::devices::as4c4m16sa_6::As4c4m16sa {},
+    //             ccdr.peripheral.FMC,
+    //             &ccdr.clocks,
+    //         )
+    //         .init(&mut delay);
 
-        // Configure allocator
-        ALLOCATOR.init(sdram_ptr as usize, mem::sdram::SDRAM_SIZE);
-    }
+    //     // Configure allocator
+    //     ALLOCATOR.init(sdram_ptr as usize, mem::sdram::SDRAM_SIZE);
+    // }
 
     // Enable osc
     {
@@ -341,72 +342,72 @@ unsafe fn main() -> ! {
     }
 
     // Display config
-    {
-        let mut anx = Anx7625::new(
-            gpiok.pk2.into_push_pull_output(),
-            gpioj.pj3.into_push_pull_output(),
-            gpioj.pj6.into_push_pull_output(),
-        );
-        anx.init(&mut internal_i2c, &mut delay).unwrap();
-        anx.wait_hpd_event(&mut internal_i2c, &mut delay); // Blocks until monitor is connected
-        log::info!("Monitor connected");
-        let edid = anx
-            .dp_get_edid(&mut internal_i2c, &mut delay)
-            .map_err(|(_, edid)| unsafe { edid.assume_init() })
-            .into_ok_or_err();
-        log::warn!("{:#?}", edid);
-        anx.dp_start(
-            &mut internal_i2c,
-            &mut delay,
-            &edid,
-            anx7625::EdidModes::EDID_MODE_640x480_60Hz,
-        )
-        .unwrap();
-    }
+    // {
+    //     let mut anx = Anx7625::new(
+    //         gpiok.pk2.into_push_pull_output(),
+    //         gpioj.pj3.into_push_pull_output(),
+    //         gpioj.pj6.into_push_pull_output(),
+    //     );
+    //     anx.init(&mut internal_i2c, &mut delay).unwrap();
+    //     anx.wait_hpd_event(&mut internal_i2c, &mut delay); // Blocks until monitor is connected
+    //     log::info!("Monitor connected");
+    //     let edid = anx
+    //         .dp_get_edid(&mut internal_i2c, &mut delay)
+    //         .map_err(|(_, edid)| unsafe { edid.assume_init() })
+    //         .into_ok_or_err();
+    //     log::warn!("{:#?}", edid);
+    //     anx.dp_start(
+    //         &mut internal_i2c,
+    //         &mut delay,
+    //         &edid,
+    //         anx7625::EdidModes::EDID_MODE_640x480_60Hz,
+    //     )
+    //     .unwrap();
+    // }
 
-    let mut display = stm32h7xx_hal::ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
-    let display_config = DisplayConfiguration {
-        active_width: 1280,
-        active_height: 768,
-        h_back_porch: 120,
-        h_front_porch: 32,
-        v_back_porch: 10,
-        v_front_porch: 45,
-        h_sync: 20,
-        v_sync: 12,
+    // let mut display = stm32h7xx_hal::ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
+    // let display_config = DisplayConfiguration {
+    //     active_width: 1280,
+    //     active_height: 768,
+    //     h_back_porch: 120,
+    //     h_front_porch: 32,
+    //     v_back_porch: 10,
+    //     v_front_porch: 45,
+    //     h_sync: 20,
+    //     v_sync: 12,
 
-        /// horizontal synchronization: `false`: active low, `true`: active high
-        h_sync_pol: false,
-        /// vertical synchronization: `false`: active low, `true`: active high
-        v_sync_pol: false,
-        /// data enable: `false`: active low, `true`: active high
-        not_data_enable_pol: true,
-        /// pixel_clock: `false`: active low, `true`: active high
-        pixel_clock_pol: false,
-    };
-    display.init(display_config);
-    let mut layer1 = display.split();
-    // // let framebuf = alloc::boxed::Box::new([0u8; 640 * 480]);
-    // // let framebuf = [0u8; 1280 * 768];
-    // // let framebuf = alloc::vec::Vec::<u8>::with_capacity(1280 * 768);
-    let framebuf = alloc::vec![
-        0xf81fu16;
-        display_config.active_width as usize * display_config.active_height as usize * 2
-    ];
-    layer1.enable(framebuf.as_ptr(), PixelFormat::RGB565);
-    layer1.swap_framebuffer(framebuf.as_ptr());
+    //     /// horizontal synchronization: `false`: active low, `true`: active high
+    //     h_sync_pol: false,
+    //     /// vertical synchronization: `false`: active low, `true`: active high
+    //     v_sync_pol: false,
+    //     /// data enable: `false`: active low, `true`: active high
+    //     not_data_enable_pol: true,
+    //     /// pixel_clock: `false`: active low, `true`: active high
+    //     pixel_clock_pol: false,
+    // };
+    // display.init(display_config);
+    // let mut layer1 = display.split();
+    // // // let framebuf = alloc::boxed::Box::new([0u8; 640 * 480]);
+    // // // let framebuf = [0u8; 1280 * 768];
+    // // // let framebuf = alloc::vec::Vec::<u8>::with_capacity(1280 * 768);
+    // let framebuf = alloc::vec![
+    //     0xf81fu16;
+    //     display_config.active_width as usize * display_config.active_height as usize * 2
+    // ];
+    // layer1.enable(framebuf.as_ptr(), PixelFormat::RGB565);
+    // layer1.swap_framebuffer(framebuf.as_ptr());
 
-    let dsihost = dsi::Dsi::new(
-        dsi::DsiLanes::Two,
-        &display_config,
-        dp.DSIHOST,
-        ccdr.peripheral.DSI,
-        &ccdr.clocks,
-    );
+    // let dsihost = dsi::Dsi::new(
+    //     dsi::DsiLanes::Two,
+    //     &display_config,
+    //     dp.DSIHOST,
+    //     ccdr.peripheral.DSI,
+    //     &ccdr.clocks,
+    // );
 
     let mut menu = menu::Menu::new(terminal::TerminalWriter, terminal::MENU);
 
-    let mut cmd_buf = [0u8; 64];
+    let mut cmd_buf = [0u8; 1024];
     let mut cmd_buf_len: usize = 0;
 
     // Main loop
@@ -435,6 +436,11 @@ unsafe fn main() -> ! {
                         // Run command
                         if let Err(e) = menu.run(cmd, &args[0..args_len]) {
                             let _ = writeln!(menu, "Error: {}", e);
+                            // Clear input
+                            interrupt_free(|cs| {
+                                let mut q = terminal::TERMINAL_INPUT_FIFO.borrow(cs).borrow_mut();
+                                while q.pop().is_some() {}
+                            });
                         }
                         cmd_buf_len = 0;
                     }

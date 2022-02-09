@@ -1,6 +1,7 @@
 use {
+    crate::led::LED,
     core::cell::RefCell,
-    cortex_m::interrupt::{CriticalSection, Mutex},
+    cortex_m::interrupt::{self, CriticalSection, Mutex},
     stm32h7xx_hal::crc::{Config, Crc},
 };
 
@@ -16,4 +17,15 @@ pub fn crc(cs: &CriticalSection, data: &[u8]) -> u32 {
         }
         None => 0,
     }
+}
+
+#[inline(always)]
+pub fn interrupt_free<F, R>(f: F) -> R
+where
+    F: FnOnce(&CriticalSection) -> R,
+{
+    unsafe { LED::Blue.on() };
+    let r = interrupt::free(f);
+    unsafe { LED::Blue.off() };
+    r
 }
