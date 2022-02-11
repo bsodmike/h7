@@ -1,6 +1,8 @@
 use std::{env, fs};
 
-const ADDR_ALIGN: u32 = 4;
+const ARM_ADDR_ALIGN: u32 = 4;
+const THUMB_ADDR_ALIGN: u32 = 2;
+const THUMB_MASK: u32 = 0x0000_0001;
 
 fn main() {
     let mut args = env::args().skip(1);
@@ -17,23 +19,22 @@ fn main() {
 
     let boot_address =
         u32::from_le_bytes([input_data[0], input_data[1], input_data[2], input_data[3]]);
-    println!(
-        "Boot address: 0x{:08x} ({})",
-        boot_address,
+    println!("Boot address: 0x{:08x} ({})", boot_address, {
         // LSB is not part of the actual address,
         // but rather indicate if the cpu should
         // switch to arm or thumb mode.
         // 0 = ARM, 1 = THUMB
-        if (boot_address & 0xffff_fffe) % ADDR_ALIGN == 0 {
-            if boot_address % 2 == 1 {
-                "valid thumb"
-            } else {
-                "valid arm"
-            }
-        } else {
-            "invalid"
+        let a = boot_address & !THUMB_MASK;
+        match (
+            boot_address & THUMB_MASK, // Thumb?
+            a % THUMB_ADDR_ALIGN,      // Valid Thumb alignment?
+            a % ARM_ADDR_ALIGN,        // Valid ARM alignment?
+        ) {
+            (1, 0, _) => "valid thumb",
+            (0, _, 0) => "valid arm",
+            _ => "invalid",
         }
-    );
+    });
 
     let mut output_data = vec![0u8; input_data.len() + 4];
     // Convert address to big endian (the proper way...)

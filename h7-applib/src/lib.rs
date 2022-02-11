@@ -1,4 +1,8 @@
 #![cfg_attr(target_os = "none", no_std)]
+#![cfg_attr(
+    all(feature = "alloc", feature = "default-alloc-handler"),
+    feature(alloc_error_handler)
+)]
 
 #[cfg(not(target_os = "none"))]
 mod display;
@@ -11,15 +15,12 @@ extern crate alloc;
 
 pub struct Host;
 
-#[cfg(feature = "alloc")]
+#[cfg(all(feature = "alloc", target_os = "none"))]
 mod h7_alloc {
-    pub struct H7Allocator;
+    struct H7Allocator;
 
-    impl H7Allocator {
-        pub(crate) unsafe fn dealloc_all(&self) {
-            // TODO
-        }
-    }
+    #[global_allocator]
+    static A: H7Allocator = H7Allocator;
 
     unsafe impl core::alloc::GlobalAlloc for H7Allocator {
         #[inline(always)]
@@ -28,14 +29,11 @@ mod h7_alloc {
         }
 
         #[inline(always)]
-        unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
-            super::Host::free(ptr, layout)
+        unsafe fn dealloc(&self, ptr: *mut u8, _layout: core::alloc::Layout) {
+            super::Host::free(ptr)
         }
     }
 }
-
-#[cfg(feature = "alloc")]
-pub use h7_alloc::H7Allocator;
 
 /// Implementation used when building code for the H7
 #[cfg(target_os = "none")]
@@ -69,12 +67,6 @@ pub mod target {
         // Call the user application
         let ret = unsafe { h7_main() };
 
-        // Free leaked memory
-        #[cfg(feature = "alloc")]
-        unsafe {
-            H7Allocator.dealloc_all()
-        };
-
         ret
     }
 
@@ -84,34 +76,36 @@ pub mod target {
     }
 
     impl Host {
-        pub(crate) fn alloc(layout: core::alloc::Layout) -> *mut u8 {
-            todo!()
+        #[cfg(feature = "alloc")]
+        #[inline(always)]
+        pub(crate) unsafe fn alloc(layout: core::alloc::Layout) -> *mut u8 {
+            (get_api().alloc)(layout.size(), layout.align())
         }
 
-        pub(crate) fn free(ptr: *mut u8, layout: core::alloc::Layout) {
-            todo!()
+        #[cfg(feature = "alloc")]
+        #[inline(always)]
+        pub(crate) unsafe fn free(ptr: *mut u8) {
+            (get_api().free)(ptr)
         }
 
+        #[inline(always)]
         pub fn panic(msg: &str) -> ! {
-            // todo!()
-            loop {
-                core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
-            }
+            (get_api().panic)(msg.as_ptr(), msg.len())
         }
 
-        pub fn delay(ms: u32) {}
+        #[inline(always)]
+        pub fn getc() -> u8 {
+            (get_api().getc)()
+        }
+
+        #[inline(always)]
+        pub fn putc(c: u8) -> i32 {
+            (get_api().putc)(c)
+        }
 
         #[inline(always)]
         pub fn puts(s: &str) -> i32 {
             (get_api().puts)(s.as_ptr(), s.len())
-        }
-
-        pub fn clear() -> i32 {
-            0
-        }
-
-        pub fn getkc() -> i32 {
-            0
         }
     }
 
@@ -120,6 +114,13 @@ pub mod target {
             Self::puts(s);
             Ok(())
         }
+    }
+
+    #[cfg(all(feature = "alloc", feature = "default-alloc-handler"))]
+    #[inline(never)]
+    #[alloc_error_handler]
+    fn alloc_error_handler(_layout: alloc::alloc::Layout) -> ! {
+        Host::panic("Allocation failed")
     }
 
     #[cfg(feature = "default-panic-handler")]
@@ -144,12 +145,14 @@ pub mod target {
         embedded_graphics_simulator::{
             OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
         },
+        parking_lot::Mutex,
         std::{
-            alloc::GlobalAlloc,
+            alloc::{GlobalAlloc, Layout},
+            collections::HashMap,
             sync::{
                 atomic::{AtomicBool, Ordering},
                 mpsc::{channel, Receiver},
-                Arc, Mutex,
+                Arc,
             },
             time::{Duration, Instant},
         },
@@ -167,19 +170,24 @@ pub mod target {
     const ROWS: usize = HEIGHT as usize / GLYPH_HEIGHT;
     const COLS: usize = WIDTH as usize / GLYPH_WIDTH;
 
-    static mut TEXT_GRID: [[(char, u16); COLS]; ROWS] = [[(b' ' as char, 0xffff); COLS]; ROWS];
-    static mut KC_RECEIVER: Option<Receiver<i32>> = None;
+    static mut KC_RECEIVER: Option<Receiver<pc_keyboard::DecodedKey>> = None;
     static mut CONTEXT: Context = Context {
         x: 0,
         y: (ROWS - 1) as u32,
     };
-    static mut DISPLAY: Option<Arc<Mutex<Display<SimulatorDisplay<Rgb565>>>>> = None;
+    lazy_static::lazy_static! {
+        static ref TEXT_GRID: Arc<Mutex<[[(char, u16); COLS]; ROWS]>> = Arc::new(Mutex::new([[(b' ' as char, 0xffff); COLS]; ROWS]));
+        static ref DISPLAY: Arc<Mutex<Display<SimulatorDisplay<Rgb565>>>> = Arc::new(Mutex::new(Display::new(
+            SimulatorDisplay::<Rgb565>::new(Size::new(WIDTH, HEIGHT)),
+        )));
+        static ref APP_ALLOCATIONS: Arc<Mutex<HashMap<usize, Layout>>> = Arc::new(Mutex::new(HashMap::new()));
+    }
     static REDRAW: AtomicBool = AtomicBool::new(true);
 
     fn draw_text_grid() {
-        let mut lock = unsafe { DISPLAY.as_mut().unwrap().lock().unwrap() };
+        let mut lock = DISPLAY.lock();
 
-        for (y, line) in unsafe { TEXT_GRID }.iter().enumerate() {
+        for (y, line) in TEXT_GRID.lock().iter().enumerate() {
             for (x, (c, color)) in line.iter().enumerate() {
                 let mut tmp = [0u8; 4];
                 let _ = lock.draw_text(
@@ -194,11 +202,17 @@ pub mod target {
     }
 
     fn scroll(n: usize) {
+        let tg = TEXT_GRID.lock();
         for _ in 0..n {
-            for line in 0..unsafe { TEXT_GRID }.len() - 1 {
+            for line in 0..tg.len() - 1 {
+                // let a = &tg[line];
+                // let b = &tg[line + 1];
+
                 unsafe {
-                    core::mem::swap(&mut TEXT_GRID[line], &mut TEXT_GRID[line + 1]);
-                }
+                    let a: &mut [(char, u16); COLS] = &mut *(&tg[line] as *const _ as *mut _);
+                    let b: &mut [(char, u16); COLS] = &mut *(&tg[line + 1] as *const _ as *mut _);
+                    core::mem::swap(a, b)
+                };
             }
         }
     }
@@ -209,12 +223,9 @@ pub mod target {
             unsafe {
                 println!("Text buffer: {}", core::mem::size_of_val(&TEXT_GRID));
                 KC_RECEIVER = Some(rx);
-                DISPLAY = Some(Arc::new(Mutex::new(Display::new(
-                    SimulatorDisplay::<Rgb565>::new(Size::new(WIDTH, HEIGHT)),
-                ))))
             };
 
-            let disp = Arc::clone(unsafe { DISPLAY.as_ref().unwrap() });
+            let disp = Arc::clone(&*DISPLAY);
             std::thread::spawn(move || {
                 let output_settings = OutputSettingsBuilder::new().build();
                 let mut w = Window::new(env!("CARGO_PKG_NAME"), &output_settings);
@@ -228,11 +239,14 @@ pub mod target {
                 loop {
                     if REDRAW.load(Ordering::SeqCst) {
                         println!("REDRAW!");
+                        let mut lock = disp.lock();
+                        lock.clear(Rgb565::from(RawU16::new(0x0000))).unwrap();
+                        drop(lock);
                         draw_text_grid();
-                        if let Ok(lock) = disp.try_lock() {
-                            w.update(&lock.display);
-                            REDRAW.store(false, Ordering::SeqCst);
-                        }
+                        let lock = disp.lock();
+                        w.update(&lock.display);
+                        drop(lock);
+                        REDRAW.store(false, Ordering::SeqCst);
                     }
                     for e in w.events() {
                         match e {
@@ -243,6 +257,7 @@ pub mod target {
                                     state: pc_keyboard::KeyState::Up,
                                 }) {
                                     println!("{:?}", k);
+                                    drop(tx.send(k));
                                 }
                             }
                             SimulatorEvent::KeyDown { keycode, .. } => {
@@ -251,12 +266,12 @@ pub mod target {
                                     state: pc_keyboard::KeyState::Down,
                                 }) {
                                     println!("{:?}", k);
+                                    drop(tx.send(k));
                                 }
                                 // HOME key
                                 if keycode as i32 == 1073741898 {
                                     REDRAW.store(true, Ordering::SeqCst);
                                 }
-                                drop(tx.send(keycode as i32));
                             }
                             _ => {}
                         }
@@ -268,12 +283,19 @@ pub mod target {
 
         #[inline(always)]
         pub(crate) fn alloc(layout: core::alloc::Layout) -> *mut u8 {
-            unsafe { std::alloc::System.alloc(layout) }
+            let mut lock = APP_ALLOCATIONS.lock();
+            let ptr = unsafe { std::alloc::System.alloc(layout) };
+            lock.insert(ptr as usize, layout);
+            ptr
         }
 
         #[inline(always)]
-        pub(crate) fn free(ptr: *mut u8, layout: core::alloc::Layout) {
-            unsafe { std::alloc::System.dealloc(ptr, layout) }
+        pub(crate) fn free(ptr: *mut u8) {
+            let mut lock = APP_ALLOCATIONS.lock();
+            match lock.remove(&(ptr as usize)) {
+                Some(l) => unsafe { std::alloc::System.dealloc(ptr, l) },
+                None => eprintln!("Failed to dealloc!"),
+            }
         }
 
         pub fn panic(msg: &str) -> ! {
@@ -285,21 +307,34 @@ pub mod target {
         }
 
         pub fn getc() -> u8 {
-            0
+            match unsafe { KC_RECEIVER.as_mut().unwrap() }.try_recv() {
+                Ok(dk) => match dk {
+                    pc_keyboard::DecodedKey::Unicode(c) => {
+                        if c.is_ascii() {
+                            c as u8
+                        } else {
+                            0
+                        }
+                    }
+                    pc_keyboard::DecodedKey::RawKey(_kc) => 0,
+                },
+                Err(_) => 0,
+            }
         }
 
         pub fn putc(c: u8) -> i32 {
             // print!("{}", c as char);
             match c {
-                b'\r' => unsafe { CONTEXT.x = 0 },
+                // b'\r' => unsafe { CONTEXT.x = 0 },
                 b'\n' => unsafe {
+                    CONTEXT.x = 0;
                     scroll(1);
-                    TEXT_GRID[(ROWS - 1) as usize].fill((b' ' as char, 0xffff));
+                    TEXT_GRID.lock()[(ROWS - 1) as usize].fill((b' ' as char, 0xffff));
                 },
                 b'\t' => unsafe { CONTEXT.x = (CONTEXT.x + 4) % COLS as u32 },
                 b => unsafe {
-                    TEXT_GRID[CONTEXT.y as usize][CONTEXT.x as usize].0 = b as char;
-                    CONTEXT.x += 1;
+                    TEXT_GRID.lock()[CONTEXT.y as usize][CONTEXT.x as usize].0 = b as char;
+                    CONTEXT.x = (CONTEXT.x + 1) % COLS as u32;
                 },
             }
             REDRAW.store(true, Ordering::SeqCst);
@@ -316,25 +351,10 @@ pub mod target {
         }
 
         pub fn clear() -> i32 {
-            let _ = unsafe {
-                DISPLAY
-                    .as_mut()
-                    .unwrap()
-                    .lock()
-                    .unwrap()
-                    .clear(Rgb565::from(RawU16::new(0x0000)))
-            };
+            let _ = DISPLAY.lock().clear(Rgb565::from(RawU16::new(0x0000)));
+
             REDRAW.store(true, Ordering::SeqCst);
             0
-        }
-
-        pub fn getkc() -> i32 {
-            unsafe { KC_RECEIVER.as_mut() }
-                .and_then(|r| match r.try_recv() {
-                    Ok(kc) => Some(kc),
-                    _ => None,
-                })
-                .unwrap_or(0)
         }
     }
 
@@ -584,5 +604,17 @@ pub mod target {
             sdl::Keycode::Eject => pc_keyboard::KeyCode::A,
             sdl::Keycode::Sleep => pc_keyboard::KeyCode::A,
         }
+    }
+}
+
+#[cfg(not(target_os = "none"))]
+pub mod sim {
+    pub fn main() {
+        super::Host::init();
+        extern "C" {
+            fn h7_main() -> i32;
+        }
+        let r = unsafe { h7_main() };
+        std::process::exit(r);
     }
 }

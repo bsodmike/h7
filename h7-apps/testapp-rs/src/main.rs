@@ -3,37 +3,36 @@
 
 use {core::fmt::Write, h7_applib::Host};
 
-// #[global_allocator]
-// static A: H7Allocator = H7Allocator;
+extern crate alloc;
 
 #[cfg(not(target_os = "none"))]
 pub fn main() {
-    Host::init();
-    let r = h7_main();
-    std::process::exit(r);
+    h7_applib::sim::main()
 }
 
 #[no_mangle]
 pub extern "C" fn h7_main() -> i32 {
-    Host::puts("Hello from Rust test app!\r\n");
+    Host::puts("Hello from Rust test app!\n");
 
-    // loop {
-    //     Host::delay(1);
-    //     let kc = Host::getkc();
-    //     if kc != 0 {
-    //         Host::clear();
-    //         if let Some(true) = core::char::from_u32(kc as u32).map(|c| c.is_ascii()) {
-    //             if kc == 13 {
-    //                 Host::putc(b'\r');
-    //                 Host::putc(b'\n');
-    //             } else {
-    //                 Host::putc(kc as u8);
-    //             }
-    //         } else {
-    //             let _ = write!(Host, "Got keycode {}\r\n", kc);
-    //         }
-    //     }
-    // }
+    let s = alloc::string::String::from("Allocated string\n");
+    Host::puts(&s);
+
+    Host::putc(b'\n');
+
+    // let v = alloc::vec::Vec::<u8>::with_capacity(128).leak();
+    // let _ = writeln!(Host, "vptr: {:p}", v);
+
+    loop {
+        let c = Host::getc();
+
+        if c == b'b' {
+            break;
+        } else if c != 0 {
+            Host::putc(c);
+        }
+
+        // Host::delay(10);
+    }
 
     0
 }

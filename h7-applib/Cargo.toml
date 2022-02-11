@@ -13,16 +13,19 @@ crate-type = [ "staticlib", "rlib" ]
 h7-api = { path = "../h7-api" }
 
 [features]
-default = [ "default-panic-handler" ]
+default = [ "default-panic-handler", "default-alloc-handler" ]
 alloc = []
 c-api = []
 default-panic-handler = []
+default-alloc-handler = []
 
 [target.'cfg(not(target_os = "none"))'.dependencies]
 embedded-graphics-simulator = "0.3.0"
 embedded-graphics = "0.7.1"
 fontdue = "0.6.2"
 pc-keyboard = { git = "https://github.com/rust-embedded-community/pc-keyboard" }
+lazy_static = "1.4"
+parking_lot = "0.12.0"
 
 [build-dependencies]
 cbindgen = "*"

@@ -3,12 +3,12 @@ use {
         app, consts,
         menu::{check_args_len, MenuError, MenuItem},
         time::TimeSource,
-        utils::{self, interrupt_free},
+        utils::interrupt_free,
     },
     chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike},
     core::{cell::RefCell, fmt::Write},
     cortex_m::interrupt::Mutex,
-    hds::Queue,
+    heapless::mpmc::Q64,
     stm32h7xx_hal::{self as hal, interrupt, pac, prelude::*, serial},
 };
 
@@ -31,8 +31,9 @@ const DATE_PARSE_FORMAT: &str = "%Y-%m-%d";
 const TIME_PARSE_FORMAT: &str = "%H:%M:%S";
 
 // Terminal
-pub static TERMINAL_INPUT_FIFO: Mutex<RefCell<Queue<u8, 64>>> =
-    Mutex::new(RefCell::new(Queue::new()));
+// pub static TERMINAL_INPUT_FIFO: Mutex<RefCell<Queue<u8, 64>>> =
+//     Mutex::new(RefCell::new(Queue::new()));
+pub static TERMINAL_INPUT_FIFO: Q64<u8> = Q64::new();
 pub static UART_TERMINAL_RX: Mutex<RefCell<Option<serial::Rx<pac::USART1>>>> =
     Mutex::new(RefCell::new(None));
 pub static UART_TERMINAL_TX: Mutex<RefCell<Option<serial::Tx<pac::USART1>>>> =
@@ -141,8 +142,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
             check_args_len(0, args.len())?;
             let app_slice = app::app_slice();
             let app_fn = app::get_address(app_slice);
-            let api = &app::API as *const h7_api::H7Api;
-            writeln!(m.writer(), "Executing from {:p}, API: {:p}", app_fn, api)?;
+            writeln!(m.writer(), "Executing from {:p}", app_fn)?;
             let ret = unsafe {
                 // Disable cache
                 let mut cp = cortex_m::Peripherals::steal();
@@ -171,6 +171,10 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                 ret,
                 if ret == 0 { "ok" } else { "error" }
             )?;
+            match app::free_leaked() {
+                0 => { /* App did not leak memory */ }
+                n => writeln!(m.writer(), "App leaked {} bytes", n)?,
+            }
 
             Ok(())
         },
@@ -193,17 +197,11 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                 writeln!(m.writer(), "Undefined instruction!")?;
                 cortex_m::asm::udf();
             }
+            ["reset"] => {
+                writeln!(m.writer(), "Resetting!")?;
+                cortex_m::peripheral::SCB::sys_reset()
+            }
             _ => check_args_len(1, args.len()),
-        },
-    },
-    MenuItem::Command {
-        name: "reset",
-        help: "reset - Reset the device",
-        description: "Reset the device",
-        action: |m, args| {
-            check_args_len(0, args.len())?;
-            writeln!(m.writer(), "Resetting!")?;
-            cortex_m::peripheral::SCB::sys_reset()
         },
     },
     MenuItem::Command {
@@ -405,13 +403,19 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
             ["os"] => {
                 writeln!(
                     m.writer(),
-                    "{:width$} {used}b/{total}b ({fraction:.02}%)",
+                    "{:width$} {used} / {total} bytes ({fraction:.02}%)",
                     "Memory usage",
-                    used = crate::ALLOCATOR.used(),
-                    total = crate::mem::sdram::SDRAM_SIZE,
-                    fraction = (crate::ALLOCATOR.used() as f64
-                        / crate::mem::sdram::SDRAM_SIZE as f64)
+                    used = crate::mem::ALLOCATOR.used(),
+                    total = crate::mem::HEAP_SIZE,
+                    fraction = (crate::mem::ALLOCATOR.used() as f64 / crate::mem::HEAP_SIZE as f64)
                         * 100.0,
+                    width = LABEL_WIDTH
+                )?;
+                writeln!(
+                    m.writer(),
+                    "{:width$} {} bytes",
+                    "GPU reserved",
+                    crate::display::FRAME_BUF_SIZE,
                     width = LABEL_WIDTH
                 )?;
                 writeln!(
@@ -607,14 +611,14 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                                 } else {
                                     "F"
                                 };
-                                drop(writeln!(
+                                let _ = writeln!(
                                     m.writer(),
                                     "{date} {kind} {size:size_width$} {name}",
                                     date = e.mtime,
                                     size = e.size,
                                     name = e.name,
                                     size_width = 5
-                                ));
+                                );
                             }
                         })
                     }) {
@@ -657,7 +661,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                             "Invalid byte: '0x{} None' (half a byte missing)",
                             a as char
                         )?;
-                        Err(MenuError::InvalidArgument)?;
+                        return Err(MenuError::InvalidArgument);
                     }
                     Err((a, Some(b))) => {
                         writeln!(
@@ -666,7 +670,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                             a as char,
                             b as char
                         )?;
-                        Err(MenuError::InvalidArgument)?;
+                        return Err(MenuError::InvalidArgument);
                     }
                 },
                 _ => {
@@ -675,7 +679,8 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                     loop {
                         match (
                             byte,
-                            interrupt_free(|cs| TERMINAL_INPUT_FIFO.borrow(cs).borrow_mut().pop()),
+                            //  interrupt_free(|cs| TERMINAL_INPUT_FIFO.borrow(cs).borrow_mut().pop()),
+                            TERMINAL_INPUT_FIFO.dequeue(),
                         ) {
                             (b, Some(b'\n')) => {
                                 if let Some(b) = b {
@@ -684,7 +689,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                                         "Invalid byte: '0x{} None' (half a byte missing)",
                                         b as char
                                     )?;
-                                    Err(MenuError::InvalidArgument)?;
+                                    return Err(MenuError::InvalidArgument);
                                 } else {
                                     break;
                                 }
@@ -702,7 +707,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                                         x as char,
                                         y as char
                                     )?;
-                                    Err(MenuError::InvalidArgument)?;
+                                    return Err(MenuError::InvalidArgument);
                                 }
                             },
                             (None, n) => byte = n,
@@ -831,7 +836,7 @@ fn USART1() {
     interrupt_free(|cs| {
         if let Some(uart) = &mut *UART_TERMINAL_RX.borrow(cs).borrow_mut() {
             if let Ok(w) = uart.read() {
-                let _ = TERMINAL_INPUT_FIFO.borrow(cs).borrow_mut().push(w);
+                let _ = TERMINAL_INPUT_FIFO.enqueue(w);
             }
         }
     });

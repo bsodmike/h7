@@ -7,7 +7,7 @@ build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-h7-applib = { path = "../../h7-applib", features = [ "c-api" ] }
+h7-applib = { path = "../../h7-applib", features = [ "c-api", "alloc" ] }
 
 [build-dependencies]
 cc = "1.0"

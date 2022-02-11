@@ -43,6 +43,16 @@
 // layer1.enable(framebuf.as_ptr(), PixelFormat::L8);
 // layer1.swap_framebuffer(framebuf.as_ptr());
 
+type Pixel = u16;
+
+pub const SCREEN_WIDTH: usize = 1280;
+pub const SCREEN_HEIGHT: usize = 768;
+pub const FRAME_BUF_SIZE: usize = SCREEN_WIDTH * SCREEN_HEIGHT * core::mem::size_of::<Pixel>() * 2;
+
+pub fn frame_buffer() -> &'static mut [u16] {
+    todo!()
+}
+
 fn rgb888_to_rgb565(r: u8, g: u8, b: u8) -> u16 {
     let rgb888 = u32::from_be_bytes([0, r, g, b]);
     let r16 = ((rgb888 & 0x000000F8) >> 3) as u16;
