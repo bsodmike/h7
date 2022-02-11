@@ -133,12 +133,16 @@ impl SdmmcFs {
                     embedded_sdmmc::Mode::ReadOnly,
                 ) {
                     Ok(mut file) => {
-                        assert!(file.length() as usize <= crate::app::APP_SIZE);
-                        let read_result = controller.read(&volume, &mut file, data);
-                        controller.close_file(&volume, file)?;
-                        read_result
+                        if data.len() < file.length() as usize {
+                            controller.close_file(&volume, file)?;
+                            Err(SdmmcFsError::BufferTooSmall)
+                        } else {
+                            let read_result = controller.read(&volume, &mut file, data);
+                            controller.close_file(&volume, file)?;
+                            read_result.map_err(SdmmcFsError::Sdmmc)
+                        }
                     }
-                    Err(e) => Err(e),
+                    Err(e) => Err(SdmmcFsError::Sdmmc(e)),
                 };
 
                 controller.close_dir(&volume, root_dir);
@@ -149,36 +153,34 @@ impl SdmmcFs {
         }
     }
 
-    pub fn write_file<P: AsRef<str>>(
-        &mut self,
-        path: P,
-        create: bool,
-        data: &[u8],
-    ) -> Result<(), SdmmcFsError> {
-        // match &mut self.state {
-        //     SdmmcState::Controller(controller) => {
-        //         todo!()
-        //     }
-        //     SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
-        //     SdmmcState::MidSwap => unreachable!(),
-        // }
-        todo!()
-    }
+    // pub fn write_file<P: AsRef<str>>(
+    //     &mut self,
+    //     path: P,
+    //     create: bool,
+    //     data: &[u8],
+    // ) -> Result<(), SdmmcFsError> {
+    //     match &mut self.state {
+    //         SdmmcState::Controller(controller) => {
+    //             todo!()
+    //         }
+    //         SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
+    //         SdmmcState::MidSwap => unreachable!(),
+    //     }
+    // }
 
-    pub fn exists<P: AsRef<str>>(&mut self, path: P) -> Result<bool, SdmmcFsError> {
-        // match &mut self.state {
-        //     SdmmcState::Controller(controller) => {
-        //         todo!()
-        //     }
-        //     SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
-        //     SdmmcState::MidSwap => unreachable!(),
-        // }
-        todo!()
-    }
+    // pub fn exists<P: AsRef<str>>(&mut self, path: P) -> Result<bool, SdmmcFsError> {
+    //     match &mut self.state {
+    //         SdmmcState::Controller(controller) => {
+    //             todo!()
+    //         }
+    //         SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
+    //         SdmmcState::MidSwap => unreachable!(),
+    //     }
+    // }
 
     pub fn files(
         &mut self,
-        mut l: impl FnMut(&embedded_sdmmc::DirEntry) -> (),
+        mut l: impl FnMut(&embedded_sdmmc::DirEntry),
     ) -> Result<(), SdmmcFsError> {
         match self.state {
             SdmmcState::Controller(ref mut controller) => {

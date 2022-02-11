@@ -114,7 +114,7 @@ unsafe fn main() -> ! {
     });
 
     // GPIO
-    let (gpioa, gpiob, gpioc, gpiod, gpioe, gpiof, gpiog, gpioh, gpioi, gpioj, gpiok) = {
+    let (gpioa, gpiob, _gpioc, gpiod, gpioe, gpiof, gpiog, gpioh, _gpioi, _gpioj, gpiok) = {
         (
             dp.GPIOA.split(ccdr.peripheral.GPIOA),
             dp.GPIOB.split(ccdr.peripheral.GPIOB),
