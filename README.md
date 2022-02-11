@@ -28,16 +28,17 @@
 * [ ] USB input with interrupts.
 * [ ] User login using secure element.
 * [x] Shell.
-* [ ] Application API.
+* [x] Application API. (wip)
 * [x] Load binaries from SD Card [~~(async?)~~](https://github.com/stm32-rs/stm32h7xx-hal/issues/227)
 * [x] CRC with verification
 * [x] Run programs without crashing (duh)
 * [ ] Settings storage? NOR-Flash/SD Card?
 * [ ] Settings using hds::Kv
 * [ ] Show long names on SD Card
+* [ ] HardFault info (upstream to cortex_m?)
 
 
 ### Test
 
-* [ ] Test SDRAM https://github.com/stm32-rs/stm32f7xx-hal/blob/master/examples/fmc.rs#L110
+* [x] Test SDRAM https://github.com/stm32-rs/stm32f7xx-hal/blob/master/examples/fmc.rs#L110
 
