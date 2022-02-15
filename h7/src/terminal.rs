@@ -142,6 +142,9 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
             check_args_len(0, args.len())?;
             let app_slice = app::app_slice();
             let app_fn = app::get_address(app_slice);
+            if app::check_address(app_fn).is_err() {
+                return Err(MenuError::CommandError(Some("Invalid app address")));
+            }
             writeln!(m.writer(), "Executing from {:p}", app_fn)?;
             let ret = unsafe {
                 // Disable cache
@@ -182,7 +185,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
     MenuItem::Command {
         name: "sys",
         help: "sys - Test system functionality",
-        description: "Cause a panic",
+        description: "Test system functionality",
         action: |m, args| match args {
             ["panic"] => {
                 writeln!(m.writer(), "Panicing!")?;
@@ -281,6 +284,54 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                 _ => writeln!(m.writer(), "Invalid usage"),
             }?;
             // check_args_len(0, args.len())?;
+            Ok(())
+        },
+    },
+    MenuItem::Command {
+        name: "cal",
+        help: "Show calendar",
+        description: "Show calendar",
+        action: |m, args| {
+            check_args_len(0, args.len())?;
+            match TimeSource::get_date_time() {
+                Some(ref dt) => {
+                    let top = dt.with_day0(0).unwrap();
+                    let day = dt.day0();
+                    let wd = top.weekday() as u32;
+                    let week = top.iso_week().week() - 1;
+                    let n_days = days_in_month(dt);
+                    writeln!(
+                        m.writer(),
+                        "         {m} {y}",
+                        m = month_to_str(dt.month()),
+                        y = dt.year()
+                    )?;
+                    writeln!(m.writer(), "Wk | Mo Tu We Th Fr Sa Su")?;
+                    write!(m.writer(), "{:2} |", week + 1)?;
+                    for _ in 0..wd {
+                        write!(m.writer(), "   ")?;
+                    }
+                    for i in 0..n_days {
+                        let c = i + wd + 1;
+                        if i == day {
+                            write!(m.writer(), "[{:2}", i + 1)?;
+                            if wd % 7 == 0 {
+                                write!(m.writer(), "]")?;
+                            }
+                        } else if i == day + 1 && !(c % 7 == 1) {
+                            write!(m.writer(), "]{:2}", i + 1)?;
+                        } else {
+                            write!(m.writer(), " {:2}", i + 1)?;
+                        }
+                        if c % 7 == 0 && i != n_days - 1 {
+                            writeln!(m.writer())?;
+                            write!(m.writer(), "{:2} |", 1 + ((week + (c / 7)) % 52))?;
+                        }
+                    }
+                    writeln!(m.writer())
+                }
+                None => writeln!(m.writer(), "Error: RTC not initialized"),
+            }?;
             Ok(())
         },
     },
@@ -605,20 +656,32 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                     .as_mut()
                     .map(|sdfs| {
                         sdfs.files(|e| {
-                            if !e.attributes.is_volume() {
-                                let kind = if e.attributes.is_directory() {
-                                    "D"
+                            // let _ = writeln!(m.writer(), "{:?}", e);
+                            if !e.attributes.is_volume() && !e.attributes.is_hidden() {
+                                // let kind = if e.attributes.is_directory() {
+                                //     "D"
+                                // } else {
+                                //     "F"
+                                // };
+                                // let _ = writeln!(
+                                //     m.writer(),
+                                //     "{date} {kind} {size:size_width$} {name}",
+                                //     date = e.mtime,
+                                //     size = e.size,
+                                //     name = e.name,
+                                //     size_width = 5
+                                // );
+                                let _ = if e.attributes.is_directory() {
+                                    writeln!(m.writer(), "{:13} {}  <DIR>", e.name, e.mtime)
                                 } else {
-                                    "F"
+                                    writeln!(
+                                        m.writer(),
+                                        "{:13} {}  {} bytes",
+                                        e.name,
+                                        e.mtime,
+                                        e.size
+                                    )
                                 };
-                                let _ = writeln!(
-                                    m.writer(),
-                                    "{date} {kind} {size:size_width$} {name}",
-                                    date = e.mtime,
-                                    size = e.size,
-                                    name = e.name,
-                                    size_width = 5
-                                );
                             }
                         })
                     }) {
@@ -727,21 +790,20 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
         },
     },
     MenuItem::Command {
-        name: "inspect",
-        help: "Show application memory",
-        description: "Show application memory",
+        name: "time",
+        help: "Measure execution time of a command",
+        description: "Measure execution time of a command",
         action: |m, args| {
-            check_args_len(1, args.len())?;
-            let end = args[0]
-                .parse::<usize>()
-                .map_err(|_| MenuError::InvalidArgument)?;
-            let slice = &app::app_slice()[..end];
-            writeln!(m.writer(), "Data:")?;
-            for b in slice {
-                write!(m.writer(), "{:02x}", b)?;
-            }
-            writeln!(m.writer())?;
-            // writeln!(m.writer(), "{:?}", slice)?;
+            let start = TimeSource::get_date_time();
+            match args {
+                [] => Err(MenuError::InvalidArgument),
+                [cmd, rest @ ..] => m.run(cmd, rest),
+            }?;
+            match (start, TimeSource::get_date_time()) {
+                (Some(start), Some(end)) => writeln!(m.writer(), "Execution took {}", end - start),
+                (None, _) => writeln!(m.writer(), "Failed to get start time"),
+                (_, None) => writeln!(m.writer(), "Failed to get end time"),
+            }?;
             Ok(())
         },
     },
@@ -785,6 +847,18 @@ fn month_to_str(month: u32) -> &'static str {
     }
 }
 
+fn days_in_month<D: Datelike>(d: &D) -> u32 {
+    let y = d.year();
+    let m = d.month();
+    if m == 12 {
+        NaiveDate::from_ymd(y + 1, 1, 1)
+    } else {
+        NaiveDate::from_ymd(y, m + 1, 1)
+    }
+    .signed_duration_since(NaiveDate::from_ymd(y, m, 1))
+    .num_days() as u32
+}
+
 fn bool_to_enabled_disabled_str(b: bool) -> &'static str {
     match b {
         true => "enabled",
@@ -792,7 +866,7 @@ fn bool_to_enabled_disabled_str(b: bool) -> &'static str {
     }
 }
 
-fn nibble_to_char(nibble: u8, lowercase: bool) -> Option<u8> {
+const fn nibble_to_char(nibble: u8, lowercase: bool) -> Option<u8> {
     match nibble {
         0..=9 => Some(nibble + 48),
         10..=15 => Some(nibble + 55 + if lowercase { 32 } else { 0 }),
@@ -805,14 +879,16 @@ fn to_hex<const N: usize>(data: &[u8], lowercase: bool) -> ([u8; N], usize) {
     let len = data.len().min(N / 2);
     for (i, byte) in data.iter().enumerate() {
         let idx = i * 2;
-        // These unwraps can never fail as long as nibble_to_char handles the tange 0..=15
-        res[idx] = nibble_to_char(byte >> 4, lowercase).unwrap();
-        res[idx + 1] = nibble_to_char(byte & 0x0f, lowercase).unwrap();
+        // SAFETY: These unwraps can never fail as long as nibble_to_char handles the tange 0..=15
+        unsafe {
+            res[idx] = nibble_to_char(byte >> 4, lowercase).unwrap_unchecked();
+            res[idx + 1] = nibble_to_char(byte & 0x0f, lowercase).unwrap_unchecked();
+        }
     }
     (res, len * 2)
 }
 
-fn from_hex(nibble1: u8, nibble2: u8) -> Option<u8> {
+const fn from_hex(nibble1: u8, nibble2: u8) -> Option<u8> {
     let a = nibble1 | 0b0010_0000;
     let b = nibble2 | 0b0010_0000;
 
