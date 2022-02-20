@@ -1,10 +1,13 @@
 use {
     crate::time::TimeSource,
-    core::cell::RefCell,
+    core::{cell::RefCell, fmt},
     cortex_m::interrupt::Mutex,
     embedded_hal::blocking::delay::DelayMs,
-    embedded_sdmmc::{BlockDevice, Controller},
+    embedded_sdmmc::{
+        BlockDevice, Controller, DirEntry, Directory, File, Mode as FileOpenMode, Volume, VolumeIdx,
+    },
     error::*,
+    path::Path,
     stm32h7xx_hal::{
         pac::SDMMC2,
         sdmmc::{Sdmmc, SdmmcBlockDevice},
@@ -17,8 +20,13 @@ mod path;
 
 pub static SD_CARD: Mutex<RefCell<Option<SdmmcFs>>> = Mutex::new(RefCell::new(None));
 
+const MAX_OPEN_DIRS: usize = 4;
+const MAX_OPEN_FILES: usize = 4;
+
 enum SdmmcState {
-    Controller(Controller<SdmmcBlockDevice<Sdmmc<SDMMC2>>, TimeSource>),
+    Controller(
+        Controller<SdmmcBlockDevice<Sdmmc<SDMMC2>>, TimeSource, MAX_OPEN_DIRS, MAX_OPEN_FILES>,
+    ),
     Sdmmc(Sdmmc<SDMMC2>),
     MidSwap,
 }
@@ -116,41 +124,15 @@ impl SdmmcFs {
         }
     }
 
-    pub fn read_file<P: AsRef<str>>(
+    pub fn read_file<'p, P: Into<Path<'p>>>(
         &mut self,
         path: P,
         data: &mut [u8],
     ) -> Result<usize, SdmmcFsError> {
-        match &mut self.state {
-            SdmmcState::Controller(controller) => {
-                let mut volume = controller.get_volume(embedded_sdmmc::VolumeIdx(0))?;
-                let root_dir = controller.open_root_dir(&volume)?;
-
-                let open_result = match controller.open_file_in_dir(
-                    &mut volume,
-                    &root_dir,
-                    path.as_ref(),
-                    embedded_sdmmc::Mode::ReadOnly,
-                ) {
-                    Ok(mut file) => {
-                        if data.len() < file.length() as usize {
-                            controller.close_file(&volume, file)?;
-                            Err(SdmmcFsError::BufferTooSmall)
-                        } else {
-                            let read_result = controller.read(&volume, &mut file, data);
-                            controller.close_file(&volume, file)?;
-                            read_result.map_err(SdmmcFsError::Sdmmc)
-                        }
-                    }
-                    Err(e) => Err(SdmmcFsError::Sdmmc(e)),
-                };
-
-                controller.close_dir(&volume, root_dir);
-                Ok(open_result?)
-            }
-            SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
-            SdmmcState::MidSwap => unreachable!(),
-        }
+        self.find_file(path, FileOpenMode::ReadOnly, |controller, volume, file| {
+            controller.read(volume, file, data)
+        })?
+        .map_err(SdmmcFsError::from)
     }
 
     // pub fn write_file<P: AsRef<str>>(
@@ -178,17 +160,80 @@ impl SdmmcFs {
     //     }
     // }
 
-    pub fn files(
+    pub fn ls<'p, P: Into<Path<'p>>>(
         &mut self,
-        mut l: impl FnMut(&embedded_sdmmc::DirEntry),
+        path: P,
+        mut func: impl FnMut(&DirEntry),
     ) -> Result<(), SdmmcFsError> {
+        self.find_dir(path, |controller, volume, dir| {
+            controller.iterate_dir(volume, dir, &mut func)
+        })
+        .map_err(SdmmcFsError::from)?
+        .map_err(SdmmcFsError::from)
+    }
+
+    fn find_dir<'p, R, P: Into<Path<'p>>>(
+        &mut self,
+        path: P,
+        func: impl FnMut(
+            &mut Controller<
+                SdmmcBlockDevice<Sdmmc<SDMMC2>>,
+                TimeSource,
+                MAX_OPEN_DIRS,
+                MAX_OPEN_FILES,
+            >,
+            &Volume,
+            &Directory,
+        ) -> R,
+    ) -> Result<R, SdmmcFsError> {
         match self.state {
             SdmmcState::Controller(ref mut controller) => {
-                let volume = controller.get_volume(embedded_sdmmc::VolumeIdx(0))?;
+                let path = path.into();
+                let mut volume = controller.get_volume(VolumeIdx(0))?;
                 let root_dir = controller.open_root_dir(&volume)?;
-                controller.iterate_dir(&volume, &root_dir, |entry| l(entry))?;
+
+                let res = find_dir(controller, &mut volume, &root_dir, &mut path.parts(), func);
+
                 controller.close_dir(&volume, root_dir);
-                Ok(())
+                res.ok_or(SdmmcFsError::NotFound)?
+            }
+            SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
+            SdmmcState::MidSwap => unreachable!(),
+        }
+    }
+
+    fn find_file<'p, R, P: Into<Path<'p>>>(
+        &mut self,
+        path: P,
+        mode: FileOpenMode,
+        func: impl FnMut(
+            &mut Controller<
+                SdmmcBlockDevice<Sdmmc<SDMMC2>>,
+                TimeSource,
+                MAX_OPEN_DIRS,
+                MAX_OPEN_FILES,
+            >,
+            &Volume,
+            &mut File,
+        ) -> R,
+    ) -> Result<R, SdmmcFsError> {
+        match self.state {
+            SdmmcState::Controller(ref mut controller) => {
+                let path = path.into();
+                let mut volume = controller.get_volume(VolumeIdx(0))?;
+                let root_dir = controller.open_root_dir(&volume)?;
+
+                let res = find_file(
+                    controller,
+                    &mut volume,
+                    &root_dir,
+                    mode,
+                    &mut path.parts(),
+                    func,
+                );
+
+                controller.close_dir(&volume, root_dir);
+                res.ok_or(SdmmcFsError::NotFound)?
             }
             SdmmcState::Sdmmc(_) => Err(SdmmcFsError::NotMounted),
             SdmmcState::MidSwap => unreachable!(),
@@ -196,40 +241,85 @@ impl SdmmcFs {
     }
 }
 
-// let mut sd = dp.SDMMC2.sdmmc(
-//     (
-//         gpiod.pd6.into_alternate_af11(),
-//         gpiod.pd7.into_alternate_af11(),
-//         gpiob.pb14.into_alternate_af9(),
-//         gpiob.pb15.into_alternate_af9(),
-//         gpiob.pb3.into_alternate_af9(),
-//         gpiob.pb4.into_alternate_af9(),
-//     ),
-//     ccdr.peripheral.SDMMC2,
-//     &ccdr.clocks,
-// );
+pub fn print_dir_entry<W: fmt::Write>(writer: &mut W, dir_entry: &DirEntry) -> fmt::Result {
+    if !dir_entry.attributes.is_volume() && !dir_entry.attributes.is_hidden() {
+        if dir_entry.attributes.is_directory() {
+            writeln!(writer, "{:13} {}  <DIR>", dir_entry.name, dir_entry.mtime)?;
+        } else {
+            writeln!(
+                writer,
+                "{:13} {}  {} bytes",
+                dir_entry.name, dir_entry.mtime, dir_entry.size
+            )?;
+        }
+    }
+    Ok(())
+}
 
-// // sd.init_card(25.mhz()).unwrap();
-// // Loop until we have a card
-// loop {
-//     match sd.init_card(2.mhz()) {
-//         Ok(_) => break,
-//         Err(err) => {
-//             log::info!("Init err: {:?}", err);
-//         }
-//     }
+fn find_dir<'p, R, D: BlockDevice, T: embedded_sdmmc::TimeSource>(
+    controller: &mut Controller<D, T, MAX_OPEN_DIRS, MAX_OPEN_FILES>,
+    volume: &mut Volume,
+    dir: &Directory,
+    path_iter: &mut core::iter::Peekable<impl Iterator<Item = &'p str>>,
+    mut func: impl FnMut(&mut Controller<D, T, MAX_OPEN_DIRS, MAX_OPEN_FILES>, &Volume, &Directory) -> R,
+) -> Option<Result<R, SdmmcFsError>>
+where
+    SdmmcFsError: From<embedded_sdmmc::Error<<D as BlockDevice>::Error>>,
+{
+    if let Some(name) = path_iter.next() {
+        match controller.open_dir(volume, dir, name) {
+            Ok(new_dir) => {
+                log::trace!("OPENED DIR: {}", name);
+                let res = find_dir(controller, volume, &new_dir, path_iter, func);
+                controller.close_dir(volume, new_dir);
+                log::trace!("CLOSED DIR: {}", name);
+                res
+            }
+            Err(e) => Some(Err(SdmmcFsError::from(e))),
+        }
+    } else {
+        Some(Ok(func(controller, volume, dir)))
+    }
+}
 
-//     log::info!("Waiting for card...");
-
-//     delay.delay_ms(1000u32);
-// }
-
-// let mut sd_fatfs = embedded_sdmmc::Controller::new(sd.sdmmc_block_device(), time::TimeSource);
-// let sd_fatfs_volume = sd_fatfs.get_volume(embedded_sdmmc::VolumeIdx(0)).unwrap();
-// let sd_fatfs_root_dir = sd_fatfs.open_root_dir(&sd_fatfs_volume).unwrap();
-// sd_fatfs
-//     .iterate_dir(&sd_fatfs_volume, &sd_fatfs_root_dir, |entry| {
-//         log::info!("{:?}", entry);
-//     })
-//     .unwrap();
-// sd_fatfs.close_dir(&sd_fatfs_volume, sd_fatfs_root_dir);
+fn find_file<'p, R, D: BlockDevice, T: embedded_sdmmc::TimeSource>(
+    controller: &mut Controller<D, T, MAX_OPEN_DIRS, MAX_OPEN_FILES>,
+    volume: &mut Volume,
+    dir: &Directory,
+    mode: FileOpenMode,
+    path_iter: &mut core::iter::Peekable<impl Iterator<Item = &'p str>>,
+    mut func: impl FnMut(&mut Controller<D, T, MAX_OPEN_DIRS, MAX_OPEN_FILES>, &Volume, &mut File) -> R,
+) -> Option<Result<R, SdmmcFsError>>
+where
+    SdmmcFsError: From<embedded_sdmmc::Error<<D as BlockDevice>::Error>>,
+{
+    if let Some(name) = path_iter.next() {
+        if path_iter.peek().is_some() {
+            match controller.open_dir(volume, dir, name) {
+                Ok(new_dir) => {
+                    log::trace!("OPENED DIR: {}", name);
+                    let res = find_file(controller, volume, &new_dir, mode, path_iter, func);
+                    controller.close_dir(volume, new_dir);
+                    log::trace!("CLOSED DIR: {}", name);
+                    res
+                }
+                Err(e) => Some(Err(SdmmcFsError::from(e))),
+            }
+        } else {
+            match controller.open_file_in_dir(volume, dir, name, mode) {
+                Ok(mut file) => {
+                    log::trace!("OPENED FILE: {}", name);
+                    let ret = func(controller, volume, &mut file);
+                    if let Err(e) = controller.close_file(volume, file) {
+                        return Some(Err(SdmmcFsError::from(e)));
+                    };
+                    log::trace!("CLOSED FILE: {}", name);
+                    Some(Ok(ret))
+                }
+                Err(e) => Some(Err(SdmmcFsError::from(e))),
+            }
+        }
+    } else {
+        None
+    }
+}

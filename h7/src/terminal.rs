@@ -1,12 +1,15 @@
 use {
     crate::{
         app, consts,
+        led::LED,
+        logger,
+        mem::sdmmc_fs,
         menu::{check_args_len, MenuError, MenuItem},
         time::TimeSource,
         utils::interrupt_free,
     },
     chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike},
-    core::{cell::RefCell, fmt::Write},
+    core::{cell::RefCell, fmt::Write, str::FromStr},
     cortex_m::interrupt::Mutex,
     heapless::mpmc::Q64,
     stm32h7xx_hal::{self as hal, interrupt, pac, prelude::*, serial},
@@ -147,6 +150,8 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
             }
             writeln!(m.writer(), "Executing from {:p}", app_fn)?;
             let ret = unsafe {
+                LED::Green.on();
+                LED::Red.on();
                 // Disable cache
                 let mut cp = cortex_m::Peripherals::steal();
                 cp.SCB.disable_icache();
@@ -165,6 +170,9 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                 // Enable cache
                 cp.SCB.enable_icache();
                 cp.SCB.enable_dcache(&mut cp.CPUID);
+
+                LED::Green.off();
+                LED::Red.off();
 
                 ret
             };
@@ -203,6 +211,22 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
             ["reset"] => {
                 writeln!(m.writer(), "Resetting!")?;
                 cortex_m::peripheral::SCB::sys_reset()
+            }
+            ["loglevel"] => {
+                writeln!(m.writer(), "Current log level: {}", logger::get_log_level())?;
+                Ok(())
+            }
+            ["loglevel", level] => {
+                match log::LevelFilter::from_str(*level) {
+                    Ok(new_level) => {
+                        logger::set_log_level(new_level);
+                        writeln!(m.writer(), "New log level: {}", new_level)?;
+                    }
+                    Err(e) => {
+                        writeln!(m.writer(), "Failed to set new log level: {}", e)?;
+                    }
+                }
+                Ok(())
             }
             _ => check_args_len(1, args.len()),
         },
@@ -648,43 +672,15 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
         name: "ls",
         help: "List files",
         description: "List files",
-        action: |m, _| {
+        action: |m, args| {
+            let path = args.get(0).unwrap_or(&"");
             interrupt_free(|cs| {
                 match crate::mem::sdmmc_fs::SD_CARD
                     .borrow(cs)
                     .borrow_mut()
                     .as_mut()
-                    .map(|sdfs| {
-                        sdfs.files(|e| {
-                            // let _ = writeln!(m.writer(), "{:?}", e);
-                            if !e.attributes.is_volume() && !e.attributes.is_hidden() {
-                                // let kind = if e.attributes.is_directory() {
-                                //     "D"
-                                // } else {
-                                //     "F"
-                                // };
-                                // let _ = writeln!(
-                                //     m.writer(),
-                                //     "{date} {kind} {size:size_width$} {name}",
-                                //     date = e.mtime,
-                                //     size = e.size,
-                                //     name = e.name,
-                                //     size_width = 5
-                                // );
-                                let _ = if e.attributes.is_directory() {
-                                    writeln!(m.writer(), "{:13} {}  <DIR>", e.name, e.mtime)
-                                } else {
-                                    writeln!(
-                                        m.writer(),
-                                        "{:13} {}  {} bytes",
-                                        e.name,
-                                        e.mtime,
-                                        e.size
-                                    )
-                                };
-                            }
-                        })
-                    }) {
+                    .map(|sdfs| sdfs.ls(path, |e| drop(sdmmc_fs::print_dir_entry(m.writer(), e))))
+                {
                     Some(Ok(_)) => Ok(()),
                     Some(Err(e)) => {
                         writeln!(m.writer(), "Error: {}", e)?;

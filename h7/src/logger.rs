@@ -1,3 +1,13 @@
+#[cfg(debug_assertions)]
+static mut LOG_LEVEL: log::LevelFilter = log::LevelFilter::Trace;
+
+#[cfg(not(debug_assertions))]
+static mut LOG_LEVEL: log::LevelFilter = log::LevelFilter::Info;
+
+pub fn get_log_level() -> log::LevelFilter {
+    unsafe { LOG_LEVEL }
+}
+
 #[cfg(feature = "semihosting")]
 mod semihosting {
     use {
@@ -12,7 +22,7 @@ mod semihosting {
 
     lazy_static::lazy_static! {
         static ref LOGGER: Logger<Semihosting<InterruptOk, HStdout>> = Logger {
-            level: log::LevelFilter::Info,
+            level: log::LevelFilter::Trace,
             inner: semihosting::InterruptOk::<_>::stdout().expect("Get Semihosting stdout"),
         };
     }
@@ -20,10 +30,12 @@ mod semihosting {
     pub fn init() {
         cortex_m_log::log::init(&LOGGER).unwrap();
     }
+
+    pub fn set_log_level(_: log::LevelFilter) {}
 }
 
 #[cfg(feature = "semihosting")]
-pub use semihosting::init;
+pub use semihosting::{init, set_log_level};
 
 #[cfg(not(feature = "semihosting"))]
 mod uart {
@@ -31,16 +43,12 @@ mod uart {
     use {
         crate::{terminal::UART_TERMINAL_TX, utils::interrupt_free},
         core::fmt::Write,
-        log::{LevelFilter, Log, Metadata, Record},
+        log::{Log, Metadata, Record},
     };
 
-    static LOGGER: UartLogger = UartLogger {
-        level: LevelFilter::Trace,
-    };
+    static LOGGER: UartLogger = UartLogger;
 
-    pub struct UartLogger {
-        level: LevelFilter,
-    }
+    pub struct UartLogger;
 
     impl Write for UartLogger {
         fn write_str(&mut self, s: &str) -> core::fmt::Result {
@@ -55,7 +63,7 @@ mod uart {
 
     impl Log for UartLogger {
         fn enabled(&self, metadata: &Metadata) -> bool {
-            metadata.level() <= self.level
+            metadata.level() <= unsafe { super::LOG_LEVEL }
         }
 
         fn log(&self, record: &Record) {
@@ -79,10 +87,15 @@ mod uart {
     }
 
     pub fn init() {
-        log::set_max_level(LOGGER.level);
+        set_log_level(unsafe { super::LOG_LEVEL });
         unsafe { log::set_logger_racy(&LOGGER) }.unwrap();
+    }
+
+    pub fn set_log_level(level: log::LevelFilter) {
+        unsafe { super::LOG_LEVEL = level };
+        log::set_max_level(level);
     }
 }
 
 #[cfg(not(feature = "semihosting"))]
-pub use uart::init;
+pub use uart::{init, set_log_level};

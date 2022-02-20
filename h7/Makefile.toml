@@ -37,7 +37,8 @@ script = "./flash.sh ${CARGO_MAKE_CRATE_CUSTOM_TRIPLE_TARGET_DIRECTORY}/${RELEAS
 private = true
 condition = { env_set = [ "RELEASE_DEBUG" ] }
 command = "arm-none-eabi-size"
-args = [ "${CARGO_MAKE_CRATE_CUSTOM_TRIPLE_TARGET_DIRECTORY}/${RELEASE_DEBUG}/${CARGO_MAKE_PROJECT_NAME}", "-A", "-x" ]
+#args = [ "${CARGO_MAKE_CRATE_CUSTOM_TRIPLE_TARGET_DIRECTORY}/${RELEASE_DEBUG}/${CARGO_MAKE_PROJECT_NAME}", "-A", "-x" ]
+args = [ "${CARGO_MAKE_CRATE_CUSTOM_TRIPLE_TARGET_DIRECTORY}/${RELEASE_DEBUG}/${CARGO_MAKE_PROJECT_NAME}" ]
 
 [tasks._build]
 private = true
