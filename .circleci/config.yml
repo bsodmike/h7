@@ -42,6 +42,30 @@ jobs:
             for subproj in $(find | grep "Cargo.toml$" | grep -v "h7-uart-terminal"); do
               cd $(dirname $subproj) && cargo clippy && cd $OLDPWD
             done
+      - save_cache:
+          name: Save clippy cache
+          key: cargo-clippy-cache-v1
+          paths:
+            - "/usr/local/cargo/registry/"
+            - "~/.cargo-target/"
+
+  clippy-fmt:
+    docker:
+      - image: olback/cortex-m:latest
+        environment:
+          CARGO_TARGET_DIR: /home/circleci/.cargo-target
+    steps:
+      - checkout
+      - restore_cache:
+          name: Restore clippy cache
+          key: cargo-clippy-cache-v1
+      - run:
+          name: "cargo clippy"
+          command: |
+            set -e
+            for subproj in $(find | grep "Cargo.toml$" | grep -v "h7-uart-terminal"); do
+              cd $(dirname $subproj) && cargo clippy && cd $OLDPWD
+            done
       - run:
           name: "cargo fmt"
           command: |
@@ -83,8 +107,10 @@ workflows:
   build:
     jobs:
       # - fmt
-      - clippy
+      # - clippy
+      - clippy-fmt
       - build:
           requires:
-            - fmt
-            - clippy
+            # - fmt
+            # - clippy
+            - clippy-fmt
