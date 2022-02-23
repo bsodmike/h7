@@ -679,8 +679,11 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                     .borrow(cs)
                     .borrow_mut()
                     .as_mut()
-                    .map(|sdfs| sdfs.ls(path, |e| drop(sdmmc_fs::print_dir_entry(m.writer(), e))))
-                {
+                    .map(|sdfs| {
+                        sdfs.ls(path, |e| {
+                            let _ = sdmmc_fs::print_dir_entry(m.writer(), e);
+                        })
+                    }) {
                     Some(Ok(_)) => Ok(()),
                     Some(Err(e)) => {
                         writeln!(m.writer(), "Error: {}", e)?;

@@ -17,6 +17,7 @@ run_task = { name = [ "_build", "_dir", "_elf", "_bin", "_h7" ] }
 [tasks._build]
 private = true
 condition = { env_set = [ "RELEASE_DEBUG" ] }
+script_runner = "bash"
 script = '''
 if [ ${RELEASE_DEBUG} == "release" ]; then
     cargo build --release --target thumbv7em-none-eabihf ${@}
@@ -27,10 +28,12 @@ fi
 
 [tasks._dir]
 private = true
+script_runner = "bash"
 script = "mkdir -p dist"
 
 [tasks._elf]
 private = true
+script_runner = "bash"
 script = '''
 cp ${CARGO_MAKE_CRATE_CUSTOM_TRIPLE_TARGET_DIRECTORY}/${RELEASE_DEBUG}/${CARGO_MAKE_PROJECT_NAME} dist/${CARGO_MAKE_PROJECT_NAME}-${RELEASE_DEBUG}.elf
 '''
@@ -38,6 +41,7 @@ cp ${CARGO_MAKE_CRATE_CUSTOM_TRIPLE_TARGET_DIRECTORY}/${RELEASE_DEBUG}/${CARGO_M
 [tasks._bin]
 private = true
 condition = { env_set = [ "RELEASE_DEBUG" ] }
+script_runner = "bash"
 script = '''
 arm-none-eabi-objcopy -O binary dist/${CARGO_MAKE_PROJECT_NAME}-${RELEASE_DEBUG}.elf dist/${CARGO_MAKE_PROJECT_NAME}-${RELEASE_DEBUG}.bin
 '''
@@ -45,6 +49,7 @@ arm-none-eabi-objcopy -O binary dist/${CARGO_MAKE_PROJECT_NAME}-${RELEASE_DEBUG}
 [tasks._h7]
 private = true
 condition = { env_set = [ "RELEASE_DEBUG" ] }
+script_runner = "bash"
 script = '''
 cd ../../h7-mkapp
 cargo run --release -- ../h7-apps/${CARGO_MAKE_PROJECT_NAME}/dist/${CARGO_MAKE_PROJECT_NAME}-${RELEASE_DEBUG}.bin ../h7-apps/${CARGO_MAKE_PROJECT_NAME}/dist/${CARGO_MAKE_PROJECT_NAME}-${RELEASE_DEBUG}.h7

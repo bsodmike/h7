@@ -1,0 +1,83 @@
+version: 2
+
+jobs:
+  fmt:
+    docker:
+      - image: olback/cortex-m:latest
+        environment:
+          CARGO_TARGET_DIR: /home/circleci/.cargo-target
+    steps:
+      - checkout
+      - restore_cache:
+          name: Restore fmt cache
+          key: cargo-fmt-cache-v1
+      - run:
+          name: "cargo fmt"
+          command: |
+            set -e
+            for subproj in $(find | grep "Cargo.toml$"); do
+              cd $(dirname $subproj) && cargo fmt --check && cd $OLDPWD
+            done
+      - save_cache:
+          name: Save fmt cache
+          key: cargo-fmt-cache-v1
+          paths:
+            - "/usr/local/cargo/registry/"
+            - "~/.cargo-target/"
+
+  clippy:
+    docker:
+      - image: olback/cortex-m:latest
+        environment:
+          CARGO_TARGET_DIR: /home/circleci/.cargo-target
+    steps:
+      - checkout
+      - restore_cache:
+          name: Restore clippy cache
+          key: cargo-clippy-cache-v1
+      - run:
+          name: "cargo clippy"
+          command: |
+            set -e
+            for subproj in $(find | grep "Cargo.toml$"); do
+              cd $(dirname $subproj) && cargo clippy && cd $OLDPWD
+            done
+      - save_cache:
+          name: Save clippy cache
+          key: cargo-clippy-cache-v1
+          paths:
+            - "/usr/local/cargo/registry/"
+            - "~/.cargo-target/"
+
+  build:
+    docker:
+      - image: olback/cortex-m:latest
+        environment:
+          CARGO_TARGET_DIR: /home/circleci/.cargo-target
+    steps:
+      - checkout
+      - restore_cache:
+          name: Restore build cache
+          key: cargo-build-cache-v1
+      - run:
+          name: "Build project"
+          command: "make dist"
+      - save_cache:
+          name: Save build cache
+          key: cargo-build-cache-v1
+          paths:
+            - "/usr/local/cargo/registry/"
+            - "~/.cargo-target/"
+      - store_artifacts:
+          path: dist
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - fmt
+      - clippy
+      - build:
+          requires:
+            - fmt
+            - clippy

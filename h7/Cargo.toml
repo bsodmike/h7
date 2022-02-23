@@ -21,7 +21,8 @@ stm32-fmc = "0.2"
 
 # SD Card / FAT
 # embedded-sdmmc = { git = "https://github.com/rust-embedded-community/embedded-sdmmc-rs" }
-embedded-sdmmc = { path = "../../embedded-sdmmc-rs" }
+# embedded-sdmmc = { path = "../../embedded-sdmmc-rs" }
+embedded-sdmmc = { git = "https://github.com/olback/embedded-sdmmc-rs", branch = "handler-capacity" }
 
 # Time
 chrono = { version = "0.4", default-features = false }
@@ -36,7 +37,7 @@ h7-api = { path = "../h7-api" }
 
 # Display
 embedded-display-controller = "0.1"
-anx7625 = { path = "../../anx7625-2" } # MIPI to Displayport
+#anx7625 = { path = "../../anx7625-2" } # MIPI to Displayport
 
 # Other
 heapless = "0.7"
@@ -50,7 +51,8 @@ cortex-m-semihosting = { version = "0.3", optional = true }
 
 [patch.crates-io]
 # embedded-sdmmc = { git = "https://github.com/rust-embedded-community/embedded-sdmmc-rs" }
-embedded-sdmmc = { path = "../../embedded-sdmmc-rs" }
+# embedded-sdmmc = { path = "../../embedded-sdmmc-rs" }
+embedded-sdmmc = { git = "https://github.com/olback/embedded-sdmmc-rs", branch = "handler-capacity" }
 
 [features]
 default = []

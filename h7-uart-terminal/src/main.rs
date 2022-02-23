@@ -50,7 +50,9 @@ fn main() {
         }
 
         match rx.try_recv() {
-            Ok(s) => drop(uart.write(s.as_bytes()).unwrap()),
+            Ok(s) => {
+                let _ = uart.write(s.as_bytes()).unwrap();
+            }
             Err(std::sync::mpsc::TryRecvError::Empty) => {}
             Err(e) => eprintln!("Error: {:#?}", e),
         }

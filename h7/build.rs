@@ -59,7 +59,7 @@ fn main() {
 
     fs::write(
         PathBuf::from(GEN_DIR).join(CONSTS_FILE),
-        contents.join("\n"),
+        contents.join("\n") + "\n",
     )
     .unwrap();
 }

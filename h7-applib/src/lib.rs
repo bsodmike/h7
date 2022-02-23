@@ -55,7 +55,7 @@ pub mod target {
     /// jumps to a function called `h7_main` defined by the actual application using
     /// this crate.
     #[no_mangle]
-    pub extern "C" fn entry_point(table: *const H7Api) -> i32 {
+    extern "C" fn entry_point(table: *const H7Api) -> i32 {
         // Turn the pointer into a reference and store in a static.
         unsafe {
             API_POINTER.write(&*table);

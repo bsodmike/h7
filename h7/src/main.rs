@@ -13,7 +13,7 @@ extern crate alloc;
 
 use {
     crate::utils::interrupt_free,
-    anx7625::Anx7625,
+    // anx7625::Anx7625,
     chrono::{NaiveDate, Timelike},
     core::fmt::Write,
     embedded_display_controller::{

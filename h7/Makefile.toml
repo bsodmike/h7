@@ -31,6 +31,7 @@ run_task = { name = [ "build-release", "flash-release" ] }
 [tasks._flash]
 private = true
 condition = { env_set = [ "RELEASE_DEBUG" ] }
+script_runner = "bash"
 script = "./flash.sh ${CARGO_MAKE_CRATE_CUSTOM_TRIPLE_TARGET_DIRECTORY}/${RELEASE_DEBUG}/${CARGO_MAKE_PROJECT_NAME}"
 
 [tasks._arm_none_eabi_size]
@@ -43,6 +44,7 @@ args = [ "${CARGO_MAKE_CRATE_CUSTOM_TRIPLE_TARGET_DIRECTORY}/${RELEASE_DEBUG}/${
 [tasks._build]
 private = true
 condition = { env_set = [ "RELEASE_DEBUG" ] }
+script_runner = "bash"
 script = '''
 if [ ${RELEASE_DEBUG} == "release" ]; then
     cargo build --release ${@}
