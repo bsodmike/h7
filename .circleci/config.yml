@@ -39,8 +39,15 @@ jobs:
           name: "cargo clippy"
           command: |
             set -e
-            for subproj in $(find | grep "Cargo.toml$"); do
+            for subproj in $(find | grep "Cargo.toml$" | grep -v "h7-uart-terminal"); do
               cd $(dirname $subproj) && cargo clippy && cd $OLDPWD
+            done
+      - run:
+          name: "cargo fmt"
+          command: |
+            set -e
+            for subproj in $(find | grep "Cargo.toml$"); do
+              cd $(dirname $subproj) && cargo fmt --check && cd $OLDPWD
             done
       - save_cache:
           name: Save clippy cache
@@ -75,7 +82,7 @@ workflows:
   version: 2
   build:
     jobs:
-      - fmt
+      # - fmt
       - clippy
       - build:
           requires:
