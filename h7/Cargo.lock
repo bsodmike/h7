@@ -187,7 +187,7 @@ dependencies = [
 [[package]]
 name = "embedded-sdmmc"
 version = "0.3.0"
-source = "git+https://github.com/olback/embedded-sdmmc-rs?branch=handler-capacity#7226b8e82a9cee900137c9a1cdc9f733ec0d6ee2"
+source = "git+https://github.com/olback/embedded-sdmmc-rs?branch=handler-capacity#e8dce1c7ae1d04c3327e07ca84f71e0032a67129"
 dependencies = [
  "byteorder",
  "embedded-hal",
@@ -429,7 +429,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
 dependencies = [
- "semver 1.0.5",
+ "semver 1.0.6",
 ]
 
 [[package]]
@@ -455,9 +455,9 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "1.0.5"
+version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0486718e92ec9a68fbed73bb5ef687d71103b142595b406835649bebd33f72c7"
+checksum = "a4a3381e03edd24287172047536f20cabde766e2cd3e65e6b00fb3af51c4f38d"
 
 [[package]]
 name = "semver-parser"
@@ -510,7 +510,7 @@ dependencies = [
 [[package]]
 name = "stm32h7xx-hal"
 version = "0.11.0"
-source = "git+https://github.com/stm32-rs/stm32h7xx-hal#0d984a2a9a2bf97eae5f9811fe3c353e18af09d3"
+source = "git+https://github.com/stm32-rs/stm32h7xx-hal#72adb08daf594d623511d652647c23088b54ef12"
 dependencies = [
  "bare-metal 1.0.0",
  "cast",

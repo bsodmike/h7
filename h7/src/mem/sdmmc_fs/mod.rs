@@ -18,12 +18,13 @@ use {
 mod error;
 mod path;
 
-pub static SD_CARD: Mutex<RefCell<Option<SdmmcFs>>> = Mutex::new(RefCell::new(None));
+const H7_MAX_OPEN_DIRS: usize = 4;
+const H7_MAX_OPEN_FILES: usize = 4;
 
-const MAX_OPEN_DIRS: usize = 4;
-const MAX_OPEN_FILES: usize = 4;
+pub static SD_CARD: Mutex<RefCell<Option<SdmmcFs<H7_MAX_OPEN_DIRS, H7_MAX_OPEN_FILES>>>> =
+    Mutex::new(RefCell::new(None));
 
-enum SdmmcState {
+enum SdmmcState<const MAX_OPEN_DIRS: usize, const MAX_OPEN_FILES: usize> {
     Controller(
         Controller<SdmmcBlockDevice<Sdmmc<SDMMC2>>, TimeSource, MAX_OPEN_DIRS, MAX_OPEN_FILES>,
     ),
@@ -31,11 +32,13 @@ enum SdmmcState {
     MidSwap,
 }
 
-pub struct SdmmcFs {
-    state: SdmmcState,
+pub struct SdmmcFs<const MAX_OPEN_DIRS: usize, const MAX_OPEN_FILES: usize> {
+    state: SdmmcState<MAX_OPEN_DIRS, MAX_OPEN_FILES>,
 }
 
-impl SdmmcFs {
+impl<const MAX_OPEN_DIRS: usize, const MAX_OPEN_FILES: usize>
+    SdmmcFs<MAX_OPEN_DIRS, MAX_OPEN_FILES>
+{
     pub fn new(sdmmc: Sdmmc<SDMMC2>) -> Self {
         Self {
             state: SdmmcState::Sdmmc(sdmmc),
@@ -256,7 +259,14 @@ pub fn print_dir_entry<W: fmt::Write>(writer: &mut W, dir_entry: &DirEntry) -> f
     Ok(())
 }
 
-fn find_dir<'p, R, D: BlockDevice, T: embedded_sdmmc::TimeSource>(
+fn find_dir<
+    'p,
+    R,
+    D: BlockDevice,
+    T: embedded_sdmmc::TimeSource,
+    const MAX_OPEN_DIRS: usize,
+    const MAX_OPEN_FILES: usize,
+>(
     controller: &mut Controller<D, T, MAX_OPEN_DIRS, MAX_OPEN_FILES>,
     volume: &mut Volume,
     dir: &Directory,
@@ -282,7 +292,14 @@ where
     }
 }
 
-fn find_file<'p, R, D: BlockDevice, T: embedded_sdmmc::TimeSource>(
+fn find_file<
+    'p,
+    R,
+    D: BlockDevice,
+    T: embedded_sdmmc::TimeSource,
+    const MAX_OPEN_DIRS: usize,
+    const MAX_OPEN_FILES: usize,
+>(
     controller: &mut Controller<D, T, MAX_OPEN_DIRS, MAX_OPEN_FILES>,
     volume: &mut Volume,
     dir: &Directory,
