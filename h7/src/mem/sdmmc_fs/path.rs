@@ -20,7 +20,7 @@ impl<'p> Path<'p> {
                     Some(n) => raw_path[n.saturating_sub(1)..]
                         .trim_end_matches(|c| c == '/' || char::is_whitespace(c)),
                     // raw_path is all slashes/space, emtpy case is already handled
-                    None => &raw_path[0..1].trim(),
+                    None => raw_path[0..1].trim(),
                 }
             }
         };

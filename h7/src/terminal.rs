@@ -342,7 +342,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                             if wd % 7 == 0 {
                                 write!(m.writer(), "]")?;
                             }
-                        } else if i == day + 1 && !(c % 7 == 1) {
+                        } else if i == day + 1 && c % 7 != 1 {
                             write!(m.writer(), "]{:2}", i + 1)?;
                         } else {
                             write!(m.writer(), " {:2}", i + 1)?;
@@ -396,7 +396,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                         m.writer(),
                         "{:width$} {}MHz",
                         "Core frequency",
-                        freq.0 / 1_000_000,
+                        freq.to_MHz(),
                         width = LABEL_WIDTH
                     )?,
                     None => writeln!(
@@ -622,7 +622,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                     .borrow(cs)
                     .borrow_mut()
                     .as_mut()
-                    .map(|sdfs| sdfs.mount::<hal::delay::Delay, _>(freq.khz(), 10, None))
+                    .map(|sdfs| sdfs.mount::<hal::delay::Delay, _>(freq.kHz(), 10, None))
                 {
                     Some(Ok(_)) => {
                         writeln!(m.writer(), "SD Card mounted")?;

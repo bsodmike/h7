@@ -25,7 +25,7 @@ pub unsafe extern "C" fn h7_free(ptr: *mut u8) {
 
 #[no_mangle]
 pub unsafe extern "C" fn h7_panic(msg: *const u8) -> ! {
-    let slice = core::slice::from_raw_parts(msg, util::strlen(msg));
+    let slice = core::slice::from_raw_parts(msg, cstd::strlen(msg));
     let str_slice = core::str::from_utf8_unchecked(slice);
     Host::panic(str_slice)
 }
@@ -43,12 +43,12 @@ pub unsafe extern "C" fn h7_putc(c: u8) -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn h7_puts(msg: *const u8) -> i32 {
-    let slice = core::slice::from_raw_parts(msg, util::strlen(msg));
+    let slice = core::slice::from_raw_parts(msg, cstd::strlen(msg));
     let str_slice = core::str::from_utf8_unchecked(slice);
     Host::puts(str_slice)
 }
 
-mod util {
+mod cstd {
     pub(crate) unsafe fn strlen(s: *const u8) -> usize {
         let mut result = 0;
         while *s.add(result) != 0 {

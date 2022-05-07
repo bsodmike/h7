@@ -16,13 +16,12 @@ use {
     // anx7625::Anx7625,
     chrono::{NaiveDate, Timelike},
     core::fmt::Write,
-    embedded_display_controller::{
-        DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
-    },
+    // embedded_display_controller::{
+    //     DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
+    // },
+    fugit::RateExtU32,
     led::LED,
-    stm32h7xx_hal::{
-        self as hal, adc, gpio::Speed, hal::digital::v2::OutputPin, pac, prelude::*, rcc, rtc,
-    },
+    stm32h7xx_hal::{self as hal, adc, gpio::Speed, pac, prelude::*, rcc, rtc},
     time::TimeSource,
 };
 
@@ -88,15 +87,15 @@ unsafe fn main() -> ! {
             .RCC
             .constrain()
             .bypass_hse()
-            .sys_ck(480.mhz())
-            .hclk(240.mhz())
+            .sys_ck(480.MHz())
+            .hclk(240.MHz())
             .pll1_strategy(rcc::PllConfigStrategy::Iterative)
-            .pll1_q_ck(240.mhz())
+            .pll1_q_ck(240.MHz())
             .pll2_strategy(rcc::PllConfigStrategy::Iterative)
-            .pll2_p_ck(100.mhz())
+            .pll2_p_ck(100.MHz())
             .pll3_strategy(rcc::PllConfigStrategy::Iterative)
-            .pll3_p_ck(100.mhz())
-            .pll3_r_ck(100.mhz())
+            .pll3_p_ck(100.MHz())
+            .pll3_r_ck(100.MHz())
             .freeze(pwrcfg, &dp.SYSCFG);
 
         // USB Clock
@@ -134,17 +133,19 @@ unsafe fn main() -> ! {
     let mut led_r = gpiok.pk5.into_push_pull_output();
     let mut led_g = gpiok.pk6.into_push_pull_output();
     let mut led_b = gpiok.pk7.into_push_pull_output();
-    led_r.set_high().unwrap();
-    led_g.set_low().unwrap();
-    led_b.set_high().unwrap();
+    led_r.set_high();
+    led_g.set_low();
+    led_b.set_high();
 
     // Internal I2C bus
     let mut internal_i2c = dp.I2C1.i2c(
         (
-            gpiob.pb6.into_alternate_af4().set_open_drain(),
-            gpiob.pb7.into_alternate_af4().set_open_drain(),
+            // gpiob.pb6.into_alternate_af4().set_open_drain(),
+            // gpiob.pb7.into_alternate_af4().set_open_drain(),
+            gpiob.pb6.into_alternate::<4>().set_open_drain(),
+            gpiob.pb7.into_alternate::<4>().set_open_drain(),
         ),
-        100.khz(),
+        100.kHz(),
         ccdr.peripheral.I2C1,
         &ccdr.clocks,
     );
@@ -157,8 +158,8 @@ unsafe fn main() -> ! {
             .USART1
             .serial(
                 (
-                    gpioa.pa9.into_alternate_af7(),
-                    gpioa.pa10.into_alternate_af7(),
+                    gpioa.pa9.into_alternate::<7>(),
+                    gpioa.pa10.into_alternate::<7>(),
                 ),
                 terminal::UART_TERMINAL_BAUD.bps(),
                 ccdr.peripheral.USART1,
@@ -191,7 +192,7 @@ unsafe fn main() -> ! {
             dp.RTC,
             backup.RTC,
             rtc::RtcClock::Lse {
-                freq: 32768.hz(),
+                freq: 32768.Hz(),
                 bypass: true,
                 css: false,
             },
@@ -286,7 +287,7 @@ unsafe fn main() -> ! {
     {
         let mut oscen = gpioh.ph1.into_push_pull_output();
         delay.delay_ms(10u32);
-        oscen.set_high().unwrap();
+        oscen.set_high();
         delay.delay_ms(10u32);
     }
 
@@ -294,12 +295,12 @@ unsafe fn main() -> ! {
     {
         let sdcard = dp.SDMMC2.sdmmc(
             (
-                gpiod.pd6.into_alternate_af11().set_speed(Speed::VeryHigh),
-                gpiod.pd7.into_alternate_af11().set_speed(Speed::VeryHigh),
-                gpiob.pb14.into_alternate_af9().set_speed(Speed::VeryHigh),
-                gpiob.pb15.into_alternate_af9().set_speed(Speed::VeryHigh),
-                gpiob.pb3.into_alternate_af9().set_speed(Speed::VeryHigh),
-                gpiob.pb4.into_alternate_af9().set_speed(Speed::VeryHigh),
+                gpiod.pd6.into_alternate::<11>().speed(Speed::VeryHigh),
+                gpiod.pd7.into_alternate::<11>().speed(Speed::VeryHigh),
+                gpiob.pb14.into_alternate::<9>().speed(Speed::VeryHigh),
+                gpiob.pb15.into_alternate::<9>().speed(Speed::VeryHigh),
+                gpiob.pb3.into_alternate::<9>().speed(Speed::VeryHigh),
+                gpiob.pb4.into_alternate::<9>().speed(Speed::VeryHigh),
             ),
             ccdr.peripheral.SDMMC2,
             &ccdr.clocks,
@@ -316,17 +317,17 @@ unsafe fn main() -> ! {
         let mut qspi_store = mem::qspi_store::QspiStore::new(
             dp.QUADSPI.bank1(
                 (
-                    gpiof.pf10.into_alternate_af9().set_speed(Speed::VeryHigh),
-                    gpiod.pd11.into_alternate_af9().set_speed(Speed::VeryHigh),
-                    gpiod.pd12.into_alternate_af9().set_speed(Speed::VeryHigh),
-                    gpiof.pf7.into_alternate_af9().set_speed(Speed::VeryHigh),
-                    gpiod.pd13.into_alternate_af9().set_speed(Speed::VeryHigh),
+                    gpiof.pf10.into_alternate::<9>().speed(Speed::VeryHigh),
+                    gpiod.pd11.into_alternate::<9>().speed(Speed::VeryHigh),
+                    gpiod.pd12.into_alternate::<9>().speed(Speed::VeryHigh),
+                    gpiof.pf7.into_alternate::<9>().speed(Speed::VeryHigh),
+                    gpiod.pd13.into_alternate::<9>().speed(Speed::VeryHigh),
                 ),
-                100.mhz(),
+                100.MHz(),
                 &ccdr.clocks,
                 ccdr.peripheral.QSPI,
             ),
-            gpiog.pg6.into_push_pull_output().set_speed(Speed::VeryHigh),
+            gpiog.pg6.into_push_pull_output().speed(Speed::VeryHigh),
         );
         qspi_store.init().unwrap();
 
@@ -407,7 +408,7 @@ unsafe fn main() -> ! {
     let mut cmd_buf_len: usize = 0;
 
     // Main loop
-    led_b.set_high().unwrap();
+    led_b.set_high();
     let _ = write!(menu.writer(), "> ");
 
     loop {
@@ -457,11 +458,11 @@ unsafe fn main() -> ! {
 
         // Blink
         if let Some(dt) = TimeSource::get_date_time() {
-            led_r.set_high().unwrap();
+            led_r.set_high();
             if dt.second() % 2 == 0 {
-                led_g.set_high().unwrap();
+                led_g.set_high();
             } else {
-                led_g.set_low().unwrap();
+                led_g.set_low();
             }
         }
     }

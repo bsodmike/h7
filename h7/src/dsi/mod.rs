@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use {
     dsi_consts::*,
     embedded_display_controller::DisplayConfiguration,

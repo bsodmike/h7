@@ -10,7 +10,7 @@ use {
     path::Path,
     stm32h7xx_hal::{
         pac::SDMMC2,
-        sdmmc::{Sdmmc, SdmmcBlockDevice},
+        sdmmc::{SdCard, Sdmmc, SdmmcBlockDevice},
         time::Hertz,
     },
 };
@@ -24,11 +24,12 @@ const H7_MAX_OPEN_FILES: usize = 4;
 pub static SD_CARD: Mutex<RefCell<Option<SdmmcFs<H7_MAX_OPEN_DIRS, H7_MAX_OPEN_FILES>>>> =
     Mutex::new(RefCell::new(None));
 
+type H7Sdmmc = Sdmmc<SDMMC2, SdCard>;
+type H7SdmmcBlockDev = SdmmcBlockDevice<H7Sdmmc>;
+
 enum SdmmcState<const MAX_OPEN_DIRS: usize, const MAX_OPEN_FILES: usize> {
-    Controller(
-        Controller<SdmmcBlockDevice<Sdmmc<SDMMC2>>, TimeSource, MAX_OPEN_DIRS, MAX_OPEN_FILES>,
-    ),
-    Sdmmc(Sdmmc<SDMMC2>),
+    Controller(Controller<H7SdmmcBlockDev, TimeSource, MAX_OPEN_DIRS, MAX_OPEN_FILES>),
+    Sdmmc(H7Sdmmc),
     MidSwap,
 }
 
@@ -39,7 +40,7 @@ pub struct SdmmcFs<const MAX_OPEN_DIRS: usize, const MAX_OPEN_FILES: usize> {
 impl<const MAX_OPEN_DIRS: usize, const MAX_OPEN_FILES: usize>
     SdmmcFs<MAX_OPEN_DIRS, MAX_OPEN_FILES>
 {
-    pub fn new(sdmmc: Sdmmc<SDMMC2>) -> Self {
+    pub fn new(sdmmc: H7Sdmmc) -> Self {
         Self {
             state: SdmmcState::Sdmmc(sdmmc),
         }
@@ -75,7 +76,7 @@ impl<const MAX_OPEN_DIRS: usize, const MAX_OPEN_FILES: usize>
             SdmmcState::Sdmmc(sdmmc) => {
                 let freq = freq.into();
                 for i in (0..n_retry).rev() {
-                    match sdmmc.init_card(freq) {
+                    match sdmmc.init(freq) {
                         Ok(_) => {
                             // We just got here because the state is SdmmcState::Sdmmc so this should never fail
                             if let SdmmcState::Sdmmc(sd) =
@@ -179,12 +180,7 @@ impl<const MAX_OPEN_DIRS: usize, const MAX_OPEN_FILES: usize>
         &mut self,
         path: P,
         func: impl FnMut(
-            &mut Controller<
-                SdmmcBlockDevice<Sdmmc<SDMMC2>>,
-                TimeSource,
-                MAX_OPEN_DIRS,
-                MAX_OPEN_FILES,
-            >,
+            &mut Controller<H7SdmmcBlockDev, TimeSource, MAX_OPEN_DIRS, MAX_OPEN_FILES>,
             &Volume,
             &Directory,
         ) -> R,
@@ -210,12 +206,7 @@ impl<const MAX_OPEN_DIRS: usize, const MAX_OPEN_FILES: usize>
         path: P,
         mode: FileOpenMode,
         func: impl FnMut(
-            &mut Controller<
-                SdmmcBlockDevice<Sdmmc<SDMMC2>>,
-                TimeSource,
-                MAX_OPEN_DIRS,
-                MAX_OPEN_FILES,
-            >,
+            &mut Controller<H7SdmmcBlockDev, TimeSource, MAX_OPEN_DIRS, MAX_OPEN_FILES>,
             &Volume,
             &mut File,
         ) -> R,
