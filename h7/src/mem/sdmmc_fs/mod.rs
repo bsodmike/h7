@@ -95,7 +95,7 @@ impl<const MAX_OPEN_DIRS: usize, const MAX_OPEN_FILES: usize>
                             if i == 0 {
                                 return Err(SdmmcFsError::HalSdmmc(e));
                             } else {
-                                let _ = log::info!("SD Card mount failed, retrying...");
+                                log::info!("SD Card mount failed, retrying...");
                                 if let Some((time, ref mut delay)) = delay {
                                     delay.delay_ms(time);
                                 }

@@ -19,7 +19,7 @@ const PMIC_SETUP: &[&[u8]] = &[
 
 pub fn configure<E, BUS: I2CWrite<Error = E>>(bus: &mut BUS) -> Result<(), E> {
     for data in PMIC_SETUP {
-        bus.write(PMIC_ADDRESS, *data)?;
+        bus.write(PMIC_ADDRESS, data)?;
     }
     Ok(())
 }

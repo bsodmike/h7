@@ -84,8 +84,8 @@ pub fn print_info<W: core::fmt::Write>(w: &mut W, data: &[u8]) -> core::fmt::Res
     writeln!(
         w,
         "Address: {addr:p} ({addr_check}), CRC: 0x{crc:08x} ({crc_check}), Size: 0x{size:x}",
-        addr_check = check_address(addr).into_ok_or_err(),
-        crc = crc.into_ok_or_err(),
+        addr_check = crate::utils::into_ok_or_err(check_address(addr)),
+        crc = crate::utils::into_ok_or_err(crc),
         crc_check = if crc.is_ok() { "passed" } else { "failed" },
         size = data.len()
     )
@@ -171,7 +171,7 @@ extern "C" fn putc(c: u8) -> i32 {
 extern "C" fn puts(start: *const u8, len: usize) -> i32 {
     let s = unsafe { core::slice::from_raw_parts(start, len) };
 
-    match core::str::from_utf8(s).map(|s| write!(TerminalWriter, "{}", s)) {
+    match core::str::from_utf8(s).map(|s| write!(TerminalWriter, "{s}")) {
         Ok(Ok(_)) => 0,
         _ => -1,
     }

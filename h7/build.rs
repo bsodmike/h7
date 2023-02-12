@@ -27,7 +27,7 @@ fn main() {
 
     // Git version
     let git_desc = Command::new("git")
-        .args(&["describe", "--all", "--tags", "--dirty", "--long"])
+        .args(["describe", "--all", "--tags", "--dirty", "--long"])
         .output()
         .unwrap();
     rows.insert(

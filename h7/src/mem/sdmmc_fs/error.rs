@@ -22,8 +22,8 @@ impl core::fmt::Display for SdmmcFsError {
             Self::BufferTooSmall => write!(f, "Buffer Too Small"),
             Self::AlreadyMounted => write!(f, "Already mounted"),
             Self::NotMounted => write!(f, "Not Mounted"),
-            Self::Sdmmc(e) => write!(f, "Sdmmc: {:?}", e),
-            Self::HalSdmmc(e) => write!(f, "HalSdmmc: {:?}", e),
+            Self::Sdmmc(e) => write!(f, "Sdmmc: {e:?}"),
+            Self::HalSdmmc(e) => write!(f, "HalSdmmc: {e:?}"),
         }
     }
 }

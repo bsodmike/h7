@@ -1,13 +1,6 @@
 #![no_main]
 #![no_std]
-#![feature(
-    alloc_error_handler,
-    result_into_ok_or_err,
-    const_for,
-    const_mut_refs,
-    int_log,
-    asm_sym
-)]
+#![feature(alloc_error_handler, const_for, const_mut_refs)]
 
 extern crate alloc;
 
@@ -415,7 +408,7 @@ unsafe fn main() -> ! {
         match terminal::TERMINAL_INPUT_FIFO.dequeue() {
             Some(10) => match core::str::from_utf8(&cmd_buf[0..cmd_buf_len]) {
                 Ok(s) => {
-                    let mut parts = s.trim().split_whitespace().filter(|l| !l.trim().is_empty());
+                    let mut parts = s.split_whitespace().filter(|l| !l.trim().is_empty());
 
                     if let Some(cmd) = parts.next() {
                         // Collect up to 16 arguments
@@ -432,7 +425,7 @@ unsafe fn main() -> ! {
                         }
                         // Run command
                         if let Err(e) = menu.run(cmd, &args[0..args_len]) {
-                            let _ = writeln!(menu.writer(), "Error: {}", e);
+                            let _ = writeln!(menu.writer(), "Error: {e}");
                         }
                         // Clear input
                         delay.delay_ms(10u8); // Wait for interrupts
@@ -442,7 +435,7 @@ unsafe fn main() -> ! {
                     let _ = write!(menu.writer(), "> ");
                 }
                 Err(e) => {
-                    let _ = writeln!(menu, "Error: {}", e);
+                    let _ = writeln!(menu, "Error: {e}");
                 }
             },
             Some(c) => {

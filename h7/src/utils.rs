@@ -28,3 +28,11 @@ where
     unsafe { LED::Blue.off() };
     r
 }
+
+#[inline(always)]
+pub fn into_ok_or_err<T>(result: Result<T, T>) -> T {
+    match result {
+        Ok(v) => v,
+        Err(v) => v,
+    }
+}

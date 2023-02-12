@@ -43,7 +43,7 @@ impl<'m, W: core::fmt::Write> Menu<'m, W> {
                 }
                 MenuItem::Alias { alias, command } => {
                     if *alias == cmd {
-                        self.run(*command, args)?;
+                        self.run(command, args)?;
                         return Ok(());
                     }
                 }

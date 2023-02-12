@@ -37,8 +37,8 @@ impl core::fmt::Display for MenuError {
                 )
             }
             Self::CommandNotFound => write!(f, "Command not found"),
-            Self::WriteError(we) => write!(f, "Write error: {:?}", we),
-            Self::CommandError(Some(err)) => write!(f, "Command error: {}", err),
+            Self::WriteError(we) => write!(f, "Write error: {we:?}"),
+            Self::CommandError(Some(err)) => write!(f, "Command error: {err}"),
             Self::CommandError(None) => write!(f, "Command error"),
             Self::InvalidArgument => write!(f, "Invalid argument"),
         }

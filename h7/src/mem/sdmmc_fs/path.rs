@@ -63,7 +63,7 @@ impl<'p> Path<'p> {
 impl<'p> core::fmt::Display for Path<'p> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         if let Some(device) = self.device {
-            write!(f, "{}:", device)?;
+            write!(f, "{device}:")?;
         }
         if self.absolute {
             write!(f, "/")?;
@@ -72,7 +72,7 @@ impl<'p> core::fmt::Display for Path<'p> {
         let mut next = pi.next();
         while next.is_some() {
             if let Some(n) = next {
-                write!(f, "{}", n)?;
+                write!(f, "{n}")?;
             }
             next = pi.next();
             if next.is_some() {

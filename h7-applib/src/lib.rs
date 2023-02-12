@@ -65,9 +65,7 @@ pub mod target {
             fn h7_main() -> i32;
         }
         // Call the user application
-        let ret = unsafe { h7_main() };
-
-        ret
+        unsafe { h7_main() }
     }
 
     #[inline(always)]

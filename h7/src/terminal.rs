@@ -21,7 +21,7 @@ impl core::fmt::Write for TerminalWriter {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         interrupt_free(|cs| {
             if let Some(tx) = &mut *UART_TERMINAL_TX.borrow(cs).borrow_mut() {
-                write!(tx, "{}", s)?
+                write!(tx, "{s}")?
             }
             Ok(())
         })
@@ -55,13 +55,13 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                 match item {
                     MenuItem::Command { name, help, .. } => {
                         if *name == program {
-                            writeln!(m.writer(), "{}", help)?;
+                            writeln!(m.writer(), "{help}")?;
                             return Ok(());
                         }
                     }
                     MenuItem::Alias { alias, command } => {
                         if *alias == program {
-                            writeln!(m.writer(), "'{}' aliased to '{}'", alias, command)?;
+                            writeln!(m.writer(), "'{alias}' aliased to '{command}'")?;
                             m.run("help", &[*command])?;
                             return Ok(());
                         }
@@ -82,22 +82,10 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                     MenuItem::Command {
                         name, description, ..
                     } => {
-                        writeln!(
-                            m.writer(),
-                            "{:width$} {}",
-                            name,
-                            description,
-                            width = LABEL_WIDTH
-                        )?;
+                        writeln!(m.writer(), "{name:LABEL_WIDTH$} {description}")?;
                     }
                     MenuItem::Alias { alias, command } => {
-                        writeln!(
-                            m.writer(),
-                            "{:width$} aliased to {}",
-                            alias,
-                            command,
-                            width = LABEL_WIDTH
-                        )?;
+                        writeln!(m.writer(), "{alias:LABEL_WIDTH$} aliased to {command}")?;
                     }
                 }
             }
@@ -126,7 +114,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                         Ok(())
                     }
                     Some(Err(e)) => {
-                        writeln!(m.writer(), "Error: {}", e)?;
+                        writeln!(m.writer(), "Error: {e}")?;
                         Ok(())
                     }
                     None => {
@@ -148,7 +136,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
             if app::check_address(app_fn).is_err() {
                 return Err(MenuError::CommandError(Some("Invalid app address")));
             }
-            writeln!(m.writer(), "Executing from {:p}", app_fn)?;
+            writeln!(m.writer(), "Executing from {app_fn:p}")?;
             let ret = unsafe {
                 LED::Green.on();
                 LED::Red.on();
@@ -184,7 +172,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
             )?;
             match app::free_leaked() {
                 0 => { /* App did not leak memory */ }
-                n => writeln!(m.writer(), "App leaked {} bytes", n)?,
+                n => writeln!(m.writer(), "App leaked {n} bytes")?,
             }
 
             Ok(())
@@ -217,13 +205,13 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                 Ok(())
             }
             ["loglevel", level] => {
-                match log::LevelFilter::from_str(*level) {
+                match log::LevelFilter::from_str(level) {
                     Ok(new_level) => {
                         logger::set_log_level(new_level);
-                        writeln!(m.writer(), "New log level: {}", new_level)?;
+                        writeln!(m.writer(), "New log level: {new_level}")?;
                     }
                     Err(e) => {
-                        writeln!(m.writer(), "Failed to set new log level: {}", e)?;
+                        writeln!(m.writer(), "Failed to set new log level: {e}")?;
                     }
                 }
                 Ok(())
@@ -277,19 +265,17 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                             Err(_) => writeln!(m.writer(), "Error: RTC not initialized"),
                         }
                     } else {
-                        writeln!(m.writer(), "Invalid date or time '{}'", date_or_time)
+                        writeln!(m.writer(), "Invalid date or time '{date_or_time}'")
                     }
                 }
                 ["set"] => {
                     writeln!(m.writer(), "Set new system date and time:")?;
                     writeln!(
                         m.writer(),
-                        "Set date and time: date set {} {}",
-                        DATE_PARSE_FORMAT,
-                        TIME_PARSE_FORMAT
+                        "Set date and time: date set {DATE_PARSE_FORMAT} {TIME_PARSE_FORMAT}"
                     )?;
-                    writeln!(m.writer(), "Set date: date set {}", DATE_PARSE_FORMAT)?;
-                    writeln!(m.writer(), "Set time: date set {}", TIME_PARSE_FORMAT)
+                    writeln!(m.writer(), "Set date: date set {DATE_PARSE_FORMAT}")?;
+                    writeln!(m.writer(), "Set time: date set {TIME_PARSE_FORMAT}")
                 }
                 [] => match TimeSource::get_date_time() {
                     Some(dt) => writeln!(
@@ -617,7 +603,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                 let freq = freq_str
                     .parse::<u32>()
                     .map_err(|_| MenuError::InvalidArgument)?;
-                writeln!(m.writer(), "Attempting to mount SD Card @ {}kHz", freq)?;
+                writeln!(m.writer(), "Attempting to mount SD Card @ {freq}kHz")?;
                 match crate::mem::sdmmc_fs::SD_CARD
                     .borrow(cs)
                     .borrow_mut()
@@ -629,7 +615,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                         Ok(())
                     }
                     Some(Err(e)) => {
-                        writeln!(m.writer(), "{}", e)?;
+                        writeln!(m.writer(), "{e}")?;
                         Ok(())
                     }
                     None => {
@@ -650,7 +636,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                         Ok(())
                     }
                     Some(Err(e)) => {
-                        writeln!(m.writer(), "{}", e)?;
+                        writeln!(m.writer(), "{e}")?;
                         Ok(())
                     }
                     None => {
@@ -673,7 +659,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
         help: "List files",
         description: "List files",
         action: |m, args| {
-            let path = args.get(0).unwrap_or(&"");
+            let path = args.first().unwrap_or(&"");
             interrupt_free(|cs| {
                 match crate::mem::sdmmc_fs::SD_CARD
                     .borrow(cs)
@@ -686,7 +672,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                     }) {
                     Some(Ok(_)) => Ok(()),
                     Some(Err(e)) => {
-                        writeln!(m.writer(), "Error: {}", e)?;
+                        writeln!(m.writer(), "Error: {e}")?;
                         Ok(())
                     }
                     None => {
@@ -778,7 +764,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                     }
                 }
             }
-            writeln!(m.writer(), "Read {} bytes", n)?;
+            writeln!(m.writer(), "Read {n} bytes")?;
             if n > 8 {
                 app::print_info(m.writer(), &app_slice[..n])?;
             } else {
