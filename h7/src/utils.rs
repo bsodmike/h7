@@ -1,5 +1,5 @@
 use {
-    crate::led::LED,
+    crate::led::Led,
     core::cell::RefCell,
     cortex_m::interrupt::{self, CriticalSection, Mutex},
     stm32h7xx_hal::crc::{Config, Crc},
@@ -23,9 +23,9 @@ pub fn interrupt_free<F, R>(f: F) -> R
 where
     F: FnOnce(&CriticalSection) -> R,
 {
-    unsafe { LED::Blue.on() };
+    unsafe { Led::Blue.on() };
     let r = interrupt::free(f);
-    unsafe { LED::Blue.off() };
+    unsafe { Led::Blue.off() };
     r
 }
 

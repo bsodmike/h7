@@ -82,7 +82,12 @@ impl<const MAX_OPEN_DIRS: usize, const MAX_OPEN_FILES: usize>
                             if let SdmmcState::Sdmmc(sd) =
                                 core::mem::replace(&mut self.state, SdmmcState::MidSwap)
                             {
-                                self.state = SdmmcState::Controller(Controller::new(
+                                self.state = SdmmcState::Controller(Controller::<
+                                    _,
+                                    _,
+                                    MAX_OPEN_DIRS,
+                                    MAX_OPEN_FILES,
+                                >::new_with_limits(
                                     sd.sdmmc_block_device(),
                                     TimeSource,
                                 ));

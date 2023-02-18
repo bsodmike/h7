@@ -1,10 +1,10 @@
-pub enum LED {
+pub enum Led {
     Red,
     Green,
     Blue,
 }
 
-impl LED {
+impl Led {
     #[inline(always)]
     pub unsafe fn on(self) {
         (*stm32h7xx_hal::pac::GPIOK::ptr())

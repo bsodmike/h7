@@ -1,6 +1,6 @@
 #[derive(Debug)]
 pub struct Path<'p> {
-    raw: &'p str,
+    // raw: &'p str,
     path: &'p str,
     device: Option<&'p str>,
     absolute: bool,
@@ -25,28 +25,28 @@ impl<'p> Path<'p> {
             }
         };
         Self {
-            raw: raw_trimmed,
+            // raw: raw_trimmed,
             path,
             device,
             absolute: path.starts_with('/') || device.is_some(),
         }
     }
 
-    pub fn raw(&self) -> &'p str {
-        self.raw
-    }
+    // pub fn raw(&self) -> &'p str {
+    //     self.raw
+    // }
 
-    pub fn path(&self) -> &'p str {
-        self.path
-    }
+    // pub fn path(&self) -> &'p str {
+    //     self.path
+    // }
 
-    pub fn device(&self) -> Option<&'p str> {
-        self.device
-    }
+    // pub fn device(&self) -> Option<&'p str> {
+    //     self.device
+    // }
 
-    pub fn is_absolute(&self) -> bool {
-        self.absolute
-    }
+    // pub fn is_absolute(&self) -> bool {
+    //     self.absolute
+    // }
 
     pub fn parts(&self) -> core::iter::Peekable<impl Iterator<Item = &'p str>> {
         self.path
@@ -55,9 +55,9 @@ impl<'p> Path<'p> {
             .peekable()
     }
 
-    pub fn len(&self) -> usize {
-        self.parts().count()
-    }
+    // pub fn len(&self) -> usize {
+    //     self.parts().count()
+    // }
 }
 
 impl<'p> core::fmt::Display for Path<'p> {

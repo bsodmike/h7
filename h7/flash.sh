@@ -14,8 +14,8 @@ if [[ ! -f "${boot_elf}" ]]; then
     exit 1
 fi
 
-openocd_bin="/bin/openocd"
-openocd_src="/usr/share/openocd/scripts"
+openocd_bin="/usr/local/bin/openocd"
+openocd_src="/usr/local/share/openocd/scripts"
 openocd_interface='interface/cmsis-dap.cfg'
 #openocd_interface='interface/stlink.cfg'
 openocd_target='target/stm32h7x_dual_bank.cfg'

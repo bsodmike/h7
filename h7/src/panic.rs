@@ -1,5 +1,5 @@
 use {
-    crate::{terminal, utils::interrupt_free, LED},
+    crate::{terminal, utils::interrupt_free, Led},
     core::{fmt::Write, panic::PanicInfo},
 };
 
@@ -22,14 +22,14 @@ fn panic_handler(panic_info: &PanicInfo) -> ! {
     const LIMIT: usize = 10_000_000;
     const LIMIT_DC: usize = LIMIT / 2;
     unsafe {
-        LED::Green.off();
-        LED::Blue.off();
+        Led::Green.off();
+        Led::Blue.off();
         loop {
             for i in 0..LIMIT {
                 if i < LIMIT_DC {
-                    LED::Red.on()
+                    Led::Red.on()
                 } else {
-                    LED::Red.off()
+                    Led::Red.off()
                 }
             }
         }

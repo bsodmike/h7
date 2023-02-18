@@ -30,11 +30,11 @@ impl QspiStore {
         self.mx25l.init()
     }
 
-    pub fn inner(&mut self) -> &mut Mx25L<PG6<Output<PushPull>>> {
-        &mut self.mx25l
-    }
+    // pub fn inner(&mut self) -> &mut Mx25L<PG6<Output<PushPull>>> {
+    //     &mut self.mx25l
+    // }
 
-    pub fn free(self) -> Mx25L<PG6<Output<PushPull>>> {
-        self.mx25l
-    }
+    // pub fn free(self) -> Mx25L<PG6<Output<PushPull>>> {
+    //     self.mx25l
+    // }
 }

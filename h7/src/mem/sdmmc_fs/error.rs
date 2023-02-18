@@ -2,7 +2,7 @@ use stm32h7xx_hal::sdmmc::Error;
 
 pub enum SdmmcFsError {
     NotFound,
-    BufferTooSmall,
+    // BufferTooSmall,
     AlreadyMounted,
     NotMounted,
     Sdmmc(embedded_sdmmc::Error<Error>),
@@ -19,7 +19,7 @@ impl core::fmt::Display for SdmmcFsError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::NotFound => write!(f, "Not Found"),
-            Self::BufferTooSmall => write!(f, "Buffer Too Small"),
+            // Self::BufferTooSmall => write!(f, "Buffer Too Small"),
             Self::AlreadyMounted => write!(f, "Already mounted"),
             Self::NotMounted => write!(f, "Not Mounted"),
             Self::Sdmmc(e) => write!(f, "Sdmmc: {e:?}"),

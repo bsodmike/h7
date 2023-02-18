@@ -1,7 +1,7 @@
 use {
     crate::{
         app, consts,
-        led::LED,
+        led::Led,
         logger,
         mem::sdmmc_fs,
         menu::{check_args_len, MenuError, MenuItem},
@@ -138,8 +138,8 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
             }
             writeln!(m.writer(), "Executing from {app_fn:p}")?;
             let ret = unsafe {
-                LED::Green.on();
-                LED::Red.on();
+                Led::Green.on();
+                Led::Red.on();
                 // Disable cache
                 let mut cp = cortex_m::Peripherals::steal();
                 cp.SCB.disable_icache();
@@ -159,8 +159,8 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                 cp.SCB.enable_icache();
                 cp.SCB.enable_dcache(&mut cp.CPUID);
 
-                LED::Green.off();
-                LED::Red.off();
+                Led::Green.off();
+                Led::Red.off();
 
                 ret
             };
@@ -500,19 +500,22 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                     cfg!(debug_assertions),
                     width = LABEL_WIDTH
                 )?;
-                let dt = NaiveDate::from_ymd(
+                let dt = NaiveDate::from_ymd_opt(
                     consts::COMPILE_TIME_YEAR,
                     consts::COMPILE_TIME_MONTH,
                     consts::COMPILE_TIME_DAY,
                 )
-                .and_hms(
-                    consts::COMPILE_TIME_HOUR,
-                    consts::COMPILE_TIME_MINUTE,
-                    consts::COMPILE_TIME_SECOND,
-                );
+                .and_then(|dt| {
+                    dt.and_hms_opt(
+                        consts::COMPILE_TIME_HOUR,
+                        consts::COMPILE_TIME_MINUTE,
+                        consts::COMPILE_TIME_SECOND,
+                    )
+                })
+                .unwrap();
                 writeln!(
                     m.writer(),
-                    "{:width$} {weekday} {month} {day} {hh:02}:{mm:02}:{ss:02} {year}",
+                    "{:LABEL_WIDTH$} {weekday} {month} {day} {hh:02}:{mm:02}:{ss:02} {year}",
                     "Compiled",
                     weekday = dt.weekday(),
                     month = month_to_str(dt.month()),
@@ -520,8 +523,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                     hh = dt.hour(),
                     mm = dt.minute(),
                     ss = dt.second(),
-                    year = dt.year(),
-                    width = LABEL_WIDTH
+                    year = dt.year()
                 )?;
                 Ok(())
             }
@@ -836,11 +838,11 @@ fn days_in_month<D: Datelike>(d: &D) -> u32 {
     let y = d.year();
     let m = d.month();
     if m == 12 {
-        NaiveDate::from_ymd(y + 1, 1, 1)
+        NaiveDate::from_ymd_opt(y + 1, 1, 1).unwrap()
     } else {
-        NaiveDate::from_ymd(y, m + 1, 1)
+        NaiveDate::from_ymd_opt(y, m + 1, 1).unwrap()
     }
-    .signed_duration_since(NaiveDate::from_ymd(y, m, 1))
+    .signed_duration_since(NaiveDate::from_ymd_opt(y, m, 1).unwrap())
     .num_days() as u32
 }
 

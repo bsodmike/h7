@@ -13,7 +13,7 @@ use {
     //     DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
     // },
     fugit::RateExtU32,
-    led::LED,
+    led::Led,
     stm32h7xx_hal::{self as hal, adc, gpio::Speed, pac, prelude::*, rcc, rtc},
     time::TimeSource,
 };
@@ -21,7 +21,7 @@ use {
 mod app;
 mod consts;
 mod display;
-mod dsi;
+// mod dsi;
 mod led;
 mod logger;
 mod mem;
@@ -94,7 +94,9 @@ unsafe fn main() -> ! {
         // USB Clock
         let _ = ccdr.clocks.hsi48_ck().expect("HSI48 must run");
         ccdr.peripheral
-            .kernel_usb_clk_mux(rcc::rec::UsbClkSel::HSI48);
+            .kernel_usb_clk_mux(rcc::rec::UsbClkSel::Hsi48);
+        ccdr.peripheral
+            .kernel_adc_clk_mux(stm32h7xx_hal::rcc::rec::AdcClkSel::Per);
         ccdr
     };
 
@@ -194,16 +196,19 @@ unsafe fn main() -> ! {
         // Set Date and Time
         #[cfg(debug_assertions)]
         let _ = TimeSource::set_date_time(
-            NaiveDate::from_ymd(
+            NaiveDate::from_ymd_opt(
                 consts::COMPILE_TIME_YEAR,
                 consts::COMPILE_TIME_MONTH,
                 consts::COMPILE_TIME_DAY,
             )
-            .and_hms(
-                consts::COMPILE_TIME_HOUR,
-                consts::COMPILE_TIME_MINUTE,
-                consts::COMPILE_TIME_SECOND,
-            ),
+            .and_then(|td| {
+                td.and_hms_opt(
+                    consts::COMPILE_TIME_HOUR,
+                    consts::COMPILE_TIME_MINUTE,
+                    consts::COMPILE_TIME_SECOND,
+                )
+            })
+            .unwrap(),
         );
     }
 
@@ -214,15 +219,19 @@ unsafe fn main() -> ! {
     {
         // Temp ADC
         let mut channel = adc::Temperature::new();
-        let mut temp_adc_disabled =
-            adc::Adc::adc3(dp.ADC3, &mut delay, ccdr.peripheral.ADC3, &ccdr.clocks);
+        let mut temp_adc_disabled = adc::Adc::adc3(
+            dp.ADC3,
+            8.MHz(),
+            &mut delay,
+            ccdr.peripheral.ADC3,
+            &ccdr.clocks,
+        );
         temp_adc_disabled.set_sample_time(adc::AdcSampleTime::T_387);
-        temp_adc_disabled.set_resolution(adc::Resolution::SIXTEENBIT);
+        temp_adc_disabled.set_resolution(adc::Resolution::SixteenBit);
         temp_adc_disabled.calibrate();
         channel.enable(&temp_adc_disabled);
         delay.delay_us(25_u16); // Delay necessary?
         let temp_adc = temp_adc_disabled.enable();
-
         // Save clock freq
         interrupt_free(|cs| {
             system::CLOCK_FREQ
