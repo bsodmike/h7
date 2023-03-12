@@ -1,0 +1,61 @@
+[config]
+skip_core_tasks = true
+
+[tasks.default]
+alias = "build-release"
+
+[tasks.build-debug]
+env = { RELEASE_DEBUG = "debug" }
+run_task = { name = [ "_dir", "_build", "_elf", "_bin", "_h7" ] }
+
+[tasks.build-release]
+env = { RELEASE_DEBUG = "release" }
+run_task = { name = [ "_dir", "_build", "_elf", "_bin", "_h7" ] }
+
+# ==== Private tasks ====
+
+[tasks._build]
+private = true
+condition = { env_set = [ "RELEASE_DEBUG" ] }
+script_runner = "bash"
+script = '''
+if [ ${RELEASE_DEBUG} == "release" ]; then
+    cargo build -Z unstable-options --release --target thumbv7em-none-eabihf --out-dir dist/h7/${RELEASE_DEBUG} ${@}
+    cargo build -Z unstable-options --release --target x86_64-unknown-linux-gnu --out-dir dist/sim/${RELEASE_DEBUG} ${@}
+else
+    cargo build -Z unstable-options --target thumbv7em-none-eabihf --out-dir dist/h7/${RELEASE_DEBUG} ${@}
+    cargo build -Z unstable-options --target x86_64-unknown-linux-gnu --out-dir dist/sim/${RELEASE_DEBUG} ${@}
+fi
+'''
+
+[tasks._dir]
+private = true
+script_runner = "bash"
+script = '''
+mkdir -p dist/sim/${RELEASE_DEBUG}
+mkdir -p dist/h7/${RELEASE_DEBUG}
+'''
+
+[tasks._elf]
+private = true
+script_runner = "bash"
+script = '''
+arm-none-eabi-ld dist/h7/${RELEASE_DEBUG}/lib${CARGO_MAKE_PROJECT_NAME}.a -o dist/h7/${RELEASE_DEBUG}/${CARGO_MAKE_PROJECT_NAME}.elf -T ../../h7-applib/h7-app.ld --gc-sections -flto -nostdlib
+'''
+
+[tasks._bin]
+private = true
+condition = { env_set = [ "RELEASE_DEBUG" ] }
+script_runner = "bash"
+script = '''
+arm-none-eabi-objcopy -O binary dist/h7/${RELEASE_DEBUG}/${CARGO_MAKE_PROJECT_NAME}.elf dist/h7/${RELEASE_DEBUG}/${CARGO_MAKE_PROJECT_NAME}.bin
+'''
+
+[tasks._h7]
+private = true
+condition = { env_set = [ "RELEASE_DEBUG" ] }
+script_runner = "bash"
+script = '''
+cd ../../h7-mkapp
+cargo run --release -- ../h7-apps/${CARGO_MAKE_PROJECT_NAME}/dist/h7/${RELEASE_DEBUG}/${CARGO_MAKE_PROJECT_NAME}.bin ../h7-apps/${CARGO_MAKE_PROJECT_NAME}/dist/h7/${RELEASE_DEBUG}/${CARGO_MAKE_PROJECT_NAME}.h7
+'''

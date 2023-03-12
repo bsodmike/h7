@@ -476,7 +476,7 @@ pub const MENU: &[MenuItem<TerminalWriter>] = &[
                     m.writer(),
                     "{:width$} {} bytes",
                     "GPU reserved",
-                    crate::display::FRAME_BUF_SIZE,
+                    crate::display::FRAME_BUFFER_ALLOC_SIZE,
                     width = LABEL_WIDTH
                 )?;
                 writeln!(

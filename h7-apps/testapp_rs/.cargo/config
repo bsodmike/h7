@@ -1,6 +1,6 @@
 [target.thumbv7em-none-eabihf]
 rustflags = [
-  "-C", "link-arg=-Th7-app.ld",
+  "-C", "link-arg=-Th7-app.ld"
 ]
 
 [target.thumbv7em-none-eabi]

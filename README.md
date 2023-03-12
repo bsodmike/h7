@@ -2,6 +2,14 @@
 
 ## Todo
 
+### Sim
+
+* [ ] Create display crate `h7-display` (lib)
+* [ ] Create sim crate `h7-sim` (lib, bin)
+* [ ] Allow the `h7-sim` crate to be used a library and a binary.
+    - As lib: When used as a library, provide sim entry point
+    - As bin: Show display, open h7-app and run .so
+
 ### Hardware/HAL/Driver
 
 * [x] External SDRAM

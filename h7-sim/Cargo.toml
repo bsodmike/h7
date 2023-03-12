@@ -1,0 +1,15 @@
+[package]
+name = "h7-sim"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+h7-api = { path = "../h7-api" }
+h7-display = { path = "../h7-display" }
+
+sdl2 = { version = "0.35.2", default-features = false }
+embedded-graphics = "0.7.1"
+profont = "0.6"
+libloading = "0.7.4"

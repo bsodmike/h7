@@ -282,7 +282,10 @@ unsafe fn main() -> ! {
             .init(&mut delay);
 
         // Configure allocator
-        mem::ALLOCATOR.init(sdram_ptr as usize + display::FRAME_BUF_SIZE, mem::HEAP_SIZE);
+        mem::ALLOCATOR.init(
+            sdram_ptr as usize + display::FRAME_BUFFER_ALLOC_SIZE,
+            mem::HEAP_SIZE,
+        );
     }
 
     // Enable osc

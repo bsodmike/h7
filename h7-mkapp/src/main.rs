@@ -10,7 +10,7 @@ fn main() {
     let output = args.next().expect("No output");
 
     println!("input = {}", input);
-    println!("input = {}", output);
+    println!("output = {}", output);
 
     let input_data = fs::read(&input).unwrap();
     if input_data.len() < 4 {

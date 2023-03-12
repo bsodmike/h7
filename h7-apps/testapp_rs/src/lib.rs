@@ -5,9 +5,9 @@ use {core::fmt::Write, h7_applib::Host};
 
 extern crate alloc;
 
-#[cfg(not(target_os = "none"))]
-pub fn main() {
-    h7_applib::sim::main()
+#[inline(never)]
+fn mul(a: usize, b: usize) -> usize {
+    a * b
 }
 
 #[no_mangle]
@@ -27,8 +27,13 @@ pub extern "C" fn h7_main() -> i32 {
 
         if c == b'b' {
             break;
-        } else if c != 0 {
+        } else if c == b'\r' || c == b'\n' {
             Host::putc(c);
+        } else if c != 0 {
+            // Host::putc(c);
+            let r = mul(c as usize, c as usize);
+            let _ = writeln!(Host, "mul: {r}");
+            // core::hint::black_box(r);
         }
 
         // Host::delay(10);

@@ -1,9 +1,10 @@
 [package]
-name = "testapp-rs"
+name = "testapp_rs"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = [ "dylib", "staticlib" ]
 
 [dependencies]
 h7-applib = { path = "../../h7-applib", features = [ "alloc" ] }
