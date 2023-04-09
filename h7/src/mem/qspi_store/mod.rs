@@ -1,6 +1,6 @@
 use {
     core::cell::RefCell,
-    cortex_m::interrupt::Mutex,
+    critical_section::Mutex,
     mx25l::Mx25L,
     stm32h7xx_hal::{
         gpio::{gpiog::PG6, Output, PushPull},

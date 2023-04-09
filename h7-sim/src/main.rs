@@ -35,7 +35,7 @@ fn main() -> Result<(), String> {
     };
 
     // let api = h7_api::H7Api {
-    //     alloc: |size, align| -> *mut u8 { todo!() },
+    //     alloc:
     // };
 
     let sdl_context = sdl2::init()?;
@@ -227,9 +227,9 @@ fn main() -> Result<(), String> {
             std::thread::sleep((Duration::SECOND / FPS_TARGET) - diff);
         }
 
-        let diff = Instant::now() - sof;
-        let fps = 1_000_000f64 / diff.as_micros() as f64;
-        eprintln!("FT: {:.02}ms, FPS: {fps:.02}", diff.as_secs_f64() * 1000.0);
+        // let diff = Instant::now() - sof;
+        // let fps = 1_000_000f64 / diff.as_micros() as f64;
+        // eprintln!("FT: {:.02}ms, FPS: {fps:.02}", diff.as_secs_f64() * 1000.0);
     }
 
     unsafe { dealloc(vram_ptr, vram_layout) };

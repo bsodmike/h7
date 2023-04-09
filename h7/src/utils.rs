@@ -1,13 +1,13 @@
 use {
     crate::led::Led,
     core::cell::RefCell,
-    cortex_m::interrupt::{self, CriticalSection, Mutex},
+    critical_section::{CriticalSection, Mutex},
     stm32h7xx_hal::crc::{Config, Crc},
 };
 
 pub static CRC: Mutex<RefCell<Option<Crc>>> = Mutex::new(RefCell::new(None));
 
-pub fn crc(cs: &CriticalSection, data: &[u8]) -> u32 {
+pub fn crc(cs: CriticalSection, data: &[u8]) -> u32 {
     match *CRC.borrow(cs).borrow_mut() {
         Some(ref mut crc) => {
             let config = Config::new();
@@ -21,10 +21,10 @@ pub fn crc(cs: &CriticalSection, data: &[u8]) -> u32 {
 #[inline(always)]
 pub fn interrupt_free<F, R>(f: F) -> R
 where
-    F: FnOnce(&CriticalSection) -> R,
+    F: FnOnce(CriticalSection) -> R,
 {
     unsafe { Led::Blue.on() };
-    let r = interrupt::free(f);
+    let r = critical_section::with(f);
     unsafe { Led::Blue.off() };
     r
 }

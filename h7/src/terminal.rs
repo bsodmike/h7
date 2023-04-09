@@ -10,7 +10,7 @@ use {
     },
     chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike},
     core::{cell::RefCell, fmt::Write, str::FromStr},
-    cortex_m::interrupt::Mutex,
+    critical_section::Mutex,
     heapless::mpmc::Q64,
     stm32h7xx_hal::{self as hal, interrupt, pac, prelude::*, serial},
 };

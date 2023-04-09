@@ -1,6 +1,6 @@
 use {
     core::cell::RefCell,
-    cortex_m::interrupt::{CriticalSection, Mutex},
+    critical_section::{CriticalSection, Mutex},
     stm32h7xx_hal::{
         self as hal,
         adc::{self, Adc},
@@ -24,11 +24,11 @@ pub static CORE_TEMP: Mutex<
     RefCell<Option<(Adc<hal::device::ADC3, adc::Enabled>, adc::Temperature)>>,
 > = Mutex::new(RefCell::new(None));
 
-pub fn cpu_freq(cs: &CriticalSection) -> Option<Hertz> {
+pub fn cpu_freq(cs: CriticalSection) -> Option<Hertz> {
     *CLOCK_FREQ.borrow(cs).borrow()
 }
 
-pub fn cpu_temp(cs: &CriticalSection) -> Option<f64> {
+pub fn cpu_temp(cs: CriticalSection) -> Option<f64> {
     CORE_TEMP
         .borrow(cs)
         .borrow_mut()

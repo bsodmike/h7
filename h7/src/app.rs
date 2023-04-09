@@ -5,7 +5,7 @@ use {
         utils,
     },
     core::{alloc::GlobalAlloc, cell::RefCell, fmt::Write},
-    cortex_m::interrupt::Mutex,
+    critical_section::Mutex,
     h7_api::{AppEntryPoint, H7Api},
 };
 

@@ -1,7 +1,7 @@
 use {
     crate::time::TimeSource,
     core::{cell::RefCell, fmt},
-    cortex_m::interrupt::Mutex,
+    critical_section::Mutex,
     embedded_hal::blocking::delay::DelayMs,
     embedded_sdmmc::{
         BlockDevice, Controller, DirEntry, Directory, File, Mode as FileOpenMode, Volume, VolumeIdx,
