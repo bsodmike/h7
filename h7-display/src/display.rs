@@ -61,40 +61,37 @@ where
         match px {
             0 => { /* nop */ }
             i32::MIN..=-1 => {
-                for _ in 0..px.abs().min(HEIGHT as i32) {
-                    for row in (1..HEIGHT).rev() {
-                        let (start, end) = self.back_buffer_mut().split_at_mut(row * WIDTH);
-                        // end[..WIDTH].copy_from_slice(&start[Self::row_range(row - 1)]);
-                        unsafe {
-                            end.get_unchecked_mut(..WIDTH)
-                                .copy_from_slice(start.get_unchecked(Self::row_range(row - 1)))
-                        };
-                    }
-                    // self.back_buffer_mut()[Self::row_range(0)].fill(fill);
-                    unsafe {
-                        self.back_buffer_mut()
-                            .get_unchecked_mut(Self::row_range(0))
-                            .fill(fill);
-                    }
+                let n_rows = px.unsigned_abs() as usize;
+                let back_buffer_ptr = self.back_buffer_mut().as_mut_ptr();
+                unsafe {
+                    core::ptr::copy(
+                        back_buffer_ptr,
+                        back_buffer_ptr.add(n_rows * WIDTH),
+                        (self.height() - n_rows) * WIDTH,
+                    );
+
+                    let r1 = Self::row_range(0);
+                    let r2 = Self::row_range(n_rows);
+                    self.back_buffer_mut()
+                        .get_unchecked_mut(r1.start..r2.start)
+                        .fill(fill);
                 }
             }
             1..=i32::MAX => {
-                for _ in 0..px.min(HEIGHT as i32) {
-                    for row in 1..HEIGHT {
-                        let (start, end) = self.back_buffer_mut().split_at_mut(row * WIDTH);
-                        // start[Self::row_range(row - 1)].copy_from_slice(&end[..WIDTH]);
-                        unsafe {
-                            start
-                                .get_unchecked_mut(Self::row_range(row - 1))
-                                .copy_from_slice(end.get_unchecked(..WIDTH));
-                        }
-                    }
-                    // self.back_buffer_mut()[Self::row_range(HEIGHT - 1)].fill(fill);
-                    unsafe {
-                        self.back_buffer_mut()
-                            .get_unchecked_mut(Self::row_range(HEIGHT - 1))
-                            .fill(fill)
-                    };
+                let n_rows = px.unsigned_abs() as usize;
+                let back_buffer_ptr = self.back_buffer_mut().as_mut_ptr();
+                unsafe {
+                    core::ptr::copy(
+                        back_buffer_ptr.add(n_rows * WIDTH),
+                        back_buffer_ptr,
+                        (self.height() - n_rows) * WIDTH,
+                    );
+
+                    let r1 = Self::row_range(HEIGHT - n_rows);
+                    let r2 = Self::row_range(HEIGHT);
+                    self.back_buffer_mut()
+                        .get_unchecked_mut(r1.start..r2.start)
+                        .fill(fill);
                 }
             }
         }
@@ -207,7 +204,8 @@ where
     }
 
     fn clear(&mut self, color: Self::Color) -> Result<(), Self::Error> {
-        self.fill_solid(&self.bounding_box(), color)
+        self.back_buffer_mut().fill(color);
+        Ok(())
     }
 }
 
