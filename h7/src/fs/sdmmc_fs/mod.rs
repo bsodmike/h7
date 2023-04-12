@@ -1,4 +1,5 @@
 use {
+    super::path::Path,
     crate::time::TimeSource,
     core::{cell::RefCell, fmt},
     critical_section::Mutex,
@@ -7,7 +8,6 @@ use {
         BlockDevice, Controller, DirEntry, Directory, File, Mode as FileOpenMode, Volume, VolumeIdx,
     },
     error::*,
-    path::Path,
     stm32h7xx_hal::{
         pac::SDMMC2,
         sdmmc::{SdCard, Sdmmc, SdmmcBlockDevice},
@@ -16,7 +16,6 @@ use {
 };
 
 mod error;
-mod path;
 
 const H7_MAX_OPEN_DIRS: usize = 4;
 const H7_MAX_OPEN_FILES: usize = 4;
@@ -100,7 +99,7 @@ impl<const MAX_OPEN_DIRS: usize, const MAX_OPEN_FILES: usize>
                             if i == 0 {
                                 return Err(SdmmcFsError::HalSdmmc(e));
                             } else {
-                                log::info!("SD Card mount failed, retrying...");
+                                log::warn!("SD Card mount failed, retrying...");
                                 if let Some((time, ref mut delay)) = delay {
                                     delay.delay_ms(time);
                                 }

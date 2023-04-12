@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct Path<'p> {
     // raw: &'p str,
     path: &'p str,
@@ -40,9 +40,9 @@ impl<'p> Path<'p> {
     //     self.path
     // }
 
-    // pub fn device(&self) -> Option<&'p str> {
-    //     self.device
-    // }
+    pub fn device(&self) -> Option<&'p str> {
+        self.device
+    }
 
     // pub fn is_absolute(&self) -> bool {
     //     self.absolute

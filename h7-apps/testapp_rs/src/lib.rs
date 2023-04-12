@@ -14,30 +14,31 @@ fn mul(a: usize, b: usize) -> usize {
 pub extern "C" fn h7_main() -> i32 {
     Host::puts("Hello from Rust test app!\n");
 
-    let s = alloc::string::String::from("Allocated string\n");
-    Host::puts(&s);
+    let stack_var = 5;
 
-    Host::putc(b'\n');
+    let _ = writeln!(Host, "mul: {:p}", &mul);
+    let _ = writeln!(Host, "h7_main: {:p}", &h7_main);
+    let _ = writeln!(Host, "stack_var: {:p}", &stack_var);
+
+    // let s = alloc::string::String::from("Allocated string\n");
+    // Host::puts(&s);
+
+    // Host::putc(b'\n');
 
     // let v = alloc::vec::Vec::<u8>::with_capacity(128).leak();
     // let _ = writeln!(Host, "vptr: {:p}", v);
 
-    loop {
-        let c = Host::getc();
+    // loop {
+    //     let c = Host::getc();
 
-        if c == b'b' {
-            break;
-        } else if c == b'\r' || c == b'\n' {
-            Host::putc(c);
-        } else if c != 0 {
-            // Host::putc(c);
-            let r = mul(c as usize, c as usize);
-            let _ = writeln!(Host, "mul: {r}");
-            // core::hint::black_box(r);
-        }
-
-        // Host::delay(10);
-    }
+    //     if c == b'b' {
+    //         break;
+    //     } else if c == b'\r' || c == b'\n' {
+    //         Host::putc('\n');
+    //     } else if c != 0 {
+    //         Host::putc(c);
+    //     };
+    // }
 
     0
 }

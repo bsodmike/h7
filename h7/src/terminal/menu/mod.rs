@@ -21,8 +21,8 @@ pub struct Menu<'m, W: core::fmt::Write> {
     menu: &'m [MenuItem<'m, W>],
 }
 
-impl<'m, W: core::fmt::Write> Menu<'m, W> {
-    pub fn new(writer: W, menu: &'m [MenuItem<'m, W>]) -> Self {
+impl<'m: 'i, 'i, W: core::fmt::Write> Menu<'m, W> {
+    pub fn new(writer: W, menu: &'m [MenuItem<'i, W>]) -> Self {
         Self { writer, menu }
     }
 
@@ -56,15 +56,5 @@ impl<'m, W: core::fmt::Write> Menu<'m, W> {
 impl<'m, W: core::fmt::Write> core::fmt::Write for Menu<'m, W> {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         self.writer().write_str(s)
-    }
-}
-
-pub const fn check_args_len(expected: u8, actual: usize) -> MenuResult {
-    if (actual as u8) > expected {
-        Err(MenuError::TooManyArgs(expected, actual as u8))
-    } else if (actual as u8) < expected {
-        Err(MenuError::NotEnoughArgs(expected, actual as u8))
-    } else {
-        Ok(())
     }
 }

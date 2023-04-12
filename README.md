@@ -44,7 +44,8 @@
 * [ ] Settings using hds::Kv
 * [ ] Show long names on SD Card
 * [ ] HardFault info (upstream to cortex_m?)
-
+* [ ] NOR-Flash file system [littlefs2](https://github.com/trussed-dev/littlefs2)
+* [ ] Uptime
 
 ### Test
 

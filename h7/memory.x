@@ -8,7 +8,6 @@ MEMORY
     /* Use AXISRAM as application 'ROM' */
     AXISRAM (rxw) : ORIGIN = 0x24000000, LENGTH = 512K
     /* SRAM1, SRAM2 and SRAM 3 are contiguous */
-    /* Use SRAM1-3 as application 'RAM' */
     SRAM1   (rxw) : ORIGIN = 0x30000000, LENGTH = 128K
     SRAM2   (rxw) : ORIGIN = 0x30020000, LENGTH = 128K
     SRAM3   (rxw) : ORIGIN = 0x30040000, LENGTH = 32K

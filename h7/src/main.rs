@@ -22,10 +22,10 @@ mod app;
 mod consts;
 mod display;
 // mod dsi;
+mod fs;
 mod led;
 mod logger;
 mod mem;
-mod menu;
 #[cfg(not(feature = "semihosting"))]
 mod panic;
 mod pmic;
@@ -42,6 +42,7 @@ unsafe fn main() -> ! {
     let mut cp = cortex_m::Peripherals::take().unwrap();
     let dp = pac::Peripherals::take().unwrap();
 
+    // Enable SRAM1-3
     dp.RCC.ahb2enr.modify(|_, w| {
         w.sram1en()
             .set_bit()
@@ -311,15 +312,15 @@ unsafe fn main() -> ! {
             &ccdr.clocks,
         );
         interrupt_free(|cs| {
-            mem::sdmmc_fs::SD_CARD
+            fs::sdmmc_fs::SD_CARD
                 .borrow(cs)
-                .replace(Some(mem::sdmmc_fs::SdmmcFs::new(sdcard)))
+                .replace(Some(fs::sdmmc_fs::SdmmcFs::new(sdcard)))
         });
     }
 
     // QSPI Flash
     {
-        let mut qspi_store = mem::qspi_store::QspiStore::new(
+        let mut qspi_store = fs::qspi_store::QspiStore::new(
             dp.QUADSPI.bank1(
                 (
                     gpiof.pf10.into_alternate::<9>().speed(Speed::VeryHigh),
@@ -337,7 +338,7 @@ unsafe fn main() -> ! {
         qspi_store.init().unwrap();
 
         interrupt_free(|cs| {
-            mem::qspi_store::QSPI_STORE
+            fs::qspi_store::QSPI_STORE
                 .borrow(cs)
                 .replace(Some(qspi_store));
         });
@@ -407,7 +408,7 @@ unsafe fn main() -> ! {
     //     &ccdr.clocks,
     // );
 
-    let mut menu = menu::Menu::new(terminal::TerminalWriter, terminal::MENU);
+    let mut menu = terminal::menu::Menu::new(terminal::TerminalWriter, terminal::MENU);
 
     let mut cmd_buf = [0u8; 1024];
     let mut cmd_buf_len: usize = 0;

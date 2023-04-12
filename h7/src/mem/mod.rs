@@ -1,5 +1,3 @@
-pub mod qspi_store;
-pub mod sdmmc_fs;
 pub mod sdram;
 
 use cortex_m_alloc::CortexMHeap;
