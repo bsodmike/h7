@@ -16,8 +16,8 @@ const TIME_PARSE_FORMAT: &str = "%H:%M:%S";
 
 pub const DATE: MenuItem<'static, TerminalWriter> = MenuItem::Command {
     name: "date",
-    help: "date - Get system date and time",
-    description: "Get system date and time",
+    help: "date [set <(date|time|date time)>] - Get/set system date and time",
+    description: "Get/set system date and time",
     action: |m, args| {
         match args {
             ["set", date, time] => match (
@@ -143,7 +143,7 @@ pub const CAL: MenuItem<'static, TerminalWriter> = MenuItem::Command {
 
 pub const TIME: MenuItem<'static, TerminalWriter> = MenuItem::Command {
     name: "time",
-    help: "Measure execution time of a command",
+    help: "time <command..> - Measure execution time of a command",
     description: "Measure execution time of a command",
     action: |m, args| {
         let start = TimeSource::get_date_time();
@@ -152,7 +152,11 @@ pub const TIME: MenuItem<'static, TerminalWriter> = MenuItem::Command {
             [cmd, rest @ ..] => m.run(cmd, rest),
         }?;
         match (start, TimeSource::get_date_time()) {
-            (Some(start), Some(end)) => writeln!(m.writer(), "Execution took {}", end - start),
+            (Some(start), Some(end)) => {
+                write!(m.writer(), "Execution took ")?;
+                crate::utils::write_pretty_duration(m.writer(), end - start)?;
+                writeln!(m.writer())
+            }
             (None, _) => writeln!(m.writer(), "Failed to get start time"),
             (_, None) => writeln!(m.writer(), "Failed to get end time"),
         }?;

@@ -1,11 +1,13 @@
 use {
+    crate::utils::interrupt_free,
     chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, Timelike},
     core::cell::RefCell,
-    cortex_m::interrupt::{self, Mutex},
+    critical_section::Mutex,
     stm32h7xx_hal::rtc::Rtc,
 };
 
 pub static RTC: Mutex<RefCell<Option<Rtc>>> = Mutex::new(RefCell::new(None));
+pub static BOOT_TIME: Mutex<RefCell<Option<NaiveDateTime>>> = Mutex::new(RefCell::new(None));
 
 const DEFAULT_TIMESTAMP: embedded_sdmmc::Timestamp = embedded_sdmmc::Timestamp {
     year_since_1970: 0,
@@ -20,11 +22,11 @@ pub struct TimeSource;
 
 impl TimeSource {
     pub fn set_source(rtc: Rtc) {
-        interrupt::free(|cs| RTC.borrow(cs).replace(Some(rtc)));
+        interrupt_free(|cs| RTC.borrow(cs).replace(Some(rtc)));
     }
 
     pub fn set_date(d: NaiveDate) -> Result<(), ()> {
-        interrupt::free(|cs| {
+        interrupt_free(|cs| {
             match RTC
                 .borrow(cs)
                 .borrow_mut()
@@ -41,7 +43,7 @@ impl TimeSource {
     }
 
     pub fn set_time(t: NaiveTime) -> Result<(), ()> {
-        interrupt::free(|cs| {
+        interrupt_free(|cs| {
             match RTC
                 .borrow(cs)
                 .borrow_mut()
@@ -58,7 +60,7 @@ impl TimeSource {
     }
 
     pub fn set_date_time(dt: NaiveDateTime) -> Result<(), ()> {
-        interrupt::free(|cs| match &mut *RTC.borrow(cs).borrow_mut() {
+        interrupt_free(|cs| match &mut *RTC.borrow(cs).borrow_mut() {
             Some(rtc) => {
                 rtc.set_date_time(dt);
                 Ok(())
@@ -68,7 +70,7 @@ impl TimeSource {
     }
 
     pub fn get_date_time() -> Option<NaiveDateTime> {
-        interrupt::free(|cs| {
+        interrupt_free(|cs| {
             RTC.borrow(cs)
                 .borrow()
                 .as_ref()

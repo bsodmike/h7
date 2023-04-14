@@ -34,34 +34,69 @@ pub static UART_TERMINAL_TX: Mutex<RefCell<Option<serial::Tx<pac::USART1>>>> =
 pub const UART_TERMINAL_BAUD: u32 = 115_200;
 
 pub const MENU: &[MenuItem<TerminalWriter>] = &[
-    commands::fs::LS,
-    commands::fs::SDCARD,
-    commands::program::PLOAD,
-    commands::program::PRUN,
-    commands::program::UPLOAD,
-    commands::sys::COMMANDS,
-    commands::sys::HELP,
-    commands::sys::INFO,
-    commands::sys::PROGRAMS,
-    commands::sys::SYS,
-    commands::time::CAL,
-    commands::time::DATE,
-    commands::time::TIME,
-    MenuItem::Command {
-        name: "testfn",
-        help: "testfn",
-        description: "testfn",
-        action: |m, _| {
-            writeln!(m.writer(), "testfn")?;
-            // writeln!(m.writer(), "u64", mem::align_of::<64>())?;
-            // mem!(m, align_of, u32)?;
-            // mem!(m, align_of, &[u32])?;
-            // mem!(m, align_of, u64)?;
-            // mem!(m, align_of, &[u64])?;
-            // mem!(m, align_of, u128)?;
-            // mem!(m, align_of, &[u128])?;
-            Ok(())
-        },
+    MenuItem::Group {
+        title: "I/O",
+        commands: &[
+            commands::io::CP,
+            commands::io::RM,
+            commands::io::MV,
+            commands::io::LS,
+            commands::io::CAT,
+            commands::io::NOR,
+            commands::io::SDCARD,
+            commands::io::CURL,
+        ],
+    },
+    MenuItem::Group {
+        title: "Program",
+        commands: &[
+            commands::program::PLOAD,
+            commands::program::PRUN,
+            commands::program::UPLOAD,
+        ],
+    },
+    MenuItem::Group {
+        title: "System",
+        commands: &[
+            commands::sys::COMMANDS,
+            commands::sys::HELP,
+            commands::sys::MAN,
+            commands::sys::INFO,
+            commands::sys::PROGRAMS,
+            commands::sys::SYS,
+            commands::sys::WIFICTL,
+            commands::sys::BTCTL,
+            commands::sys::ETHCTL,
+            commands::sys::UPTIME,
+            commands::sys::LEDCTL,
+        ],
+    },
+    MenuItem::Group {
+        title: "Date / Time",
+        commands: &[
+            commands::time::CAL,
+            commands::time::DATE,
+            commands::time::TIME,
+        ],
+    },
+    MenuItem::Group {
+        title: "Other",
+        commands: &[MenuItem::Command {
+            name: "testfn",
+            help: "testfn",
+            description: "testfn",
+            action: |m, _| {
+                writeln!(m.writer(), "testfn")?;
+                // writeln!(m.writer(), "u64", mem::align_of::<64>())?;
+                // mem!(m, align_of, u32)?;
+                // mem!(m, align_of, &[u32])?;
+                // mem!(m, align_of, u64)?;
+                // mem!(m, align_of, &[u64])?;
+                // mem!(m, align_of, u128)?;
+                // mem!(m, align_of, &[u128])?;
+                Ok(())
+            },
+        }],
     },
 ];
 

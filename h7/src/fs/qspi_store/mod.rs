@@ -13,13 +13,13 @@ use {
 pub mod mx25l;
 
 pub const QSPI_FLASH_SIZE: usize = 16 * 1024 * 1024;
-pub static QSPI_STORE: Mutex<RefCell<Option<QspiStore>>> = Mutex::new(RefCell::new(None));
+pub static QSPI_STORE: Mutex<RefCell<Option<NorFlash>>> = Mutex::new(RefCell::new(None));
 
-pub struct QspiStore {
+pub struct NorFlash {
     mx25l: Mx25L<PG6<Output<PushPull>>>,
 }
 
-impl QspiStore {
+impl NorFlash {
     pub fn new(qspi: Qspi<QUADSPI>, cs: PG6<Output<PushPull>>) -> Self {
         Self {
             mx25l: Mx25L::new(qspi, cs),
@@ -37,4 +37,18 @@ impl QspiStore {
     // pub fn free(self) -> Mx25L<PG6<Output<PushPull>>> {
     //     self.mx25l
     // }
+}
+
+impl core::ops::Deref for NorFlash {
+    type Target = Mx25L<PG6<Output<PushPull>>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.mx25l
+    }
+}
+
+impl core::ops::DerefMut for NorFlash {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.mx25l
+    }
 }

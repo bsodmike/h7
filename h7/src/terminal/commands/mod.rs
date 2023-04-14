@@ -1,4 +1,4 @@
-pub mod fs;
+pub mod io;
 pub mod program;
 pub mod sys;
 pub mod time;

@@ -1,7 +1,11 @@
+use crate::time::TimeSource;
+
 use {
     super::{utils::*, HEADER_WIDTH, LABEL_WIDTH},
     crate::{
-        consts, logger,
+        consts,
+        led::Led,
+        logger,
         terminal::{
             menu::{MenuError, MenuItem},
             TerminalWriter, MENU,
@@ -20,25 +24,42 @@ pub const HELP: MenuItem<'static, TerminalWriter> = MenuItem::Command {
     action: |m, args| {
         check_args_len(1, args.len())?;
         let program = args[0];
-        for item in MENU {
+        let mut command_found = false;
+        iter_menu(m, args, MENU, &mut |menu, _, item, _, _| {
             match item {
                 MenuItem::Command { name, help, .. } => {
                     if *name == program {
-                        writeln!(m.writer(), "{help}")?;
-                        return Ok(());
+                        writeln!(menu.writer(), "{help}")?;
+                        command_found = true;
+                        return Ok(false);
                     }
                 }
                 MenuItem::Alias { alias, command } => {
                     if *alias == program {
-                        writeln!(m.writer(), "'{alias}' aliased to '{command}'")?;
-                        m.run("help", &[*command])?;
-                        return Ok(());
+                        writeln!(menu.writer(), "'{alias}' aliased to '{command}'")?;
+                        menu.run("help", &[*command])?;
+                        command_found = true;
+                        return Ok(false);
                     }
                 }
-            }
+                MenuItem::Group { .. } => {
+                    // nop
+                }
+            };
+            Ok(true)
+        })?;
+
+        if command_found {
+            Ok(())
+        } else {
+            Err(MenuError::CommandNotFound)
         }
-        Err(MenuError::CommandNotFound)
     },
+};
+
+pub const MAN: MenuItem<'static, TerminalWriter> = MenuItem::Alias {
+    alias: "man",
+    command: "help",
 };
 
 pub const PROGRAMS: MenuItem<'static, TerminalWriter> = MenuItem::Command {
@@ -47,19 +68,37 @@ pub const PROGRAMS: MenuItem<'static, TerminalWriter> = MenuItem::Command {
     description: "Show available builtin programs",
     action: |m, args| {
         check_args_len(0, args.len())?;
-        for item in MENU {
+
+        iter_menu(m, args, MENU, &mut |menu, _, item, _, level| {
             match item {
                 MenuItem::Command {
                     name, description, ..
                 } => {
-                    writeln!(m.writer(), "{name:LABEL_WIDTH$} {description}")?;
+                    writeln!(
+                        menu.writer(),
+                        "{padding}{name:LABEL_WIDTH$} {description}",
+                        padding = PaddedStr::<b' '>("", level),
+                    )?;
                 }
                 MenuItem::Alias { alias, command } => {
-                    writeln!(m.writer(), "{alias:LABEL_WIDTH$} aliased to {command}")?;
+                    writeln!(
+                        menu.writer(),
+                        "{padding}{alias:LABEL_WIDTH$} aliased to {command}",
+                        padding = PaddedStr::<b' '>("", level),
+                    )?;
+                }
+                MenuItem::Group { title, .. } => {
+                    writeln!(
+                        menu.writer(),
+                        "{p}{t:-^-w$}",
+                        p = PaddedStr::<b' '>("", level),
+                        t = PaddedStr::<b' '>(title, 1),
+                        w = HEADER_WIDTH - level - level
+                    )?;
                 }
             }
-        }
-        Ok(())
+            Ok(true)
+        })
     },
 };
 
@@ -70,7 +109,7 @@ pub const COMMANDS: MenuItem<'static, TerminalWriter> = MenuItem::Alias {
 
 pub const SYS: MenuItem<'static, TerminalWriter> = MenuItem::Command {
     name: "sys",
-    help: "sys - Test system functionality",
+    help: "sys <function> - Test system functionality",
     description: "Test system functionality",
     action: |m, args| match args {
         ["panic"] => {
@@ -112,7 +151,7 @@ pub const SYS: MenuItem<'static, TerminalWriter> = MenuItem::Command {
 
 pub const INFO: MenuItem<'static, TerminalWriter> = MenuItem::Command {
     name: "info",
-    help: "info - Query information from the system",
+    help: "info [target] - Query information from the system",
     description: "Query information from the system",
     action: |m, args| match args {
         ["mcu"] => {
@@ -280,5 +319,89 @@ pub const INFO: MenuItem<'static, TerminalWriter> = MenuItem::Command {
             writeln!(m.writer(), "Unknown query")?;
             Ok(())
         }
+    },
+};
+
+pub const WIFICTL: MenuItem<'static, TerminalWriter> = MenuItem::Command {
+    name: "wifictl",
+    help: "wifictl - Control WIFI networks and connections",
+    description: "(TODO) Control WIFI networks and connections",
+    action: |m, _| {
+        writeln!(m.writer(), "todo")?;
+        Ok(())
+    },
+};
+
+pub const BTCTL: MenuItem<'static, TerminalWriter> = MenuItem::Command {
+    name: "btctl",
+    help: "btctl - Control Bluetooth connections",
+    description: "(TODO) Control Bluetooth connections",
+    action: |m, _| {
+        writeln!(m.writer(), "todo")?;
+        Ok(())
+    },
+};
+
+pub const ETHCTL: MenuItem<'static, TerminalWriter> = MenuItem::Command {
+    name: "ethctl",
+    help: "ethctl - Control ethernet connections",
+    description: "(TODO) Control ethernet connections",
+    action: |m, _| {
+        writeln!(m.writer(), "todo")?;
+        Ok(())
+    },
+};
+
+pub const UPTIME: MenuItem<'static, TerminalWriter> = MenuItem::Command {
+    name: "uptime",
+    help: "uptime - Query the system uptime",
+    description: "Query the system uptime",
+    action: |m, args| {
+        check_args_len(0, args.len())?;
+        match (
+            TimeSource::get_date_time(),
+            interrupt_free(|cs| *crate::time::BOOT_TIME.borrow(cs).borrow()),
+        ) {
+            (Some(now), Some(boot_time)) => {
+                let dur = now - boot_time;
+                write!(m.writer(), "Uptime: ")?;
+                crate::utils::write_pretty_duration(m.writer(), dur)?;
+                writeln!(m.writer())?;
+            }
+            (Some(_), _) => {
+                writeln!(m.writer(), "Uptime: unavailable <boot time unavailable>")?;
+            }
+            (_, Some(_)) => {
+                writeln!(m.writer(), "Uptime: unavailable <current time unavailable>")?;
+            }
+            _ => {
+                writeln!(
+                    m.writer(),
+                    "Uptime: unavailable <boot time and current time unavailable>"
+                )?;
+            }
+        }
+        Ok(())
+    },
+};
+
+pub const LEDCTL: MenuItem<'static, TerminalWriter> = MenuItem::Command {
+    name: "ledctl",
+    help: "ledctl <(r|red)|(g|green)|(b|blue)> <0|1> - Control RGB LED",
+    description: "Control RGB LED",
+    action: |m, args| {
+        check_args_len(2, args.len())?;
+        match args {
+            ["r" | "red", "0"] => unsafe { Led::Red.off() },
+            ["r" | "red", "1"] => unsafe { Led::Red.on() },
+            ["g" | "green", "0"] => unsafe { Led::Green.off() },
+            ["g" | "green", "1"] => unsafe { Led::Green.off() },
+            ["b" | "blue", "0"] => unsafe { Led::Blue.off() },
+            ["b" | "blue", "1"] => unsafe { Led::Blue.on() },
+            _ => {
+                writeln!(m.writer(), "Invalid color or state")?;
+            }
+        }
+        Ok(())
     },
 };

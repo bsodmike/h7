@@ -211,6 +211,9 @@ unsafe fn main() -> ! {
             })
             .unwrap(),
         );
+
+        // Set boot time
+        interrupt_free(|cs| time::BOOT_TIME.replace(cs, TimeSource::get_date_time()));
     }
 
     // Get the delay provider.
@@ -320,7 +323,7 @@ unsafe fn main() -> ! {
 
     // QSPI Flash
     {
-        let mut qspi_store = fs::qspi_store::QspiStore::new(
+        let mut qspi_store = fs::qspi_store::NorFlash::new(
             dp.QUADSPI.bank1(
                 (
                     gpiof.pf10.into_alternate::<9>().speed(Speed::VeryHigh),
@@ -414,6 +417,8 @@ unsafe fn main() -> ! {
     let mut cmd_buf_len: usize = 0;
 
     // Main loop
+    led_r.set_high();
+    led_g.set_high();
     led_b.set_high();
     let _ = write!(menu.writer(), "> ");
 
@@ -464,7 +469,6 @@ unsafe fn main() -> ! {
 
         // Blink
         if let Some(dt) = TimeSource::get_date_time() {
-            led_r.set_high();
             if dt.second() % 2 == 0 {
                 led_g.set_high();
             } else {

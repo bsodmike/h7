@@ -45,7 +45,7 @@ pub const PLOAD: MenuItem<'static, TerminalWriter> = MenuItem::Command {
                     }
                 }
             }),
-            Some("nor") | Some("flash") => {
+            Some("nor") => {
                 writeln!(m.writer(), "Not implemented")?;
                 Ok(())
             }
@@ -118,7 +118,7 @@ pub const PRUN: MenuItem<'static, TerminalWriter> = MenuItem::Command {
 
 pub const UPLOAD: MenuItem<'static, TerminalWriter> = MenuItem::Command {
     name: "upload",
-    help: "Load program into RAM via serial. Data is sent in ascii hex.",
+    help: "upload <hex> - Load program into RAM via serial. Data is sent in ascii hex.",
     description: "Load program into RAM via serial. Data is sent in ascii hex.",
     action: |m, args| {
         let mut n = 0usize;

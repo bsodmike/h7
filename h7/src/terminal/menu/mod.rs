@@ -14,6 +14,10 @@ pub enum MenuItem<'i, W: core::fmt::Write> {
         alias: &'i str,
         command: &'i str,
     },
+    Group {
+        title: &'i str,
+        commands: &'i [MenuItem<'i, W>],
+    },
 }
 
 pub struct Menu<'m, W: core::fmt::Write> {
@@ -33,23 +37,37 @@ impl<'m: 'i, 'i, W: core::fmt::Write> Menu<'m, W> {
 
 impl<'m, W: core::fmt::Write> Menu<'m, W> {
     pub fn run(&mut self, cmd: &str, args: &[&str]) -> MenuResult {
-        for item in self.menu {
-            match item {
-                MenuItem::Command { name, action, .. } => {
-                    if *name == cmd {
-                        action(self, args)?;
-                        return Ok(());
+        fn run_impl<'m, W: core::fmt::Write>(
+            menu: &mut Menu<'m, W>,
+            cmd: &str,
+            args: &[&str],
+            menu_items: &[MenuItem<'m, W>],
+        ) -> MenuResult {
+            for item in menu_items {
+                match item {
+                    MenuItem::Command { name, action, .. } => {
+                        if *name == cmd {
+                            action(menu, args)?;
+                            return Ok(());
+                        }
                     }
-                }
-                MenuItem::Alias { alias, command } => {
-                    if *alias == cmd {
-                        self.run(command, args)?;
-                        return Ok(());
+                    MenuItem::Alias { alias, command } => {
+                        if *alias == cmd {
+                            menu.run(command, args)?;
+                            return Ok(());
+                        }
                     }
+                    MenuItem::Group { commands, .. } => match run_impl(menu, cmd, args, commands) {
+                        Ok(_) => return Ok(()),
+                        Err(MenuError::CommandNotFound) => continue,
+                        Err(e) => return Err(e),
+                    },
                 }
             }
+            Err(MenuError::CommandNotFound)
         }
-        Err(MenuError::CommandNotFound)
+
+        run_impl(self, cmd, args, self.menu)
     }
 }
 
