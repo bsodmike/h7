@@ -88,10 +88,35 @@ impl<CS: OutputPin> Mx25L<CS> {
         Ok(())
     }
 
+    pub fn reaq_identification(&mut self) -> Result<[u8; 3], QspiError> {
+        let mut id = [0u8; 3];
+        self.read_extended(
+            QspiWord::U8(0x9f),
+            QspiWord::None,
+            QspiWord::None,
+            6,
+            &mut id,
+        )?;
+        Ok(id)
+    }
+
     pub fn read_status(&mut self) -> Result<u8, QspiError> {
         let mut status = [0u8; 1];
         self.read_extended(
             QspiWord::U8(MX25L_CMD_RDSR),
+            QspiWord::None,
+            QspiWord::None,
+            0,
+            &mut status,
+        )?;
+
+        Ok(status[0])
+    }
+
+    pub fn read_config(&mut self) -> Result<u8, QspiError> {
+        let mut status = [0u8; 1];
+        self.read_extended(
+            QspiWord::U8(0x15),
             QspiWord::None,
             QspiWord::None,
             0,
@@ -108,7 +133,11 @@ impl<CS: OutputPin> Mx25L<CS> {
             QspiWord::None,
             QspiWord::None,
             &[0b0000_0010],
-        )
+        )?;
+        for _ in 0..100_000 {
+            cortex_m::asm::nop();
+        }
+        Ok(())
     }
 
     pub fn read(&mut self, address: u32, data: &mut [u8]) -> Result<(), QspiError> {
@@ -123,13 +152,13 @@ impl<CS: OutputPin> Mx25L<CS> {
     }
 
     pub fn write(&mut self, address: u32, data: &[u8]) -> Result<(), QspiError> {
-        self.enable_write()?;
-        self.write_extended(
-            QspiWord::U8(MX25L_CMD_BE),
-            QspiWord::U24(address),
-            QspiWord::None,
-            &[],
-        )?;
+        // self.enable_write()?;
+        // self.write_extended(
+        //     QspiWord::U8(MX25L_CMD_BE),
+        //     QspiWord::U24(address),
+        //     QspiWord::None,
+        //     &[],
+        // )?;
         self.enable_write()?;
         self.write_extended(
             QspiWord::U8(MX25L_CMD_PP),
@@ -161,7 +190,6 @@ impl<CS: OutputPin> Mx25L<CS> {
     }
 
     pub fn reset(&mut self) -> Result<(), QspiError> {
-        self.chip_select();
         self.qspi
             .write_extended(QspiWord::U8(0x66), QspiWord::None, QspiWord::None, &[])?;
         self.chip_deselect();
@@ -172,12 +200,16 @@ impl<CS: OutputPin> Mx25L<CS> {
         self.qspi
             .write_extended(QspiWord::U8(0x99), QspiWord::None, QspiWord::None, &[])?;
         self.chip_deselect();
+        self.write_status()?;
+
         Ok(())
     }
 
     pub fn free(self) -> (QUADSPI, rcc::rec::Qspi) {
         self.qspi.free()
     }
+
+    // --------------------------------------------------------
 
     #[allow(clippy::wrong_self_convention)]
     fn is_busy(&mut self) -> Result<bool, QspiError> {

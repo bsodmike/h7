@@ -1,4 +1,5 @@
 use {
+    super::utils::from_hex,
     crate::{
         fs::{path::Path, qspi_store::QSPI_STORE, sdmmc_fs},
         terminal::{
@@ -100,7 +101,7 @@ pub const CAT: MenuItem<'static, TerminalWriter> = MenuItem::Command {
 pub const NOR: MenuItem<'static, TerminalWriter> = MenuItem::Command {
     name: "nor",
     help: "nor <(i|info)|(m|mount)|(u|unmount)|(f|format)> - Info/Mount/Unmount/Format NOR-Flash filesystem",
-    description: "(TODO) Info/Mount/Unmount/Format NOR-Flash filesystem",
+    description: "Info/Mount/Unmount/Format NOR-Flash filesystem",
     action: |m, args| {
         // writeln!(m.writer(), "todo")?;
 
@@ -111,6 +112,64 @@ pub const NOR: MenuItem<'static, TerminalWriter> = MenuItem::Command {
                 });
                 writeln!(m.writer(), "{result:?}")?;
             }
+            ["dev", "id"] => {
+                let result = interrupt_free(|cs| {
+                    QSPI_STORE.borrow(cs).borrow_mut().as_deref_mut().unwrap().reaq_identification()
+                });
+                match result {
+                    Ok([mfn_id, mem_type, mem_density]) => {
+                        writeln!(m.writer(), "Manufacturer ID: {mfn_id:02x} Memory type: {mem_type:02x} Memory density: {mem_density:02x}")?;
+                    }
+                    Err(e) => {
+                        writeln!(m.writer(), "Error: {e:?}")?;
+                    }
+                }
+            },
+            ["dev", "config"] => {
+                let result = interrupt_free(|cs| {
+                    QSPI_STORE.borrow(cs).borrow_mut().as_deref_mut().unwrap().read_status()
+                });
+                match result {
+                    Ok(config) => {
+                        writeln!(m.writer(), "Config: {config:08b}")?;
+                        writeln!(
+                            m.writer(),
+                            "DC={dc:02b} TB={tb}, ODS={ods:03b}",
+                            dc = (config & 0b1100_0000) >> 6,
+                            tb = if (config & 0b0000_1000) > 0 { "1" } else { "0" },
+                            ods = (config & 0b0000_0111)
+                        )?;
+                    }
+                    Err(e) => {
+                        writeln!(m.writer(), "Error: {e:?}")?;
+                    }
+                }
+            },
+            ["dev", "status"] => {
+                let result = interrupt_free(|cs| {
+                    QSPI_STORE.borrow(cs).borrow_mut().as_deref_mut().unwrap().read_config()
+                });
+                match result {
+                    Ok(status) => {
+                        writeln!(m.writer(), "Status: {status:08b}")?;
+                        writeln!(
+                            m.writer(),
+                            "SWRD={srwd} QE={qe} BP3={bp3} BP2={bp2} BP1={bp1} BP0={bp0} WEL={wel} WIP={wip}",
+                            srwd = if (status & 0b1000_0000) > 0 { "1" } else { "0" },
+                            qe = if (status & 0b0100_0000) > 0 { "1" } else { "0" },
+                            bp3 = if (status & 0b0010_0000) > 0 { "1" } else { "0" },
+                            bp2 = if (status & 0b0001_0000) > 0 { "1" } else { "0" },
+                            bp1 = if (status & 0b0000_1000) > 0 { "1" } else { "0" },
+                            bp0 = if (status & 0b0000_0100) > 0 { "1" } else { "0" },
+                            wel = if (status & 0b0000_0010) > 0 { "1" } else { "0" },
+                            wip = if (status & 0b0000_0001) > 0 { "1" } else { "0" }
+                        )?;
+                    }
+                    Err(e) => {
+                        writeln!(m.writer(), "Error: {e:?}")?;
+                    }
+                }
+            },
             ["dev", "read", address_str, length_str] => {
                 let address = u32::from_str_radix(address_str, 16).map_err(|_| MenuError::InvalidArgument)?;
                 let length = length_str.parse::<u32>().map_err(|_| MenuError::InvalidArgument)?;
@@ -166,14 +225,25 @@ pub const NOR: MenuItem<'static, TerminalWriter> = MenuItem::Command {
                 }
                 writeln!(m.writer())?;
             },
-            ["dev", "write", address_str, bytes] => {
+            ["dev", "write", address_str, hex_str] => {
                 let address = u32::from_str_radix(address_str, 16).map_err(|_| MenuError::InvalidArgument)?;
-                let all_bytes_hex = bytes.chars().all(|c| c.is_ascii_hexdigit());
-                if !all_bytes_hex {
+                let all_bytes_hex = hex_str.chars().all(|c| c.is_ascii_hexdigit());
+                if !all_bytes_hex || hex_str.len() % 2 != 0 {
                     return Err(MenuError::InvalidArgument);
                 }
 
-                // TODO: Parse data and write to flash
+                for (offset, [upper, lower]) in hex_str.as_bytes().array_chunks::<2>().enumerate() {
+                    let byte = from_hex(*upper, *lower).unwrap();
+                    // writeln!(m.writer(), "{byte:02x}")?;
+                    let result = interrupt_free(|cs| {
+                        QSPI_STORE.borrow(cs).borrow_mut().as_deref_mut().unwrap().write(address + offset as u32, &[byte])
+                    });
+
+                    if let Err(e) = result {
+                        writeln!(m.writer(), "Error: {e:?}")?;
+                        break;
+                    }
+                }
             },
             _ => {
                 return Err(MenuError::InvalidArgument)

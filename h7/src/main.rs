@@ -1,6 +1,6 @@
 #![no_main]
 #![no_std]
-#![feature(alloc_error_handler, const_for, const_mut_refs)]
+#![feature(alloc_error_handler, const_for, const_mut_refs, array_chunks)]
 
 extern crate alloc;
 
