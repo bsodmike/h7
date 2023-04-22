@@ -94,7 +94,7 @@ impl<CS: OutputPin> Mx25L<CS> {
             QspiWord::U8(0x9f),
             QspiWord::None,
             QspiWord::None,
-            6,
+            0,
             &mut id,
         )?;
         Ok(id)
@@ -167,6 +167,16 @@ impl<CS: OutputPin> Mx25L<CS> {
             data,
         )?;
         Ok(())
+    }
+
+    pub fn chip_erase(&mut self) -> Result<(), QspiError> {
+        self.enable_write()?;
+        self.write_extended(
+            QspiWord::U8(MX25L_CMD_CE),
+            QspiWord::None,
+            QspiWord::None,
+            &[],
+        )
     }
 
     pub fn enter_deep_sleep(&mut self) -> Result<(), QspiError> {

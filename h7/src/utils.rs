@@ -1,5 +1,4 @@
 use {
-    crate::led::Led,
     core::cell::RefCell,
     critical_section::{CriticalSection, Mutex},
     stm32h7xx_hal::crc::{Config, Crc},

@@ -2,5 +2,6 @@
     "cortex-debug.variableUseNaturalFormat": false,
     // "rust-analyzer.cargo.target": "thumbv7em-none-eabihf",
     "rust-analyzer.check.allTargets": false,
-    "rust-analyzer.check.command": "clippy"
+    "rust-analyzer.check.command": "clippy",
+    "rust-analyzer.showUnlinkedFileNotification": false
 }

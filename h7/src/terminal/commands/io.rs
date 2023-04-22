@@ -106,6 +106,12 @@ pub const NOR: MenuItem<'static, TerminalWriter> = MenuItem::Command {
         // writeln!(m.writer(), "todo")?;
 
         match args {
+            ["dev", "ce"] => {
+                let result = interrupt_free(|cs| {
+                    QSPI_STORE.borrow(cs).borrow_mut().as_deref_mut().unwrap().chip_erase()
+                });
+                writeln!(m.writer(), "{result:?}")?;
+            }
             ["dev", "reset"] => {
                 let result = interrupt_free(|cs| {
                     QSPI_STORE.borrow(cs).borrow_mut().as_deref_mut().unwrap().reset()
@@ -127,7 +133,7 @@ pub const NOR: MenuItem<'static, TerminalWriter> = MenuItem::Command {
             },
             ["dev", "config"] => {
                 let result = interrupt_free(|cs| {
-                    QSPI_STORE.borrow(cs).borrow_mut().as_deref_mut().unwrap().read_status()
+                    QSPI_STORE.borrow(cs).borrow_mut().as_deref_mut().unwrap().read_config()
                 });
                 match result {
                     Ok(config) => {
@@ -147,14 +153,14 @@ pub const NOR: MenuItem<'static, TerminalWriter> = MenuItem::Command {
             },
             ["dev", "status"] => {
                 let result = interrupt_free(|cs| {
-                    QSPI_STORE.borrow(cs).borrow_mut().as_deref_mut().unwrap().read_config()
+                    QSPI_STORE.borrow(cs).borrow_mut().as_deref_mut().unwrap().read_status()
                 });
                 match result {
                     Ok(status) => {
                         writeln!(m.writer(), "Status: {status:08b}")?;
                         writeln!(
                             m.writer(),
-                            "SWRD={srwd} QE={qe} BP3={bp3} BP2={bp2} BP1={bp1} BP0={bp0} WEL={wel} WIP={wip}",
+                            "SRWD={srwd} QE={qe} BP3={bp3} BP2={bp2} BP1={bp1} BP0={bp0} WEL={wel} WIP={wip}",
                             srwd = if (status & 0b1000_0000) > 0 { "1" } else { "0" },
                             qe = if (status & 0b0100_0000) > 0 { "1" } else { "0" },
                             bp3 = if (status & 0b0010_0000) > 0 { "1" } else { "0" },
@@ -204,11 +210,11 @@ pub const NOR: MenuItem<'static, TerminalWriter> = MenuItem::Command {
                             if (address + i + 1) % OUTPUT_WIDTH == 0 {
                                 // write!(m.writer(), " |LAST|")?;
                                 if let Ok(s) = core::str::from_utf8(&ascii_rep) {
-                                    write!(m.writer(), "|{s}|")?;
+                                    write!(m.writer(), " |{s}|")?;
                                 }
                             }
                         },
-                        Err(e) => {
+                        Err(_e) => {
                             // writeln!(m.writer(), "Error: {e:?}")?;
                             write!(m.writer(), "-- ")?;
                             break;
