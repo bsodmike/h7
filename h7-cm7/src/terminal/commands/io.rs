@@ -1,7 +1,11 @@
 use {
     super::utils::from_hex,
     crate::{
-        fs::{path::Path, qspi_store::QSPI_STORE, sdmmc_fs},
+        fs::{
+            path::Path,
+            qspi_store::{mx25l::status as mx25l_status, QSPI_STORE},
+            sdmmc_fs,
+        },
         terminal::{
             commands::LABEL_WIDTH,
             menu::{MenuError, MenuItem},
@@ -124,7 +128,7 @@ pub const NOR: MenuItem<'static, TerminalWriter> = MenuItem::Command {
                 });
                 match result {
                     Ok([mfn_id, mem_type, mem_density]) => {
-                        writeln!(m.writer(), "Manufacturer ID: {mfn_id:02x} Memory type: {mem_type:02x} Memory density: {mem_density:02x}")?;
+                        writeln!(m.writer(), "Manufacturer ID: {mfn_id:02x}, Memory type: {mem_type:02x}, Memory density: {mem_density:02x}")?;
                     }
                     Err(e) => {
                         writeln!(m.writer(), "Error: {e:?}")?;
@@ -161,14 +165,14 @@ pub const NOR: MenuItem<'static, TerminalWriter> = MenuItem::Command {
                         writeln!(
                             m.writer(),
                             "SRWD={srwd} QE={qe} BP3={bp3} BP2={bp2} BP1={bp1} BP0={bp0} WEL={wel} WIP={wip}",
-                            srwd = if (status & 0b1000_0000) > 0 { "1" } else { "0" },
-                            qe = if (status & 0b0100_0000) > 0 { "1" } else { "0" },
-                            bp3 = if (status & 0b0010_0000) > 0 { "1" } else { "0" },
-                            bp2 = if (status & 0b0001_0000) > 0 { "1" } else { "0" },
-                            bp1 = if (status & 0b0000_1000) > 0 { "1" } else { "0" },
-                            bp0 = if (status & 0b0000_0100) > 0 { "1" } else { "0" },
-                            wel = if (status & 0b0000_0010) > 0 { "1" } else { "0" },
-                            wip = if (status & 0b0000_0001) > 0 { "1" } else { "0" }
+                            srwd = if (status & mx25l_status::SRWD) > 0 { "1" } else { "0" },
+                            qe = if (status & mx25l_status::QE) > 0 { "1" } else { "0" },
+                            bp3 = if (status & mx25l_status::BP3) > 0 { "1" } else { "0" },
+                            bp2 = if (status & mx25l_status::BP2) > 0 { "1" } else { "0" },
+                            bp1 = if (status & mx25l_status::BP1) > 0 { "1" } else { "0" },
+                            bp0 = if (status & mx25l_status::BP0) > 0 { "1" } else { "0" },
+                            wel = if (status & mx25l_status::WEL) > 0 { "1" } else { "0" },
+                            wip = if (status & mx25l_status::WIP) > 0 { "1" } else { "0" }
                         )?;
                     }
                     Err(e) => {
@@ -226,7 +230,7 @@ pub const NOR: MenuItem<'static, TerminalWriter> = MenuItem::Command {
                         write!(m.writer(), "   ")?;
                     }
                     if let Ok(s) = core::str::from_utf8(&ascii_rep) {
-                        write!(m.writer(), "|{s}|")?;
+                        write!(m.writer(), " |{s}|")?;
                     }
                 }
                 writeln!(m.writer())?;
@@ -240,7 +244,7 @@ pub const NOR: MenuItem<'static, TerminalWriter> = MenuItem::Command {
 
                 for (offset, [upper, lower]) in hex_str.as_bytes().array_chunks::<2>().enumerate() {
                     let byte = from_hex(*upper, *lower).unwrap();
-                    // writeln!(m.writer(), "{byte:02x}")?;
+                    write!(m.writer(), "0x{byte:02x} ")?;
                     let result = interrupt_free(|cs| {
                         QSPI_STORE.borrow(cs).borrow_mut().as_deref_mut().unwrap().write(address + offset as u32, &[byte])
                     });
@@ -250,6 +254,7 @@ pub const NOR: MenuItem<'static, TerminalWriter> = MenuItem::Command {
                         break;
                     }
                 }
+                writeln!(m.writer())?;
             },
             _ => {
                 return Err(MenuError::InvalidArgument)

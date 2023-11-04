@@ -5,7 +5,7 @@ pub struct H7Display<'b, COLOR: PixelColor, const WIDTH: usize, const HEIGHT: us
 where
     [(); WIDTH * HEIGHT]:,
 {
-    front_buffer_idx: usize,
+    swapped: bool,
     buffers: [&'b mut FrameBuffer<COLOR, WIDTH, HEIGHT>; 2],
 }
 
@@ -15,42 +15,63 @@ where
     [(); WIDTH * HEIGHT]:,
 {
     pub const fn new(
-        front: &'b mut FrameBuffer<COLOR, WIDTH, HEIGHT>,
-        back: &'b mut FrameBuffer<COLOR, WIDTH, HEIGHT>,
+        fb0: &'b mut FrameBuffer<COLOR, WIDTH, HEIGHT>,
+        fb1: &'b mut FrameBuffer<COLOR, WIDTH, HEIGHT>,
     ) -> Self {
         Self {
-            front_buffer_idx: 0,
-            buffers: [front, back],
+            swapped: false,
+            buffers: [fb0, fb1],
         }
     }
 
     #[inline(always)]
     pub fn front_buffer(&self) -> &FrameBuffer<COLOR, WIDTH, HEIGHT> {
-        self.buffers[self.front_buffer_idx]
+        // SAFETY: self.swapped is always either 0 or 1 and always in range of the self.buffers array
+        unsafe { self.buffers.get_unchecked(self.swapped as usize) }
+    }
+
+    #[inline(always)]
+    unsafe fn front_buffer_mut(&mut self) -> &FrameBuffer<COLOR, WIDTH, HEIGHT> {
+        // SAFETY: self.swapped is always either 0 or 1 and always in range of the self.buffers array.
+        // SAFETY: This is still unsafe since the front buffer is probably being drawn to the display.
+        unsafe { self.buffers.get_unchecked_mut(self.swapped as usize) }
     }
 
     #[inline(always)]
     pub fn back_buffer(&self) -> &FrameBuffer<COLOR, WIDTH, HEIGHT> {
-        self.buffers[(self.front_buffer_idx + 1) % self.buffers.len()]
+        // SAFETY: self.swapped is always either 0 or 1 and always in range of the self.buffers array
+        unsafe { self.buffers.get_unchecked((!self.swapped) as usize) }
     }
 
     #[inline(always)]
     pub fn back_buffer_mut(&mut self) -> &mut FrameBuffer<COLOR, WIDTH, HEIGHT> {
-        unsafe { core::mem::transmute(self.back_buffer()) }
+        // SAFETY: self.swapped is always either 0 or 1 and always in range of the self.buffers array
+        unsafe { self.buffers.get_unchecked_mut((!self.swapped) as usize) }
     }
 
+    #[inline(always)]
+    fn get_buffers(
+        &mut self,
+    ) -> (
+        &FrameBuffer<COLOR, WIDTH, HEIGHT>,
+        &mut FrameBuffer<COLOR, WIDTH, HEIGHT>,
+    ) {
+        (self.front_buffer(), unsafe {
+            core::mem::transmute(self.back_buffer())
+        })
+    }
+
+    #[inline(always)]
     pub fn swap_buffers(
         &mut self,
     ) -> (
         &FrameBuffer<COLOR, WIDTH, HEIGHT>,
         &mut FrameBuffer<COLOR, WIDTH, HEIGHT>,
     ) {
-        self.front_buffer_idx += 1;
-        self.front_buffer_idx %= self.buffers.len();
+        self.swapped = !self.swapped;
 
-        let front = self.front_buffer();
-        let back: &mut FrameBuffer<COLOR, WIDTH, HEIGHT> =
-            unsafe { core::mem::transmute(self.back_buffer()) };
+        let (front, back) = self.get_buffers();
+
         // after swap, copy the new front to the new back
         back.copy_from_slice(&**front);
 
@@ -116,24 +137,12 @@ where
 
     #[inline]
     fn bounded_x(x: i32) -> usize {
-        if x < 0 {
-            0
-        } else if x > WIDTH as i32 {
-            WIDTH
-        } else {
-            x as usize
-        }
+        x.clamp(0, WIDTH as i32) as usize
     }
 
     #[inline]
     fn bounded_y(y: i32) -> usize {
-        if y < 0 {
-            0
-        } else if y > HEIGHT as i32 {
-            HEIGHT
-        } else {
-            y as usize
-        }
+        y.clamp(0, HEIGHT as i32) as usize
     }
 }
 

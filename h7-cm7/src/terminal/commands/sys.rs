@@ -405,3 +405,20 @@ pub const LEDCTL: MenuItem<'static, TerminalWriter> = MenuItem::Command {
         Ok(())
     },
 };
+
+pub const CORECTL: MenuItem<'static, TerminalWriter> = MenuItem::Command {
+    name: "corectl",
+    help: "corectl - Start/stop the Cortex-M4 core",
+    description: "(TODO) Start/stop the Cortex-M4 core",
+    action: |m, args| {
+        check_args_len(1, args.len())?;
+        match args {
+            ["start"] => writeln!(m.writer(), "todo")?,
+            ["stop"] => writeln!(m.writer(), "todo")?,
+            ["status"] => writeln!(m.writer(), "todo")?,
+            _ => writeln!(m.writer(), "Unknown command")?,
+        }
+
+        Ok(())
+    },
+};

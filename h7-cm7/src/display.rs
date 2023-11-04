@@ -45,7 +45,7 @@
 
 type Pixel = u16;
 
-pub const SCREEN_WIDTH: usize = 1280;
+pub const SCREEN_WIDTH: usize = 1024;
 pub const SCREEN_HEIGHT: usize = 768;
 pub const FRAME_BUFFER_SIZE: usize = SCREEN_WIDTH * SCREEN_HEIGHT * core::mem::size_of::<Pixel>();
 pub const FRAME_BUFFER_ALLOC_SIZE: usize = FRAME_BUFFER_SIZE * 2;

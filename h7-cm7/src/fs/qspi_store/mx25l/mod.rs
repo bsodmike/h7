@@ -7,66 +7,8 @@ use {
     },
 };
 
-/// RDID (Read Identification)
-const MX25L_CMD_RDID: u8 = 0x9F;
-/// RES (Read Electronic ID)
-const MX25L_CMD_RES: u8 = 0xAB;
-/// REMS (Read Electronic & Device ID)
-const MX25L_CMD_REMS: u8 = 0x90;
-
-/// WRSR (Write Status Register)
-const MX25L_CMD_WRSR: u8 = 0x01;
-/// RDSR (Read Status Register)
-const MX25L_CMD_RDSR: u8 = 0x05;
-
-/// READ (1 x I/O)
-const MX25L_CMD_READ: u8 = 0x03;
-/// FAST READ (Fast read data)
-const MX25L_CMD_FASTREAD: u8 = 0x0B;
-/// DREAD (1In/2 Out fast read)
-const MX25L_CMD_DREAD: u8 = 0x3B;
-const MX25L_CMD_READ_QUAD: u8 = 0x6B;
-
-/// WREN (Write Enable)
-const MX25L_CMD_WREN: u8 = 0x06;
-/// WRDI (Write Disable)
-const MX25L_CMD_WRDI: u8 = 0x04;
-/// PP (page program)
-const MX25L_CMD_PP: u8 = 0x02;
-
-/// SE (Sector Erase)
-const MX25L_CMD_SE: u8 = 0x20;
-/// BE (Block Erase)
-const MX25L_CMD_BE: u8 = 0xD8;
-/// CE (Chip Erase) hex code: 60 or C7
-const MX25L_CMD_CE: u8 = 0x60;
-
-/// DP (Deep Power Down)
-const MX25L_CMD_DP: u8 = 0xB9;
-/// RDP (Release form Deep Power Down)
-const MX25L_CMD_RDP: u8 = 0xAB;
-
-/// The Write in Progress (WIP) bit
-const MX25L_STATUS_WIP: u8 = 0x01 << 0;
-/// The Write Enable Latch (WEL) bit
-const MX25L_STATUS_WEL: u8 = 0x01 << 1;
-/// The Block Protect BP0 bit
-const MX25L_STATUS_BP0: u8 = 0x01 << 2;
-/// The Block Protect BP1 bit
-const MX25L_STATUS_BP1: u8 = 0x01 << 3;
-/// The Status Register Write Disable (SRWD) bit
-const MX25L_STATUS_SRWD: u8 = 0x01 << 7;
-
-/// The protect level 0
-const MX25L_STATUS_PROTECT_LEVEL_0: u8 = 0x00 << 2;
-/// The protect level 1
-const MX25L_STATUS_PROTECT_LEVEL_1: u8 = 0x01 << 2;
-/// The protect level 2
-const MX25L_STATUS_PROTECT_LEVEL_2: u8 = 0x02 << 2;
-/// The protect level 3
-const MX25L_STATUS_PROTECT_LEVEL_3: u8 = 0x03 << 2;
-/// The protect level mask
-const MX25L_STATUS_PROTECT_LEVEL_MASK: u8 = 0x03 << 2;
+pub mod cmd;
+pub mod status;
 
 pub struct Mx25L<CS: OutputPin> {
     qspi: Qspi<QUADSPI>,
@@ -103,7 +45,7 @@ impl<CS: OutputPin> Mx25L<CS> {
     pub fn read_status(&mut self) -> Result<u8, QspiError> {
         let mut status = [0u8; 1];
         self.read_extended(
-            QspiWord::U8(MX25L_CMD_RDSR),
+            QspiWord::U8(cmd::RDSR),
             QspiWord::None,
             QspiWord::None,
             0,
@@ -129,7 +71,7 @@ impl<CS: OutputPin> Mx25L<CS> {
     pub fn write_status(&mut self) -> Result<(), QspiError> {
         self.enable_write()?;
         self.write_extended(
-            QspiWord::U8(MX25L_CMD_WRSR),
+            QspiWord::U8(cmd::WRSR),
             QspiWord::None,
             QspiWord::None,
             &[0b0000_0010],
@@ -142,7 +84,7 @@ impl<CS: OutputPin> Mx25L<CS> {
 
     pub fn read(&mut self, address: u32, data: &mut [u8]) -> Result<(), QspiError> {
         self.read_extended(
-            QspiWord::U8(MX25L_CMD_READ),
+            QspiWord::U8(cmd::READ),
             QspiWord::U24(address),
             QspiWord::None,
             0,
@@ -154,25 +96,30 @@ impl<CS: OutputPin> Mx25L<CS> {
     pub fn write(&mut self, address: u32, data: &[u8]) -> Result<(), QspiError> {
         // self.enable_write()?;
         // self.write_extended(
-        //     QspiWord::U8(MX25L_CMD_BE),
+        //     QspiWord::U8(cmd::BE_32),
         //     QspiWord::U24(address),
         //     QspiWord::None,
         //     &[],
         // )?;
-        self.enable_write()?;
-        self.write_extended(
-            QspiWord::U8(MX25L_CMD_PP),
-            QspiWord::U24(address),
-            QspiWord::None,
-            data,
-        )?;
+
+        // the internal write buffer is 32 bytes
+        for chunk in data.chunks(32) {
+            self.enable_write()?;
+            self.write_extended(
+                QspiWord::U8(cmd::PP),
+                QspiWord::U24(address),
+                QspiWord::None,
+                chunk,
+            )?;
+        }
+
         Ok(())
     }
 
     pub fn chip_erase(&mut self) -> Result<(), QspiError> {
         self.enable_write()?;
         self.write_extended(
-            QspiWord::U8(MX25L_CMD_CE),
+            QspiWord::U8(cmd::CE_60),
             QspiWord::None,
             QspiWord::None,
             &[],
@@ -180,35 +127,29 @@ impl<CS: OutputPin> Mx25L<CS> {
     }
 
     pub fn enter_deep_sleep(&mut self) -> Result<(), QspiError> {
-        self.write_extended(
-            QspiWord::U8(MX25L_CMD_DP),
-            QspiWord::None,
-            QspiWord::None,
-            &[],
-        )?;
+        self.write_extended(QspiWord::U8(cmd::DP), QspiWord::None, QspiWord::None, &[])?;
         Ok(())
     }
 
     pub fn exit_deep_sleep(&mut self) -> Result<(), QspiError> {
-        self.write_extended(
-            QspiWord::U8(MX25L_CMD_RDP),
-            QspiWord::None,
-            QspiWord::None,
-            &[],
-        )?;
+        self.write_extended(QspiWord::U8(cmd::RDP), QspiWord::None, QspiWord::None, &[])?;
         Ok(())
     }
 
     pub fn reset(&mut self) -> Result<(), QspiError> {
-        self.qspi
-            .write_extended(QspiWord::U8(0x66), QspiWord::None, QspiWord::None, &[])?;
+        self.qspi.write_extended(
+            QspiWord::U8(cmd::RSTEN),
+            QspiWord::None,
+            QspiWord::None,
+            &[],
+        )?; // RSTEN
         self.chip_deselect();
         for _ in 0..100_000 {
             cortex_m::asm::nop();
         }
         self.chip_select();
         self.qspi
-            .write_extended(QspiWord::U8(0x99), QspiWord::None, QspiWord::None, &[])?;
+            .write_extended(QspiWord::U8(cmd::RST), QspiWord::None, QspiWord::None, &[])?; // RST
         self.chip_deselect();
         self.write_status()?;
 
@@ -223,16 +164,20 @@ impl<CS: OutputPin> Mx25L<CS> {
 
     #[allow(clippy::wrong_self_convention)]
     fn is_busy(&mut self) -> Result<bool, QspiError> {
-        Ok((self.read_status()? & MX25L_STATUS_WIP) != 0)
+        Ok((self.read_status()? & status::WIP) != 0)
     }
 
     fn enable_write(&mut self) -> Result<(), QspiError> {
-        self.write_extended(
-            QspiWord::U8(MX25L_CMD_WREN),
-            QspiWord::None,
-            QspiWord::None,
-            &[],
-        )?;
+        loop {
+            self.write_extended(QspiWord::U8(cmd::WREN), QspiWord::None, QspiWord::None, &[])?;
+            while self.is_busy()? {
+                cortex_m::asm::dsb();
+            }
+            if (self.read_status()? & status::WEL) == status::WEL {
+                break;
+            }
+        }
+
         Ok(())
     }
 
@@ -255,7 +200,9 @@ impl<CS: OutputPin> Mx25L<CS> {
         self.qspi
             .write_extended(instruction, address, alternate_bytes, data)?;
         self.chip_deselect();
-        while self.is_busy()? {}
+        while self.is_busy()? {
+            cortex_m::asm::dsb();
+        }
         Ok(())
     }
 

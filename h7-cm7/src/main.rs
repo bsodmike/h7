@@ -136,8 +136,6 @@ unsafe fn main() -> ! {
     // Internal I2C bus
     let mut internal_i2c = dp.I2C1.i2c(
         (
-            // gpiob.pb6.into_alternate_af4().set_open_drain(),
-            // gpiob.pb7.into_alternate_af4().set_open_drain(),
             gpiob.pb6.into_alternate::<4>().set_open_drain(),
             gpiob.pb7.into_alternate::<4>().set_open_drain(),
         ),

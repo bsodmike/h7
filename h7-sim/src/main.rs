@@ -26,7 +26,7 @@ mod input;
 mod utils;
 
 const FPS_TARGET: u32 = 60;
-const WIDTH: usize = 1280;
+const WIDTH: usize = 1024;
 const HEIGHT: usize = 768;
 type PixelColor = Rgb565;
 
@@ -34,7 +34,50 @@ const BACKGROUND_COLOR: PixelColor = PixelColor::BLACK;
 const TEXT_COLOR: PixelColor = PixelColor::CSS_WHEAT;
 
 // const FONT: MonoFont = profont::PROFONT_18_POINT;
-const FONT: MonoFont = ibm437::IBM437_9X14_REGULAR;
+// const FONT: MonoFont = ibm437::IBM437_9X14_REGULAR;
+
+const FONTS: &[(&str, MonoFont)] = &[
+    (
+        "embedded-graphics 7x13",
+        embedded_graphics::mono_font::iso_8859_1::FONT_7X13,
+    ),
+    (
+        "embedded-graphics 7x13 bold",
+        embedded_graphics::mono_font::iso_8859_1::FONT_7X13_BOLD,
+    ),
+    (
+        "embedded-graphics 7x13 italic",
+        embedded_graphics::mono_font::iso_8859_1::FONT_7X13_ITALIC,
+    ),
+    (
+        "embedded-graphics 7x14",
+        embedded_graphics::mono_font::iso_8859_1::FONT_7X14,
+    ),
+    (
+        "embedded-graphics 7x14 bold",
+        embedded_graphics::mono_font::iso_8859_1::FONT_7X14_BOLD,
+    ),
+    (
+        "embedded-graphics 9x15",
+        embedded_graphics::mono_font::iso_8859_1::FONT_9X15,
+    ),
+    (
+        "embedded-graphics 9x15 bold",
+        embedded_graphics::mono_font::iso_8859_1::FONT_9X15_BOLD,
+    ),
+    (
+        "embedded-graphics 9x18",
+        embedded_graphics::mono_font::iso_8859_1::FONT_9X18,
+    ),
+    (
+        "embedded-graphics 9x18",
+        embedded_graphics::mono_font::iso_8859_1::FONT_9X18_BOLD,
+    ),
+    ("IBM437 14", ibm437::IBM437_9X14_REGULAR),
+    ("Profont 14", profont::PROFONT_14_POINT),
+    ("Profont 18", profont::PROFONT_18_POINT),
+    ("Profont 24", profont::PROFONT_24_POINT),
+];
 
 fn main() -> Result<(), String> {
     let lib = std::env::args()
@@ -91,6 +134,7 @@ fn main() -> Result<(), String> {
     println!("vram_layout: {vram_layout:?}");
     let mut display = H7Display::<PixelColor, WIDTH, HEIGHT>::new(front_buffer, back_buffer);
     let mut input_buffer = input::InputBuffer::<142>::new();
+    let mut selected_font = &FONTS[11];
 
     'running: loop {
         let sof = Instant::now();
@@ -209,12 +253,7 @@ fn main() -> Result<(), String> {
                 //     utils::timer("Scroll down", || display.scroll(32, PixelColor::RED));
                 // }
                 Event::KeyDown {
-                    timestamp,
-                    window_id,
-                    keycode,
-                    scancode,
-                    keymod,
-                    repeat,
+                    keycode, keymod, ..
                 } => {
                     // println!("{keycode:?}");
                     if let Some(kc) = keycode.map(|kc| kc as i32) {
@@ -245,18 +284,28 @@ fn main() -> Result<(), String> {
                                 println!("S: {}", input_buffer.as_str());
                                 let _ = input_buffer.push_str("[root@h7] ");
                                 utils::timer("Scroll down", || {
-                                    display
-                                        .scroll(FONT.character_size.height as i32, BACKGROUND_COLOR)
+                                    display.scroll(
+                                        selected_font.1.character_size.height as i32,
+                                        BACKGROUND_COLOR,
+                                    )
                                 });
                             }
                             8 => {
                                 input_buffer.pop();
                                 println!("S: {}", input_buffer.as_str());
                             }
-                            _ => {}
+                            1073741906 => {
+                                display.scroll(1, BACKGROUND_COLOR);
+                            }
+                            1073741905 => {
+                                display.scroll(-1, BACKGROUND_COLOR);
+                            }
+                            n => {
+                                println!("Unhandled keycode: {}", n);
+                            }
                         }
                         utils::timer("Text", || {
-                            let text_style = MonoTextStyle::new(&FONT, TEXT_COLOR);
+                            let text_style = MonoTextStyle::new(&selected_font.1, TEXT_COLOR);
                             let line_height = text_style.line_height() as i32;
 
                             let y = HEIGHT as i32 - line_height;
