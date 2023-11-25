@@ -68,8 +68,9 @@ mod uart {
 
         fn log(&self, record: &Record) {
             // haha rust go brrr
-            let this = self as *const Self as *mut Self;
-            let this = unsafe { &mut *this };
+            // let this = self as *const Self as *mut Self;
+            // let this = unsafe { &mut *this };
+            let this = &mut UartLogger;
             let _ = write!(
                 this,
                 "{}",

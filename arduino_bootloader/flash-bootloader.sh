@@ -15,12 +15,19 @@ if [[ ! -f "${boot_elf}" ]]; then
 fi
 
 #openocd_path="${tools_path}/openocd"
-openocd_path="/usr/share/openocd"
-openocd_bin="/bin/openocd"
-openocd_src="/usr/share/openocd/scripts"
-#openocd_interface='interface/cmsis-dap.cfg'
-openocd_interface='interface/stlink.cfg'
+# openocd_path="/usr/share/openocd"
+# openocd_bin="/bin/openocd"
+# openocd_src="/usr/share/openocd/scripts"
+# #openocd_interface='interface/cmsis-dap.cfg'
+# openocd_interface='interface/stlink.cfg'
+# openocd_target='target/stm32h7x_dual_bank.cfg'
+
+openocd_bin="/usr/local/bin/openocd"
+openocd_src="/usr/local/share/openocd/scripts"
+openocd_interface='interface/cmsis-dap.cfg'
+#openocd_interface='interface/stlink.cfg'
 openocd_target='target/stm32h7x_dual_bank.cfg'
+#openocd_target='target/stm32h7x.cfg'
 
 openocd_cmd_bootopt='stm32h7x option_write 0 0x01c 0xb86aaf0'
 openocd_cmd_program="program ${boot_elf}"
@@ -52,16 +59,16 @@ if [[ ! -x "${openocd_bin}" ]] ||
 	exit 2
 fi
 
-echo 'Setting boot option bytes (boot Cortex-M7, gate Cortex-M4) ...'
+# echo 'Setting boot option bytes (boot Cortex-M7, gate Cortex-M4) ...'
 
-if ! "${openocd_bin}" \
-	-s "${openocd_src}" \
-	-f "${openocd_interface}" \
-	-f "${openocd_target}" \
-	-c "$(openocd-command "${openocd_cmd_bootopt}")"; then
-	echo "Failed to write boot option bytes!" >&2
-	exit 3
-fi
+# if ! "${openocd_bin}" \
+# 	-s "${openocd_src}" \
+# 	-f "${openocd_interface}" \
+# 	-f "${openocd_target}" \
+# 	-c "$(openocd-command "${openocd_cmd_bootopt}")"; then
+# 	echo "Failed to write boot option bytes!" >&2
+# 	exit 3
+# fi
 
 
 sleep 2

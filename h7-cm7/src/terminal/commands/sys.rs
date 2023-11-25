@@ -296,6 +296,27 @@ pub const INFO: MenuItem<'static, TerminalWriter> = MenuItem::Command {
                 ss = dt.second(),
                 year = dt.year()
             )?;
+
+            match interrupt_free(|cs| *crate::time::BOOT_TIME.borrow(cs).borrow()) {
+                Some(dt) => {
+                    writeln!(
+                        m.writer(),
+                        "{:LABEL_WIDTH$} {weekday} {month} {day} {hh:02}:{mm:02}:{ss:02} {year}",
+                        "Boot time",
+                        weekday = dt.weekday(),
+                        month = month_to_str(dt.month()),
+                        day = dt.day(),
+                        hh = dt.hour(),
+                        mm = dt.minute(),
+                        ss = dt.second(),
+                        year = dt.year()
+                    )?;
+                }
+                None => {
+                    writeln!(m.writer(), "{:LABEL_WIDTH$} unavailable", "Boot time")?;
+                }
+            }
+
             Ok(())
         }
         [] => {

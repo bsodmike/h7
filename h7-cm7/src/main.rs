@@ -2,16 +2,18 @@
 #![no_std]
 #![feature(alloc_error_handler, const_for, const_mut_refs, array_chunks)]
 
+// use embedded_display_controller::DisplayController;
+
 extern crate alloc;
 
 use {
     crate::utils::interrupt_free,
-    // anx7625::Anx7625,
+    anx7625::Anx7625,
     chrono::{NaiveDate, Timelike},
     core::fmt::Write,
-    // embedded_display_controller::{
-    //     DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
-    // },
+    embedded_display_controller::{
+        DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
+    },
     fugit::RateExtU32,
     led::Led,
     stm32h7xx_hal::{self as hal, adc, gpio::Speed, pac, prelude::*, rcc, rtc},
@@ -21,7 +23,7 @@ use {
 mod app;
 mod consts;
 mod display;
-// mod dsi;
+mod dsi;
 mod fs;
 mod led;
 mod logger;
@@ -96,8 +98,7 @@ unsafe fn main() -> ! {
         let _ = ccdr.clocks.hsi48_ck().expect("HSI48 must run");
         ccdr.peripheral
             .kernel_usb_clk_mux(rcc::rec::UsbClkSel::Hsi48);
-        ccdr.peripheral
-            .kernel_adc_clk_mux(stm32h7xx_hal::rcc::rec::AdcClkSel::Per);
+        ccdr.peripheral.kernel_adc_clk_mux(rcc::rec::AdcClkSel::Per);
         ccdr
     };
 
@@ -109,7 +110,7 @@ unsafe fn main() -> ! {
     });
 
     // GPIO
-    let (gpioa, gpiob, _gpioc, gpiod, gpioe, gpiof, gpiog, gpioh, _gpioi, _gpioj, gpiok) = {
+    let (gpioa, gpiob, _gpioc, gpiod, gpioe, gpiof, gpiog, gpioh, _gpioi, gpioj, gpiok) = {
         (
             dp.GPIOA.split(ccdr.peripheral.GPIOA),
             dp.GPIOB.split(ccdr.peripheral.GPIOB),
@@ -346,50 +347,60 @@ unsafe fn main() -> ! {
     }
 
     // Display config
-    // {
-    //     let mut anx = Anx7625::new(
-    //         gpiok.pk2.into_push_pull_output(),
-    //         gpioj.pj3.into_push_pull_output(),
-    //         gpioj.pj6.into_push_pull_output(),
-    //     );
-    //     anx.init(&mut internal_i2c, &mut delay).unwrap();
-    //     anx.wait_hpd_event(&mut internal_i2c, &mut delay); // Blocks until monitor is connected
-    //     log::info!("Monitor connected");
-    //     let edid = anx
-    //         .dp_get_edid(&mut internal_i2c, &mut delay)
-    //         .map_err(|(_, edid)| unsafe { edid.assume_init() })
-    //         .into_ok_or_err();
-    //     log::warn!("{:#?}", edid);
-    //     anx.dp_start(
-    //         &mut internal_i2c,
-    //         &mut delay,
-    //         &edid,
-    //         anx7625::EdidModes::EDID_MODE_640x480_60Hz,
-    //     )
-    //     .unwrap();
-    // }
+    {
+        // Set up frame sawp timer
+        let mut timer2 =
+            dp.TIM2
+                .timer(display::FRAME_RATE.Hz(), ccdr.peripheral.TIM2, &ccdr.clocks);
+        timer2.listen(hal::timer::Event::TimeOut);
+        cortex_m::peripheral::NVIC::unmask(pac::Interrupt::TIM2);
+        // core::mem::forget(timer2);
 
-    // let mut display = stm32h7xx_hal::ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
-    // let display_config = DisplayConfiguration {
-    //     active_width: display::SCREEN_WIDTH as u16,
-    //     active_height: display::SCREEN_HEIGHT as u16,
-    //     h_back_porch: 120,
-    //     h_front_porch: 32,
-    //     v_back_porch: 10,
-    //     v_front_porch: 45,
-    //     h_sync: 20,
-    //     v_sync: 12,
+        // dp.DMA2D.clk_en();
 
-    //     /// horizontal synchronization: `false`: active low, `true`: active high
-    //     h_sync_pol: false,
-    //     /// vertical synchronization: `false`: active low, `true`: active high
-    //     v_sync_pol: false,
-    //     /// data enable: `false`: active low, `true`: active high
-    //     not_data_enable_pol: true,
-    //     /// pixel_clock: `false`: active low, `true`: active high
-    //     pixel_clock_pol: false,
-    // };
-    // display.init(display_config);
+        let mut anx = Anx7625::new(
+            gpiok.pk2.into_push_pull_output(),
+            gpioj.pj3.into_push_pull_output(),
+            gpioj.pj6.into_push_pull_output(),
+        );
+        anx.init(&mut internal_i2c, &mut delay).unwrap();
+        anx.wait_hpd_event(&mut internal_i2c, &mut delay); // Blocks until monitor is connected
+        log::info!("Monitor connected");
+        let edid = crate::utils::into_ok_or_err(
+            anx.dp_get_edid(&mut internal_i2c, &mut delay)
+                .map_err(|(_, edid)| unsafe { edid.assume_init() }),
+        );
+        log::warn!("{:#?}", edid);
+        anx.dp_start(
+            &mut internal_i2c,
+            &mut delay,
+            &edid,
+            anx7625::EdidModes::EDID_MODE_640x480_60Hz,
+        )
+        .unwrap();
+    }
+
+    let mut display = stm32h7xx_hal::ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
+    let display_config = DisplayConfiguration {
+        active_width: display::SCREEN_WIDTH as u16,
+        active_height: display::SCREEN_HEIGHT as u16,
+        h_back_porch: 120,
+        h_front_porch: 32,
+        v_back_porch: 10,
+        v_front_porch: 45,
+        h_sync: 20,
+        v_sync: 12,
+
+        // horizontal synchronization: `false`: active low, `true`: active high
+        h_sync_pol: false,
+        // vertical synchronization: `false`: active low, `true`: active high
+        v_sync_pol: false,
+        // data enable: `false`: active low, `true`: active high
+        not_data_enable_pol: true,
+        // pixel_clock: `false`: active low, `true`: active high
+        pixel_clock_pol: false,
+    };
+    display.init(display_config);
     // let mut layer1 = display.split();
     // // // let framebuf = alloc::boxed::Box::new([0u8; 640 * 480]);
     // // // let framebuf = [0u8; 1280 * 768];
@@ -401,13 +412,13 @@ unsafe fn main() -> ! {
     // layer1.enable(framebuf.as_ptr(), PixelFormat::RGB565);
     // layer1.swap_framebuffer(framebuf.as_ptr());
 
-    // let _dsihost = dsi::Dsi::new(
-    //     dsi::DsiLanes::Two,
-    //     &display_config,
-    //     dp.DSIHOST,
-    //     ccdr.peripheral.DSI,
-    //     &ccdr.clocks,
-    // );
+    let _dsihost = dsi::Dsi::new(
+        dsi::DsiLanes::Two,
+        &display_config,
+        dp.DSIHOST,
+        ccdr.peripheral.DSI,
+        &ccdr.clocks,
+    );
 
     let mut menu = terminal::menu::Menu::new(terminal::TerminalWriter, terminal::MENU);
 

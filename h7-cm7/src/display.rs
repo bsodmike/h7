@@ -1,3 +1,6 @@
+use crate::Led;
+use stm32h7xx_hal::interrupt;
+
 // let mut anx7625 = Anx7625::new(
 //     // dp.I2C1.i2c(
 //     //     (
@@ -50,6 +53,8 @@ pub const SCREEN_HEIGHT: usize = 768;
 pub const FRAME_BUFFER_SIZE: usize = SCREEN_WIDTH * SCREEN_HEIGHT * core::mem::size_of::<Pixel>();
 pub const FRAME_BUFFER_ALLOC_SIZE: usize = FRAME_BUFFER_SIZE * 2;
 
+pub const FRAME_RATE: u32 = 30;
+
 // pub fn frame_buffer() -> &'static mut [Pixel] {
 //     todo!()
 // }
@@ -61,3 +66,31 @@ pub const FRAME_BUFFER_ALLOC_SIZE: usize = FRAME_BUFFER_SIZE * 2;
 //     let b16 = ((rgb888 & 0x00F80000) >> 8) as u16;
 //     r16 | g16 | b16
 // }
+
+// Interrupt to swap framebuffers
+#[interrupt]
+fn TIM2() {
+    unsafe {
+        stm32h7xx_hal::pac::TIM2::ptr()
+            .as_ref()
+            .unwrap()
+            .sr
+            .write(|w| w.uif().clear_bit());
+        Led::Blue.toggle()
+    };
+}
+
+#[interrupt]
+fn LTDC() {
+    unsafe { Led::Red.on() };
+}
+
+#[interrupt]
+fn DMA2D() {
+    unsafe { Led::Red.on() };
+}
+
+#[interrupt]
+fn DSI() {
+    unsafe { Led::Red.on() };
+}
