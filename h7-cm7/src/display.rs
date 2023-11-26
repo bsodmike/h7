@@ -1,82 +1,67 @@
 use crate::Led;
-use stm32h7xx_hal::interrupt;
+use core::{cell::RefCell, mem};
+use critical_section::Mutex;
+use embedded_display_controller::{DisplayControllerLayer, PixelFormat};
+use h7_display::{FrameBuffer, H7Display};
+use stm32h7xx_hal::{interrupt, ltdc::LtdcLayer1};
 
-// let mut anx7625 = Anx7625::new(
-//     // dp.I2C1.i2c(
-//     //     (
-//     //         gpiob.pb6.into_alternate_af4().set_open_drain(),
-//     //         gpiob.pb7.into_alternate_af4().set_open_drain(),
-//     //     ),
-//     //     400.khz(),
-//     //     ccdr.peripheral.I2C1,
-//     //     &ccdr.clocks,
-//     // ),
-//     internal_i2c,
-//     gpiok.pk2.into_push_pull_output(),
-//     gpioj.pj3.into_push_pull_output(),
-// );
-// match anx7625.init(gpioj.pj6.into_push_pull_output(), &mut delay) {
-//     Ok(_) => (),
-//     Err(e) => panic!("{}", e),
-// };
-// let mut display = stm32h7xx_hal::ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
-// let display_config = DisplayConfiguration {
-//     active_width: 1280,
-//     active_height: 768,
-//     h_back_porch: 120,
-//     h_front_porch: 32,
-//     v_back_porch: 10,
-//     v_front_porch: 45,
-//     h_sync: 20,
-//     v_sync: 12,
-
-//     /// horizontal synchronization: `false`: active low, `true`: active high
-//     h_sync_pol: true,
-//     /// vertical synchronization: `false`: active low, `true`: active high
-//     v_sync_pol: true,
-//     /// data enable: `false`: active low, `true`: active high
-//     not_data_enable_pol: false,
-//     /// pixel_clock: `false`: active low, `true`: active high
-//     pixel_clock_pol: false,
-// };
-// display.init(display_config);
-// let mut layer1 = display.split();
-// // let framebuf = alloc::boxed::Box::new([0u8; 640 * 480]);
-// let framebuf = [0u8; 1280 * 768];
-// layer1.enable(framebuf.as_ptr(), PixelFormat::L8);
-// layer1.swap_framebuffer(framebuf.as_ptr());
-
-type Pixel = u16;
+type Pixel = embedded_graphics::pixelcolor::Rgb565;
 
 pub const SCREEN_WIDTH: usize = 1024;
 pub const SCREEN_HEIGHT: usize = 768;
-pub const FRAME_BUFFER_SIZE: usize = SCREEN_WIDTH * SCREEN_HEIGHT * core::mem::size_of::<Pixel>();
+pub const FRAME_BUFFER_SIZE: usize = mem::size_of::<FrameBuffer<Pixel, SCREEN_WIDTH, SCREEN_HEIGHT>>();
 pub const FRAME_BUFFER_ALLOC_SIZE: usize = FRAME_BUFFER_SIZE * 2;
+pub const FRAME_RATE: u32 = 60;
 
-pub const FRAME_RATE: u32 = 30;
+pub static GPU: Mutex<RefCell<Option<Gpu>>> = Mutex::new(RefCell::new(None));
 
-// pub fn frame_buffer() -> &'static mut [Pixel] {
-//     todo!()
-// }
+pub struct Gpu {
+    display: H7Display<'static, Pixel, SCREEN_HEIGHT, SCREEN_HEIGHT>,
+    layer: LtdcLayer1,
+}
 
-// fn rgb888_to_rgb565(r: u8, g: u8, b: u8) -> Pixel {
-//     let rgb888 = u32::from_be_bytes([0, r, g, b]);
-//     let r16 = ((rgb888 & 0x000000F8) >> 3) as u16;
-//     let g16 = ((rgb888 & 0x0000FC00) >> 5) as u16;
-//     let b16 = ((rgb888 & 0x00F80000) >> 8) as u16;
-//     r16 | g16 | b16
-// }
+impl Gpu {
+    pub fn new(display: H7Display<'static, Pixel, SCREEN_HEIGHT, SCREEN_HEIGHT>, mut layer: LtdcLayer1) -> Self {
+        unsafe { layer.enable(display.front_buffer().as_ptr() as *const u16, PixelFormat::RGB565) };
+        Self { display, layer }
+    }
+
+    pub fn swap(&mut self) {
+        if !self.layer.is_swap_pending() {
+            let (front, _) = self.display.swap_buffers();
+            unsafe { self.layer.swap_framebuffer(front.as_ptr() as *const u16) };
+            unsafe { Led::Blue.toggle() };
+        }
+        unsafe { Led::Red.toggle() };
+
+        // while self.layer.is_swap_pending() {
+        //     cortex_m::asm::nop();
+        // }
+    }
+}
+
+impl core::ops::Deref for Gpu {
+    type Target = H7Display<'static, Pixel, SCREEN_HEIGHT, SCREEN_HEIGHT>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.display
+    }
+}
+
+impl core::ops::DerefMut for Gpu {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.display
+    }
+}
 
 // Interrupt to swap framebuffers
 #[interrupt]
 fn TIM2() {
     unsafe {
-        stm32h7xx_hal::pac::TIM2::ptr()
-            .as_ref()
-            .unwrap()
-            .sr
-            .write(|w| w.uif().clear_bit());
-        Led::Blue.toggle()
+        crate::utils::interrupt_free(|cs| {
+            GPU.borrow(cs).borrow_mut().as_mut().unwrap().swap();
+        });
+        stm32h7xx_hal::pac::TIM2::ptr().as_ref().unwrap().sr.write(|w| w.uif().clear_bit());
     };
 }
 

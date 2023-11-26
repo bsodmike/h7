@@ -18,6 +18,8 @@ impl Write for PanicLogger {
 
 #[panic_handler]
 fn panic_handler(panic_info: &PanicInfo) -> ! {
+    // TODO: Render panic info to display
+
     let _ = writeln!(PanicLogger, "{panic_info}");
     const LIMIT: usize = 10_000_000;
     const LIMIT_DC: usize = LIMIT / 2;

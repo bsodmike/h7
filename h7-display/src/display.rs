@@ -9,15 +9,11 @@ where
     buffers: [&'b mut FrameBuffer<COLOR, WIDTH, HEIGHT>; 2],
 }
 
-impl<'b, COLOR: PixelColor, const WIDTH: usize, const HEIGHT: usize>
-    H7Display<'b, COLOR, WIDTH, HEIGHT>
+impl<'b, COLOR: PixelColor, const WIDTH: usize, const HEIGHT: usize> H7Display<'b, COLOR, WIDTH, HEIGHT>
 where
     [(); WIDTH * HEIGHT]:,
 {
-    pub const fn new(
-        fb0: &'b mut FrameBuffer<COLOR, WIDTH, HEIGHT>,
-        fb1: &'b mut FrameBuffer<COLOR, WIDTH, HEIGHT>,
-    ) -> Self {
+    pub const fn new(fb0: &'b mut FrameBuffer<COLOR, WIDTH, HEIGHT>, fb1: &'b mut FrameBuffer<COLOR, WIDTH, HEIGHT>) -> Self {
         Self {
             swapped: false,
             buffers: [fb0, fb1],
@@ -50,24 +46,12 @@ where
     }
 
     #[inline(always)]
-    fn get_buffers(
-        &mut self,
-    ) -> (
-        &FrameBuffer<COLOR, WIDTH, HEIGHT>,
-        &mut FrameBuffer<COLOR, WIDTH, HEIGHT>,
-    ) {
-        (self.front_buffer(), unsafe {
-            core::mem::transmute(self.back_buffer())
-        })
+    fn get_buffers(&mut self) -> (&FrameBuffer<COLOR, WIDTH, HEIGHT>, &mut FrameBuffer<COLOR, WIDTH, HEIGHT>) {
+        (self.front_buffer(), unsafe { core::mem::transmute(self.back_buffer()) })
     }
 
     #[inline(always)]
-    pub fn swap_buffers(
-        &mut self,
-    ) -> (
-        &FrameBuffer<COLOR, WIDTH, HEIGHT>,
-        &mut FrameBuffer<COLOR, WIDTH, HEIGHT>,
-    ) {
+    pub fn swap_buffers(&mut self) -> (&FrameBuffer<COLOR, WIDTH, HEIGHT>, &mut FrameBuffer<COLOR, WIDTH, HEIGHT>) {
         self.swapped = !self.swapped;
 
         let (front, back) = self.get_buffers();
@@ -85,34 +69,22 @@ where
                 let n_rows = px.unsigned_abs() as usize;
                 let back_buffer_ptr = self.back_buffer_mut().as_mut_ptr();
                 unsafe {
-                    core::ptr::copy(
-                        back_buffer_ptr,
-                        back_buffer_ptr.add(n_rows * WIDTH),
-                        (self.height() - n_rows) * WIDTH,
-                    );
+                    core::ptr::copy(back_buffer_ptr, back_buffer_ptr.add(n_rows * WIDTH), (self.height() - n_rows) * WIDTH);
 
                     let r1 = Self::row_range(0);
                     let r2 = Self::row_range(n_rows);
-                    self.back_buffer_mut()
-                        .get_unchecked_mut(r1.start..r2.start)
-                        .fill(fill);
+                    self.back_buffer_mut().get_unchecked_mut(r1.start..r2.start).fill(fill);
                 }
             }
             1..=i32::MAX => {
                 let n_rows = px.unsigned_abs() as usize;
                 let back_buffer_ptr = self.back_buffer_mut().as_mut_ptr();
                 unsafe {
-                    core::ptr::copy(
-                        back_buffer_ptr.add(n_rows * WIDTH),
-                        back_buffer_ptr,
-                        (self.height() - n_rows) * WIDTH,
-                    );
+                    core::ptr::copy(back_buffer_ptr.add(n_rows * WIDTH), back_buffer_ptr, (self.height() - n_rows) * WIDTH);
 
                     let r1 = Self::row_range(HEIGHT - n_rows);
                     let r2 = Self::row_range(HEIGHT);
-                    self.back_buffer_mut()
-                        .get_unchecked_mut(r1.start..r2.start)
-                        .fill(fill);
+                    self.back_buffer_mut().get_unchecked_mut(r1.start..r2.start).fill(fill);
                 }
             }
         }
@@ -146,8 +118,7 @@ where
     }
 }
 
-impl<'b, COLOR: PixelColor, const WIDTH: usize, const HEIGHT: usize> DrawTarget
-    for H7Display<'b, COLOR, WIDTH, HEIGHT>
+impl<'b, COLOR: PixelColor, const WIDTH: usize, const HEIGHT: usize> DrawTarget for H7Display<'b, COLOR, WIDTH, HEIGHT>
 where
     [(); WIDTH * HEIGHT]:,
 {
@@ -160,35 +131,21 @@ where
     {
         for Pixel(point, color) in pixels {
             if point.x >= 0 && point.x < WIDTH as i32 && point.y >= 0 && point.y < HEIGHT as i32 {
-                *self
-                    .back_buffer_mut()
-                    .at_mut(point.x as usize, point.y as usize) = color;
+                *self.back_buffer_mut().at_mut(point.x as usize, point.y as usize) = color;
             }
         }
 
         Ok(())
     }
 
-    fn fill_contiguous<I>(
-        &mut self,
-        area: &embedded_graphics_core::primitives::Rectangle,
-        colors: I,
-    ) -> Result<(), Self::Error>
+    fn fill_contiguous<I>(&mut self, area: &embedded_graphics_core::primitives::Rectangle, colors: I) -> Result<(), Self::Error>
     where
         I: IntoIterator<Item = Self::Color>,
     {
-        self.draw_iter(
-            area.points()
-                .zip(colors)
-                .map(|(pos, color)| embedded_graphics_core::Pixel(pos, color)),
-        )
+        self.draw_iter(area.points().zip(colors).map(|(pos, color)| embedded_graphics_core::Pixel(pos, color)))
     }
 
-    fn fill_solid(
-        &mut self,
-        area: &embedded_graphics_core::primitives::Rectangle,
-        color: Self::Color,
-    ) -> Result<(), Self::Error> {
+    fn fill_solid(&mut self, area: &embedded_graphics_core::primitives::Rectangle, color: Self::Color) -> Result<(), Self::Error> {
         // This impl is ~1000x faster than `self.fill_contiguous(area, core::iter::repeat(color))`
         let x_start = Self::bounded_x(area.top_left.x);
         let x_end = Self::bounded_x(area.top_left.x + area.size.width as i32);
@@ -203,9 +160,7 @@ where
             let idx_start = FrameBuffer::<COLOR, WIDTH, HEIGHT>::xy_to_index(x_start, y);
             // back_buffer[idx_start..(idx_start + x_len)].fill(color);
             unsafe {
-                back_buffer
-                    .get_unchecked_mut(idx_start..(idx_start + x_len))
-                    .fill(color);
+                back_buffer.get_unchecked_mut(idx_start..(idx_start + x_len)).fill(color);
             };
         }
 
@@ -218,8 +173,7 @@ where
     }
 }
 
-impl<'b, COLOR: PixelColor, const WIDTH: usize, const HEIGHT: usize> OriginDimensions
-    for H7Display<'b, COLOR, WIDTH, HEIGHT>
+impl<'b, COLOR: PixelColor, const WIDTH: usize, const HEIGHT: usize> OriginDimensions for H7Display<'b, COLOR, WIDTH, HEIGHT>
 where
     [(); WIDTH * HEIGHT]:,
 {

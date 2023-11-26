@@ -1,6 +1,6 @@
 #![no_main]
 #![no_std]
-#![feature(alloc_error_handler, const_for, const_mut_refs, array_chunks)]
+#![feature(alloc_error_handler, const_for, const_mut_refs, array_chunks, generic_const_exprs)]
 
 // use embedded_display_controller::DisplayController;
 
@@ -11,9 +11,7 @@ use {
     anx7625::Anx7625,
     chrono::{NaiveDate, Timelike},
     core::fmt::Write,
-    embedded_display_controller::{
-        DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
-    },
+    embedded_display_controller::{DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat},
     fugit::RateExtU32,
     led::Led,
     stm32h7xx_hal::{self as hal, adc, gpio::Speed, pac, prelude::*, rcc, rtc},
@@ -45,14 +43,7 @@ unsafe fn main() -> ! {
     let dp = pac::Peripherals::take().unwrap();
 
     // Enable SRAM1-3
-    dp.RCC.ahb2enr.modify(|_, w| {
-        w.sram1en()
-            .set_bit()
-            .sram2en()
-            .set_bit()
-            .sram3en()
-            .set_bit()
-    });
+    dp.RCC.ahb2enr.modify(|_, w| w.sram1en().set_bit().sram2en().set_bit().sram3en().set_bit());
 
     // TODO: RAMECC1, RAMECC2, RAMECC3
 
@@ -88,26 +79,25 @@ unsafe fn main() -> ! {
             .pll1_strategy(rcc::PllConfigStrategy::Iterative)
             .pll1_q_ck(240.MHz())
             .pll2_strategy(rcc::PllConfigStrategy::Iterative)
-            .pll2_p_ck(100.MHz())
+            .pll2_p_ck(500.MHz() / 2)
+            .pll2_q_ck(400.MHz() / 2)
+            .pll2_r_ck(300.MHz() / 2)
             .pll3_strategy(rcc::PllConfigStrategy::Iterative)
-            .pll3_p_ck(100.MHz())
-            .pll3_r_ck(100.MHz())
+            .pll3_p_ck(800.MHz() / 2)
+            .pll3_q_ck(800.MHz() / 2)
+            .pll3_r_ck(800.MHz() / 83)
             .freeze(pwrcfg, &dp.SYSCFG);
 
         // USB Clock
         let _ = ccdr.clocks.hsi48_ck().expect("HSI48 must run");
-        ccdr.peripheral
-            .kernel_usb_clk_mux(rcc::rec::UsbClkSel::Hsi48);
+        ccdr.peripheral.kernel_usb_clk_mux(rcc::rec::UsbClkSel::Hsi48);
         ccdr.peripheral.kernel_adc_clk_mux(rcc::rec::AdcClkSel::Per);
+        // ccdr.peripheral.kernel_usart234578_clk_mux(rcc::rec::Usart234578ClkSel::HsiKer);
         ccdr
     };
 
     // Make CRC available
-    interrupt_free(|cs| {
-        utils::CRC
-            .borrow(cs)
-            .replace(Some(dp.CRC.crc(ccdr.peripheral.CRC)))
-    });
+    interrupt_free(|cs| utils::CRC.borrow(cs).replace(Some(dp.CRC.crc(ccdr.peripheral.CRC))));
 
     // GPIO
     let (gpioa, gpiob, _gpioc, gpiod, gpioe, gpiof, gpiog, gpioh, _gpioi, gpioj, gpiok) = {
@@ -152,10 +142,7 @@ unsafe fn main() -> ! {
         let mut uart = dp
             .USART1
             .serial(
-                (
-                    gpioa.pa9.into_alternate::<7>(),
-                    gpioa.pa10.into_alternate::<7>(),
-                ),
+                (gpioa.pa9.into_alternate::<7>(), gpioa.pa10.into_alternate::<7>()),
                 terminal::UART_TERMINAL_BAUD.bps(),
                 ccdr.peripheral.USART1,
                 &ccdr.clocks,
@@ -168,12 +155,8 @@ unsafe fn main() -> ! {
 
         let (terminal_tx, terminal_rx) = uart.split();
         interrupt_free(|cs| {
-            terminal::UART_TERMINAL_TX
-                .borrow(cs)
-                .replace(Some(terminal_tx));
-            terminal::UART_TERMINAL_RX
-                .borrow(cs)
-                .replace(Some(terminal_rx));
+            terminal::UART_TERMINAL_TX.borrow(cs).replace(Some(terminal_tx));
+            terminal::UART_TERMINAL_RX.borrow(cs).replace(Some(terminal_rx));
         });
     };
 
@@ -196,19 +179,9 @@ unsafe fn main() -> ! {
         // Set Date and Time
         #[cfg(debug_assertions)]
         let _ = TimeSource::set_date_time(
-            NaiveDate::from_ymd_opt(
-                consts::COMPILE_TIME_YEAR,
-                consts::COMPILE_TIME_MONTH,
-                consts::COMPILE_TIME_DAY,
-            )
-            .and_then(|td| {
-                td.and_hms_opt(
-                    consts::COMPILE_TIME_HOUR,
-                    consts::COMPILE_TIME_MINUTE,
-                    consts::COMPILE_TIME_SECOND,
-                )
-            })
-            .unwrap(),
+            NaiveDate::from_ymd_opt(consts::COMPILE_TIME_YEAR, consts::COMPILE_TIME_MONTH, consts::COMPILE_TIME_DAY)
+                .and_then(|td| td.and_hms_opt(consts::COMPILE_TIME_HOUR, consts::COMPILE_TIME_MINUTE, consts::COMPILE_TIME_SECOND))
+                .unwrap(),
         );
 
         // Set boot time
@@ -222,13 +195,7 @@ unsafe fn main() -> ! {
     {
         // Temp ADC
         let mut channel = adc::Temperature::new();
-        let mut temp_adc_disabled = adc::Adc::adc3(
-            dp.ADC3,
-            8.MHz(),
-            &mut delay,
-            ccdr.peripheral.ADC3,
-            &ccdr.clocks,
-        );
+        let mut temp_adc_disabled = adc::Adc::adc3(dp.ADC3, 8.MHz(), &mut delay, ccdr.peripheral.ADC3, &ccdr.clocks);
         temp_adc_disabled.set_sample_time(adc::AdcSampleTime::T_387);
         temp_adc_disabled.set_resolution(adc::Resolution::SixteenBit);
         temp_adc_disabled.calibrate();
@@ -237,17 +204,13 @@ unsafe fn main() -> ! {
         let temp_adc = temp_adc_disabled.enable();
         // Save clock freq
         interrupt_free(|cs| {
-            system::CLOCK_FREQ
-                .borrow(cs)
-                .replace(Some(ccdr.clocks.sys_ck()));
-            system::CORE_TEMP
-                .borrow(cs)
-                .replace(Some((temp_adc, channel)));
+            system::CLOCK_FREQ.borrow(cs).replace(Some(ccdr.clocks.sys_ck()));
+            system::CORE_TEMP.borrow(cs).replace(Some((temp_adc, channel)));
         });
     }
 
     // SDRAM
-    {
+    let framebuffer_start_addr = {
         // Configure SDRAM pins
         let sdram_pins = fmc_pins! {
             // A0-A12
@@ -276,20 +239,18 @@ unsafe fn main() -> ! {
         mem::sdram::configure(&cp.MPU, &cp.SCB);
         let sdram_ptr = dp
             .FMC
-            .sdram(
-                sdram_pins,
-                stm32_fmc::devices::as4c4m16sa_6::As4c4m16sa {},
-                ccdr.peripheral.FMC,
-                &ccdr.clocks,
-            )
+            .sdram(sdram_pins, stm32_fmc::devices::as4c4m16sa_6::As4c4m16sa {}, ccdr.peripheral.FMC, &ccdr.clocks)
             .init(&mut delay);
 
         // Configure allocator
-        mem::ALLOCATOR.init(
-            sdram_ptr as usize + display::FRAME_BUFFER_ALLOC_SIZE,
-            mem::HEAP_SIZE,
-        );
-    }
+        let framebuffer = sdram_ptr as usize;
+        let heap = sdram_ptr as usize + display::FRAME_BUFFER_ALLOC_SIZE;
+        log::info!("Framebuffer: {:p}", framebuffer as *const ());
+        log::info!("Heap: {:p}", heap as *const ());
+        mem::ALLOCATOR.init(heap, mem::HEAP_SIZE);
+
+        framebuffer
+    };
 
     // Enable osc
     {
@@ -313,11 +274,7 @@ unsafe fn main() -> ! {
             ccdr.peripheral.SDMMC2,
             &ccdr.clocks,
         );
-        interrupt_free(|cs| {
-            fs::sdmmc_fs::SD_CARD
-                .borrow(cs)
-                .replace(Some(fs::sdmmc_fs::SdmmcFs::new(sdcard)))
-        });
+        interrupt_free(|cs| fs::sdmmc_fs::SD_CARD.borrow(cs).replace(Some(fs::sdmmc_fs::SdmmcFs::new(sdcard))));
     }
 
     // QSPI Flash
@@ -340,24 +297,12 @@ unsafe fn main() -> ! {
         qspi_store.init().unwrap();
 
         interrupt_free(|cs| {
-            fs::qspi_store::QSPI_STORE
-                .borrow(cs)
-                .replace(Some(qspi_store));
+            fs::qspi_store::QSPI_STORE.borrow(cs).replace(Some(qspi_store));
         });
     }
 
     // Display config
     {
-        // Set up frame sawp timer
-        let mut timer2 =
-            dp.TIM2
-                .timer(display::FRAME_RATE.Hz(), ccdr.peripheral.TIM2, &ccdr.clocks);
-        timer2.listen(hal::timer::Event::TimeOut);
-        cortex_m::peripheral::NVIC::unmask(pac::Interrupt::TIM2);
-        // core::mem::forget(timer2);
-
-        // dp.DMA2D.clk_en();
-
         let mut anx = Anx7625::new(
             gpiok.pk2.into_push_pull_output(),
             gpioj.pj3.into_push_pull_output(),
@@ -371,54 +316,47 @@ unsafe fn main() -> ! {
                 .map_err(|(_, edid)| unsafe { edid.assume_init() }),
         );
         log::warn!("{:#?}", edid);
-        anx.dp_start(
-            &mut internal_i2c,
-            &mut delay,
-            &edid,
-            anx7625::EdidModes::EDID_MODE_640x480_60Hz,
-        )
-        .unwrap();
+        anx.dp_start(&mut internal_i2c, &mut delay, &edid, anx7625::EdidModes::EDID_MODE_1024x768_60Hz)
+            .unwrap();
+
+        let mut ltdc = stm32h7xx_hal::ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
+        let display_config = DisplayConfiguration {
+            active_width: display::SCREEN_WIDTH as u16,
+            active_height: display::SCREEN_HEIGHT as u16,
+            h_back_porch: 120,
+            h_front_porch: 32,
+            v_back_porch: 10,
+            v_front_porch: 45,
+            h_sync: 20,
+            v_sync: 12,
+
+            // horizontal synchronization: `false`: active low, `true`: active high
+            h_sync_pol: false,
+            // vertical synchronization: `false`: active low, `true`: active high
+            v_sync_pol: false,
+            // data enable: `false`: active low, `true`: active high
+            not_data_enable_pol: true,
+            // pixel_clock: `false`: active low, `true`: active high
+            pixel_clock_pol: false,
+        };
+        ltdc.init(display_config);
+
+        let fb0: &'static mut _ = &mut *(framebuffer_start_addr as *mut _);
+        let fb1: &'static mut _ = &mut *((framebuffer_start_addr + display::FRAME_BUFFER_SIZE) as *mut _);
+        let display = h7_display::H7Display::new(fb0, fb1);
+        let gpu = display::Gpu::new(display, ltdc.split());
+
+        interrupt_free(|cs| {
+            display::GPU.borrow(cs).replace(Some(gpu));
+        });
+
+        // Set up frame sawp timer
+        let mut timer2 = dp.TIM2.timer(display::FRAME_RATE.Hz(), ccdr.peripheral.TIM2, &ccdr.clocks);
+        timer2.listen(hal::timer::Event::TimeOut);
+        cortex_m::peripheral::NVIC::unmask(pac::Interrupt::TIM2);
+
+        let _dsihost = dsi::Dsi::new(dsi::DsiLanes::Two, &display_config, dp.DSIHOST, ccdr.peripheral.DSI, &ccdr.clocks);
     }
-
-    let mut display = stm32h7xx_hal::ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
-    let display_config = DisplayConfiguration {
-        active_width: display::SCREEN_WIDTH as u16,
-        active_height: display::SCREEN_HEIGHT as u16,
-        h_back_porch: 120,
-        h_front_porch: 32,
-        v_back_porch: 10,
-        v_front_porch: 45,
-        h_sync: 20,
-        v_sync: 12,
-
-        // horizontal synchronization: `false`: active low, `true`: active high
-        h_sync_pol: false,
-        // vertical synchronization: `false`: active low, `true`: active high
-        v_sync_pol: false,
-        // data enable: `false`: active low, `true`: active high
-        not_data_enable_pol: true,
-        // pixel_clock: `false`: active low, `true`: active high
-        pixel_clock_pol: false,
-    };
-    display.init(display_config);
-    // let mut layer1 = display.split();
-    // // // let framebuf = alloc::boxed::Box::new([0u8; 640 * 480]);
-    // // // let framebuf = [0u8; 1280 * 768];
-    // // // let framebuf = alloc::vec::Vec::<u8>::with_capacity(1280 * 768);
-    // let framebuf = alloc::vec![
-    //     0xf81fu16;
-    //     display_config.active_width as usize * display_config.active_height as usize * 2
-    // ];
-    // layer1.enable(framebuf.as_ptr(), PixelFormat::RGB565);
-    // layer1.swap_framebuffer(framebuf.as_ptr());
-
-    let _dsihost = dsi::Dsi::new(
-        dsi::DsiLanes::Two,
-        &display_config,
-        dp.DSIHOST,
-        ccdr.peripheral.DSI,
-        &ccdr.clocks,
-    );
 
     let mut menu = terminal::menu::Menu::new(terminal::TerminalWriter, terminal::MENU);
 
