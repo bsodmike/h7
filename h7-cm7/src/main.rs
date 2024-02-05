@@ -52,6 +52,7 @@ mod utils;
 #[cortex_m_rt::entry]
 unsafe fn main() -> ! {
     logger::init();
+    log::info!("Booting up...");
 
     // Get peripherals
     let mut cp = cortex_m::Peripherals::take().unwrap();

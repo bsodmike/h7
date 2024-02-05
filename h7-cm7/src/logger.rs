@@ -16,12 +16,12 @@ mod semihosting {
             modes::InterruptOk,
             printer::semihosting::{self, Semihosting},
         },
-        cortex_m_semihosting::hio::HStdout,
+        cortex_m_semihosting::hio,
         panic_semihosting as _,
     };
 
     lazy_static::lazy_static! {
-        static ref LOGGER: Logger<Semihosting<InterruptOk, HStdout>> = Logger {
+        static ref LOGGER: Logger<Semihosting<InterruptOk, hio::HostStream>> = Logger {
             level: log::LevelFilter::Trace,
             inner: semihosting::InterruptOk::<_>::stdout().expect("Get Semihosting stdout"),
         };
