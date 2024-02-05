@@ -52,11 +52,18 @@ mod utils;
 #[cortex_m_rt::entry]
 unsafe fn main() -> ! {
     logger::init();
-    log::info!("Booting up...");
+    // log::info!("Booting up...");
 
     // Get peripherals
     let mut cp = cortex_m::Peripherals::take().unwrap();
     let dp = pac::Peripherals::take().unwrap();
+
+    // Constrain and Freeze power
+    let pwr = dp.PWR.constrain();
+
+    // FIXME ths stopped working??
+    let mut pwrcfg = pwr.vos0(&dp.SYSCFG).freeze();
+    let _backup = pwrcfg.backup().unwrap();
 
     // Enable SRAM1-3
     dp.RCC.ahb2enr.modify(|_, w| {
@@ -86,11 +93,6 @@ unsafe fn main() -> ! {
     // PMIC is configured later, the DL2 LED issue was fixed by analyzing the Arduino Bootloader
     // I2C traffic.
     // core::ptr::write_volatile(0x5802480c as *mut u32, 0b00000101000000010000000001010110);
-
-    // Constrain and Freeze power
-    let pwr = dp.PWR.constrain();
-    let mut pwrcfg = pwr.vos0(&dp.SYSCFG).freeze();
-    let backup = pwrcfg.backup().unwrap();
 
     // Constrain and Freeze clocks
     let ccdr = {
