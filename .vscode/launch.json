@@ -13,7 +13,7 @@
             "device": "STM32H747XI_M7",
             "interface": "swd",
             "runToEntryPoint": "main",
-            "svdFile": "${workspaceRoot}/device/STM32H747_CM7.svd",
+            "svdFile": "./resources/stm32h747xi/svd/STM32H747_CM7.svd",
         }
     ]
 }
