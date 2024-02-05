@@ -1,28 +1,19 @@
 {
+    "version": "0.2.0",
     "configurations": [
         {
-            "cwd": "${workspaceRoot}/h7",
-            "executable": "/home/olback/.cargo-target/thumbv7em-none-eabihf/debug/h7",
-            "name": "Debug CM7 (debug)",
-            "request": "attach",
+            "cwd": "${workspaceRoot}",
+            "executable": "./h7-cm7/target/thumbv7em-none-eabihf/release/h7-cm7",
+            "name": "Debug Microcontroller",
+            "request": "launch",
             "type": "cortex-debug",
-            "showDevDebugOutput": "none",
-            "servertype": "openocd",
-            "configFiles": [
-                "interface/cmsis-dap.cfg",
-                "target/stm32h7x.cfg"
-            ],
-            "openOCDLaunchCommands": [
-                "itm ports on"
-            ],
-            "svdFile": "${workspaceRoot}/resources/stm32h747xi/svd/STM32H747_CM7.svd",
-            "postAttachCommands": [
-                "monitor arm semihosting enable",
-                "break main"
-            ],
-            "breakAfterReset": true,
-            "numberOfProcessors": 2,
-            "preLaunchTask": "rust: cargo make build-flash-debug"
+            "servertype": "jlink",
+            "serverpath": "/Applications/SEGGER/JLink/JLinkGDBServerCLExe",
+            "armToolchainPath": "/opt/homebrew/bin",
+            "device": "STM32H747XI_M7",
+            "interface": "swd",
+            "runToEntryPoint": "main",
+            "svdFile": "${workspaceRoot}/device/STM32H747_CM7.svd",
         }
     ]
 }

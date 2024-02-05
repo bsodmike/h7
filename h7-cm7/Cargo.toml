@@ -38,7 +38,7 @@ h7-api = { path = "../h7-api" }
 # Display
 embedded-display-controller = "0.1"
 embedded-graphics = "0.8"
-anx7625 = { path = "../../anx7625-2" } # MIPI to Displayport
+# anx7625 = { path = "../../anx7625-2" } # MIPI to Displayport
 h7-display = { path = "../h7-display" }
 
 # Other

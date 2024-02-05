@@ -1,26 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
-<!--
-Copyright (c) 2021 STMicroelectronics.
-
- SPDX-License-Identifier: Apache-2.0
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
--->
 <device schemaVersion="1.1"
 xmlns:xs="http://www.w3.org/2001/XMLSchema-instance"
 xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
   <name>STM32H747_CM7</name>
-  <version>1.6</version>
+  <version>1.2</version>
   <description>STM32H747_CM7</description>
   <cpu>
     <name>CM7</name>
@@ -31,8 +14,12 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
     <nvicPrioBits>4</nvicPrioBits>
     <vendorSystickConfig>false</vendorSystickConfig>
   </cpu>
+  <!--Bus Interface Properties-->
+  <!--Cortex-M3 is byte addressable-->
   <addressUnitBits>8</addressUnitBits>
+  <!--the maximum data bit width accessible within a single transfer-->
   <width>32</width>
+  <!--Register Default Properties-->
   <size>0x20</size>
   <resetValue>0x0</resetValue>
   <resetMask>0xFFFFFFFF</resetMask>
@@ -8412,10 +8399,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8441,10 +8428,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8470,10 +8457,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8499,10 +8486,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8528,10 +8515,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8557,10 +8544,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8586,10 +8573,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8615,10 +8602,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8644,10 +8631,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8673,10 +8660,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8702,10 +8689,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8731,10 +8718,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8760,10 +8747,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8789,10 +8776,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8818,10 +8805,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8847,10 +8834,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8876,10 +8863,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8905,10 +8892,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8934,10 +8921,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8963,10 +8950,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -8992,10 +8979,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9021,10 +9008,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9050,10 +9037,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9079,10 +9066,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9108,10 +9095,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9137,10 +9124,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9166,10 +9153,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9195,10 +9182,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9224,10 +9211,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9253,10 +9240,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9282,10 +9269,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9311,10 +9298,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9323,8 +9310,8 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>1</bitWidth>
             </field>
           </fields>
-        </register>       		
-		<register>
+        </register>
+        <register>
           <name>HSEM_RLR0</name>
           <displayName>HSEM_RLR0</displayName>
           <description>HSEM Read lock register</description>
@@ -9340,10 +9327,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9369,10 +9356,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9398,10 +9385,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9427,10 +9414,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9456,10 +9443,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9485,10 +9472,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9514,10 +9501,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9543,10 +9530,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9572,10 +9559,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9601,10 +9588,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9630,10 +9617,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9659,10 +9646,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9688,10 +9675,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9717,10 +9704,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9746,10 +9733,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9775,10 +9762,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9804,10 +9791,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9833,10 +9820,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9862,10 +9849,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9891,10 +9878,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9920,10 +9907,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9949,10 +9936,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -9978,10 +9965,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -10007,10 +9994,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -10036,10 +10023,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -10065,10 +10052,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -10094,10 +10081,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -10123,10 +10110,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -10152,10 +10139,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -10181,10 +10168,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -10210,10 +10197,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -10239,10 +10226,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>8</bitWidth>
             </field>
             <field>
-              <name>COREID</name>
-              <description>Semaphore COREID</description>
+              <name>MASTERID</name>
+              <description>Semaphore MasterID</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>LOCK</name>
@@ -10253,8 +10240,8 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
           </fields>
         </register>
         <register>
-          <name>HSEM_C1IER</name>
-          <displayName>HSEM_C1IER</displayName>
+          <name>HSEM_IER</name>
+          <displayName>HSEM_IER</displayName>
           <description>HSEM Interrupt enable register</description>
           <addressOffset>0x100</addressOffset>
           <size>0x20</size>
@@ -10262,33 +10249,469 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
           <resetValue>0x00000000</resetValue>
           <fields>
             <field>
-              <name>ISE</name>
-              <description>Interrupt semaphore x enable bit</description>
+              <name>ISEM0</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
               <bitOffset>0</bitOffset>
-              <bitWidth>32</bitWidth>
+              <bitWidth>1</bitWidth>
             </field>
-          </fields>
-        </register>						
-        <register>
-          <name>HSEM_C1ICR</name>
-          <displayName>HSEM_C1ICR</displayName>
-          <description>HSEM Interrupt clear register</description>
-          <addressOffset>0x104</addressOffset>
-          <size>0x20</size>
-          <access>read-write</access>
-          <resetValue>0x00000000</resetValue>
-          <fields>
             <field>
-              <name>ISC</name>
-              <description>Interrupt semaphore x clear bit</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>32</bitWidth>
+              <name>ISEM1</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>1</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM2</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>2</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM3</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>3</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM4</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>4</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM5</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>5</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM6</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>6</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM7</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>7</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM8</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>8</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM9</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>9</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM10</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>10</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM11</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>11</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM12</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>12</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM13</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>13</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM14</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>14</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM15</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>15</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM16</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>16</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM17</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>17</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM18</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>18</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM19</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>19</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM20</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>20</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM21</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>21</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM22</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>22</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM23</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>23</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM24</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>24</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM25</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>25</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM26</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>26</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM27</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>27</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM28</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>28</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM29</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>29</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM30</name>
+              <description>Interrupt semaphore n enable
+              bit</description>
+              <bitOffset>30</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM31</name>
+              <description>Interrupt(N) semaphore n enable
+              bit.</description>
+              <bitOffset>31</bitOffset>
+              <bitWidth>1</bitWidth>
             </field>
           </fields>
         </register>
         <register>
-          <name>HSEM_C1ISR</name>
-          <displayName>HSEM_C1ISR</displayName>
+          <name>HSEM_ICR</name>
+          <displayName>HSEM_ICR</displayName>
+          <description>HSEM Interrupt clear register</description>
+          <addressOffset>0x104</addressOffset>
+          <size>0x20</size>
+          <access>read-only</access>
+          <resetValue>0x00000000</resetValue>
+          <fields>
+            <field>
+              <name>ISEM0</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>0</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM1</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>1</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM2</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>2</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM3</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>3</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM4</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>4</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM5</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>5</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM6</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>6</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM7</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>7</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM8</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>8</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM9</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>9</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM10</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>10</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM11</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>11</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM12</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>12</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM13</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>13</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM14</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>14</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM15</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>15</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM16</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>16</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM17</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>17</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM18</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>18</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM19</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>19</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM20</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>20</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM21</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>21</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM22</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>22</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM23</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>23</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM24</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>24</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM25</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>25</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM26</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>26</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM27</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>27</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM28</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>28</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM29</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>29</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM30</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>30</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM31</name>
+              <description>Interrupt(N) semaphore n clear
+              bit</description>
+              <bitOffset>31</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+          </fields>
+        </register>
+        <register>
+          <name>HSEM_ISR</name>
+          <displayName>HSEM_ISR</displayName>
           <description>HSEM Interrupt status register</description>
           <addressOffset>0x108</addressOffset>
           <size>0x20</size>
@@ -10296,96 +10719,465 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
           <resetValue>0x00000000</resetValue>
           <fields>
             <field>
-              <name>ISF</name>
-              <description>Interrupt semaphore x status bit before enable (mask)</description>
+              <name>ISEM0</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
               <bitOffset>0</bitOffset>
-              <bitWidth>32</bitWidth>
-            </field>           
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM1</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>1</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM2</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>2</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM3</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>3</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM4</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>4</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM5</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>5</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM6</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>6</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM7</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>7</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM8</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>8</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM9</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>9</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM10</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>10</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM11</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>11</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM12</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>12</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM13</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>13</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM14</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>14</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM15</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>15</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM16</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>16</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM17</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>17</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM18</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>18</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM19</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>19</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM20</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>20</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM21</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>21</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM22</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>22</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM23</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>23</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM24</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>24</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM25</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>25</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM26</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>26</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM27</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>27</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM28</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>28</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM29</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>29</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM30</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>30</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM31</name>
+              <description>Interrupt(N) semaphore n status bit
+              before enable (mask)</description>
+              <bitOffset>31</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
           </fields>
         </register>
         <register>
-          <name>HSEM_C1MISR</name>
-          <displayName>HSEM_C1MISR</displayName>
-          <description>HSEM Masked interrupt status register</description>
+          <name>HSEM_MISR</name>
+          <displayName>HSEM_MISR</displayName>
+          <description>HSEM Masked interrupt status
+          register</description>
           <addressOffset>0x10C</addressOffset>
           <size>0x20</size>
           <access>read-only</access>
           <resetValue>0x00000000</resetValue>
           <fields>
             <field>
-              <name>MISF</name>
-              <description>masked interrupt semaphore x status bit after enable (mask)</description>
+              <name>ISEM0</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
               <bitOffset>0</bitOffset>
-              <bitWidth>32</bitWidth>
-            </field>            
-          </fields>
-        </register>
-		<register>
-          <name>HSEM_C2IER</name>
-          <displayName>HSEM_C2IER</displayName>
-          <description>HSEM Interrupt enable register</description>
-          <addressOffset>0x110</addressOffset>
-          <size>0x20</size>
-          <access>read-write</access>
-          <resetValue>0x00000000</resetValue>
-          <fields>
-            <field>
-              <name>ISE</name>
-              <description>Interrupt semaphore x enable bit</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>32</bitWidth>
+              <bitWidth>1</bitWidth>
             </field>
-          </fields>
-        </register>
-		<register>
-          <name>HSEM_C2ICR</name>
-          <displayName>HSEM_C2ICR</displayName>
-          <description>HSEM Interrupt clear register</description>
-          <addressOffset>0x114</addressOffset>
-          <size>0x20</size>
-          <access>read-write</access>
-          <resetValue>0x00000000</resetValue>
-          <fields>
             <field>
-              <name>ISC</name>
-              <description>Interrupt semaphore x clear bit</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>32</bitWidth>
+              <name>ISEM1</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>1</bitOffset>
+              <bitWidth>1</bitWidth>
             </field>
-          </fields>
-        </register>
-		<register>
-          <name>HSEM_C2ISR</name>
-          <displayName>HSEM_C2ISR</displayName>
-          <description>HSEM Interrupt status register</description>
-          <addressOffset>0x118</addressOffset>
-          <size>0x20</size>
-          <access>read-only</access>
-          <resetValue>0x00000000</resetValue>
-          <fields>
             <field>
-              <name>ISF</name>
-              <description>Interrupt semaphore x status bit before enable (mask)</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>32</bitWidth>
-            </field>           
-          </fields>
-        </register>
-		<register>
-          <name>HSEM_C2MISR</name>
-          <displayName>HSEM_C2MISR</displayName>
-          <description>HSEM Masked interrupt status register</description>
-          <addressOffset>0x11C</addressOffset>
-          <size>0x20</size>
-          <access>read-only</access>
-          <resetValue>0x00000000</resetValue>
-          <fields>
+              <name>ISEM2</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>2</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
             <field>
-              <name>MISF</name>
-              <description>masked interrupt semaphore x status bit after enable (mask)</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>32</bitWidth>
-            </field>            
+              <name>ISEM3</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>3</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM4</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>4</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM5</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>5</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM6</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>6</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM7</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>7</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM8</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>8</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM9</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>9</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM10</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>10</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM11</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>11</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM12</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>12</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM13</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>13</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM14</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>14</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM15</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>15</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM16</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>16</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM17</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>17</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM18</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>18</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM19</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>19</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM20</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>20</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM21</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>21</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM22</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>22</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM23</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>23</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM24</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>24</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM25</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>25</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM26</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>26</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM27</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>27</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM28</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>28</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM29</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>29</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM30</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>30</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>ISEM31</name>
+              <description>masked interrupt(N) semaphore n status
+              bit after enable (mask)</description>
+              <bitOffset>31</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
           </fields>
         </register>
         <register>
@@ -10394,15 +11186,15 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
           <description>HSEM Clear register</description>
           <addressOffset>0x140</addressOffset>
           <size>0x20</size>
-          <access>write-only</access>
+          <access>read-write</access>
           <resetValue>0x00000000</resetValue>
           <fields>
             <field>
-              <name>COREID</name>
-              <description>COREID of semaphores to be
+              <name>MASTERID</name>
+              <description>MasterID of semaphores to be
               cleared</description>
               <bitOffset>8</bitOffset>
-              <bitWidth>4</bitWidth>
+              <bitWidth>8</bitWidth>
             </field>
             <field>
               <name>KEY</name>
@@ -39900,7 +40692,7 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <description>RESET bit</description>
               <bitOffset>0</bitOffset>
               <bitWidth>1</bitWidth>
-              <access>read-write</access>
+              <access>write-only</access>
             </field>
             <field>
               <name>POLYSIZE</name>
@@ -39929,10 +40721,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
           <name>INIT</name>
           <displayName>INIT</displayName>
           <description>Initial CRC value</description>
-          <addressOffset>0x10</addressOffset>
+          <addressOffset>0xC</addressOffset>
           <size>0x20</size>
           <access>read-write</access>
-          <resetValue>0xFFFFFFFF</resetValue>
+          <resetValue>0x00000000</resetValue>
           <fields>
             <field>
               <name>CRC_INIT</name>
@@ -39947,10 +40739,10 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
           <name>POL</name>
           <displayName>POL</displayName>
           <description>CRC polynomial</description>
-          <addressOffset>0x14</addressOffset>
+          <addressOffset>0x10</addressOffset>
           <size>0x20</size>
           <access>read-write</access>
-          <resetValue>0x04C11DB7</resetValue>
+          <resetValue>0x00000000</resetValue>
           <fields>
             <field>
               <name>POL</name>
@@ -46998,12 +47790,6 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitOffset>8</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
-			<field>
-              <name>BOOSTVDDSEL</name>
-              <description>Analog switch supply voltage selection</description>
-              <bitOffset>9</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>			
             <field>
               <name>EPIS</name>
               <description>Ethernet PHY Interface
@@ -47195,90 +47981,7 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>4</bitWidth>
             </field>
           </fields>
-        </register>		
-		<register>
-          <name>CFGR</name>
-          <displayName>CFGR</displayName>
-          <description>configuration register</description>
-          <addressOffset>0x18</addressOffset>
-          <size>0x20</size>
-          <access>read-write</access>
-          <resetValue>0x00000000</resetValue>
-          <fields>
-            <field>
-              <name>CM4L</name>
-              <description>CM4L</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>PVDL</name>
-              <description>PVDL</description>
-              <bitOffset>2</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>FLASHL</name>
-              <description>FLASHL</description>
-              <bitOffset>3</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>CM7L</name>
-              <description>CM7L</description>
-              <bitOffset>6</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>BKRAML</name>
-              <description>BKRAML</description>
-              <bitOffset>7</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>			
-		    <field>
-              <name>SRAM4L</name>
-              <description>SRAM4L</description>
-              <bitOffset>9</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-		    <field>
-              <name>SRAM3L</name>
-              <description>SRAM3L</description>
-              <bitOffset>10</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-		    <field>
-              <name>SRAM2L</name>
-              <description>SRAM2L</description>
-              <bitOffset>11</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>SRAM1L</name>
-              <description>SRAM1L</description>
-              <bitOffset>12</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>DTCML</name>
-              <description>DTCML</description>
-              <bitOffset>13</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>ITCML</name>
-              <description>ITCML</description>
-              <bitOffset>14</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>AXISRAML</name>
-              <description>AXISRAML</description>
-              <bitOffset>15</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-          </fields>
-        </register>		
+        </register>
         <register>
           <name>CCCSR</name>
           <displayName>CCCSR</displayName>
@@ -47363,24 +48066,7 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>4</bitWidth>
             </field>
           </fields>
-        </register>		
-	    <register>
-          <name>PWRCR</name>
-          <displayName>PWRCR</displayName>
-          <description>SYSCFG power control register</description>
-          <addressOffset>0x2C</addressOffset>
-          <size>0x20</size>
-          <access>read-write</access>
-          <resetValue>0x00000000</resetValue>
-          <fields>
-            <field>
-              <name>ODEN</name>
-              <description> Overdrive enable</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>           
-          </fields>
-        </register>		
+        </register>
         <register>
           <name>PKGR</name>
           <displayName>PKGR</displayName>
@@ -47421,35 +48107,13 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
             </field>
           </fields>
         </register>
-		<register>
-          <name>UR1</name>
-          <displayName>UR1</displayName>
-          <description>SYSCFG user register 1</description>
-          <addressOffset>0x304</addressOffset>
-          <size>0x20</size>
-          <access>read-write</access>
-          <resetValue>0x00000000</resetValue>
-          <fields>
-            <field>
-              <name>BCM4</name>
-              <description>Boot Cortex-M4</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>BCM7</name>
-              <description>Boot Cortex-M7</description>
-              <bitOffset>16</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-          </fields>
-        </register>				
         <register>
           <name>UR2</name>
           <displayName>UR2</displayName>
           <description>SYSCFG user register 2</description>
           <addressOffset>0x308</addressOffset>
-          <size>0x20</size>         
+          <size>0x20</size>
+          <access>read-write</access>
           <resetValue>0x00000000</resetValue>
           <fields>
             <field>
@@ -47458,14 +48122,12 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               Level</description>
               <bitOffset>0</bitOffset>
               <bitWidth>2</bitWidth>
-			  <access>read-only</access>
             </field>
             <field>
-              <name>BCM7_ADD0</name>
-              <description>Cortex-M7 Boot Address 0</description>
+              <name>BOOT_ADD0</name>
+              <description>Boot Address 0</description>
               <bitOffset>16</bitOffset>
               <bitWidth>16</bitWidth>
-			  <access>read-write</access>
             </field>
           </fields>
         </register>
@@ -47478,15 +48140,9 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
           <access>read-write</access>
           <resetValue>0x00000000</resetValue>
           <fields>
-		  <field>
-              <name>BCM4_ADD1</name>
-              <description>Cortex-M4 Boot Address 0</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>16</bitWidth>
-            </field>
             <field>
-              <name>BCM7_ADD1</name>
-              <description>Cortex-M7 Boot Address 1</description>
+              <name>BOOT_ADD1</name>
+              <description>Boot Address 1</description>
               <bitOffset>16</bitOffset>
               <bitWidth>16</bitWidth>
             </field>
@@ -47497,23 +48153,16 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
           <displayName>UR4</displayName>
           <description>SYSCFG user register 4</description>
           <addressOffset>0x310</addressOffset>
-          <size>0x20</size>         
+          <size>0x20</size>
+          <access>read-only</access>
           <resetValue>0x00000000</resetValue>
           <fields>
-		   <field>
-              <name>BCM4_ADD1</name>
-              <description>Mass Erase Protected Area Disabled for
-              bank 1</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>16</bitWidth>
-			  <access>read-write</access>
-            </field>
             <field>
               <name>MEPAD_1</name>
-              <description>Boot Cortex-M4 Address 1</description>
+              <description>Mass Erase Protected Area Disabled for
+              bank 1</description>
               <bitOffset>16</bitOffset>
               <bitWidth>1</bitWidth>
-			  <access>read-only</access>
             </field>
           </fields>
         </register>
@@ -47534,7 +48183,7 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitWidth>1</bitWidth>
             </field>
             <field>
-              <name>WRPS_1</name>
+              <name>WRPN_1</name>
               <description>Write protection for flash bank
               1</description>
               <bitOffset>16</bitOffset>
@@ -47627,7 +48276,7 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
           <resetValue>0x00000000</resetValue>
           <fields>
             <field>
-              <name>WRPS_2</name>
+              <name>WRPN_2</name>
               <description>Write protection for flash bank
               2</description>
               <bitOffset>0</bitOffset>
@@ -47701,12 +48350,6 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
           <access>read-only</access>
           <resetValue>0x00000000</resetValue>
           <fields>
-		    <field>
-              <name>IWDG2M</name>
-              <description>Independent Watchdog 2 mode</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
             <field>
               <name>SECURE</name>
               <description>Secure mode</description>
@@ -47753,12 +48396,6 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitOffset>0</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
-			<field>
-              <name>D2SBRST</name>
-              <description>D2 Standby Reset</description>
-              <bitOffset>16</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
           </fields>
         </register>
         <register>
@@ -47766,23 +48403,16 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
           <displayName>UR15</displayName>
           <description>SYSCFG user register 15</description>
           <addressOffset>0x33C</addressOffset>
-          <size>0x20</size>          
+          <size>0x20</size>
+          <access>read-only</access>
           <resetValue>0x00000000</resetValue>
           <fields>
-		    <field>
-              <name>D2STPRST</name>
-              <description>D2 Stop Reset</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>1</bitWidth>
-			  <access>read-write</access>
-            </field>
             <field>
               <name>FZIWDGSTB</name>
               <description>Freeze independent watchdog in Standby
               mode</description>
               <bitOffset>16</bitOffset>
               <bitWidth>1</bitWidth>
-			  <access>read-only</access>
             </field>
           </fields>
         </register>
