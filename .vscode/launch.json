@@ -9,6 +9,9 @@
             "type": "cortex-debug",
             "servertype": "jlink",
             "serverpath": "/Applications/SEGGER/JLink/JLinkGDBServerCLExe",
+            // "serverArgs": [
+            //     "-speed", "1000"
+            // ],
             "armToolchainPath": "/opt/homebrew/bin",
             "device": "STM32H747XI_M7",
             "interface": "swd",

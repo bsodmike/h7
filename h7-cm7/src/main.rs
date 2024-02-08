@@ -14,9 +14,9 @@ extern crate alloc;
 
 use {
     crate::utils::interrupt_free,
-    // anx7625::Anx7625,
     chrono::{NaiveDate, Timelike},
     core::fmt::Write,
+    cortex_m::{asm::delay, delay},
     embedded_display_controller::{
         DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
     },
@@ -58,13 +58,6 @@ unsafe fn main() -> ! {
     let mut cp = cortex_m::Peripherals::take().unwrap();
     let dp = pac::Peripherals::take().unwrap();
 
-    // Constrain and Freeze power
-    let pwr = dp.PWR.constrain();
-
-    // FIXME ths stopped working??
-    let mut pwrcfg = pwr.vos0(&dp.SYSCFG).freeze();
-    let _backup = pwrcfg.backup().unwrap();
-
     // Enable SRAM1-3
     dp.RCC.ahb2enr.modify(|_, w| {
         w.sram1en()
@@ -77,29 +70,22 @@ unsafe fn main() -> ! {
 
     // TODO: RAMECC1, RAMECC2, RAMECC3
 
+    // FIXME needs a better description.
     pac::DWT::unlock();
     cp.DCB.enable_trace();
     cp.DWT.enable_cycle_counter();
     cp.SCB.enable_icache();
     cp.SCB.enable_dcache(&mut cp.CPUID);
 
-    // FIXME?
-    // Ah, yes
-    // Copy the PWR CR3 power register value from a working Arduino sketch and write the value
-    // directly since I cannot for the life of me figure out how to get it working with the
-    // provided power configuration methods.
-    // This is obviously not the *proper way* to do things but it works. ~~The orange DL2 LED
-    // is still lit meaning something is indeed not configured correctly.~~
-    // PMIC is configured later, the DL2 LED issue was fixed by analyzing the Arduino Bootloader
-    // I2C traffic.
-    // core::ptr::write_volatile(0x5802480c as *mut u32, 0b00000101000000010000000001010110);
+    // FIXME - Unable to hit vos0 on Arduino GIGA R1 WiFi
+    /*
+        The following so far refuses to boot up in a working state
+        and needs further investigation:
 
-    // Constrain and Freeze clocks
-    let ccdr = {
-        let mut ccdr = dp
-            .RCC
-            .constrain()
-            .bypass_hse()
+        ```
+        let mut pwrcfg = pwr.vos0(&dp.SYSCFG).freeze();
+
+        let mut ccdr = rcc
             .sys_ck(480.MHz())
             .hclk(240.MHz())
             .pll1_strategy(rcc::PllConfigStrategy::Iterative)
@@ -113,6 +99,18 @@ unsafe fn main() -> ! {
             .pll3_q_ck(800.MHz() / 2)
             .pll3_r_ck(800.MHz() / 83)
             .freeze(pwrcfg, &dp.SYSCFG);
+        ```
+    */
+
+    // Constrain and Freeze power
+    let pwr = dp.PWR.constrain();
+    let rcc = dp.RCC.constrain();
+    let mut pwrcfg = pwr.ldo().freeze();
+    let _backup = pwrcfg.backup().unwrap();
+
+    // Constrain and Freeze clocks
+    let ccdr = {
+        let mut ccdr = rcc.sys_ck(400.MHz()).freeze(pwrcfg, &dp.SYSCFG);
 
         // USB Clock
         let _ = ccdr.clocks.hsi48_ck().expect("HSI48 must run");
@@ -321,60 +319,60 @@ unsafe fn main() -> ! {
         framebuffer
     };
 
-    // Enable osc
-    {
-        let mut oscen = gpioh.ph1.into_push_pull_output();
-        delay.delay_ms(10u32);
-        oscen.set_high();
-        delay.delay_ms(10u32);
-    }
+    // // Enable osc
+    // {
+    //     let mut oscen = gpioh.ph1.into_push_pull_output();
+    //     delay.delay_ms(10u32);
+    //     oscen.set_high();
+    //     delay.delay_ms(10u32);
+    // }
 
-    // SD Card
-    {
-        let sdcard = dp.SDMMC2.sdmmc(
-            (
-                gpiod.pd6.into_alternate::<11>().speed(Speed::VeryHigh),
-                gpiod.pd7.into_alternate::<11>().speed(Speed::VeryHigh),
-                gpiob.pb14.into_alternate::<9>().speed(Speed::VeryHigh),
-                gpiob.pb15.into_alternate::<9>().speed(Speed::VeryHigh),
-                gpiob.pb3.into_alternate::<9>().speed(Speed::VeryHigh),
-                gpiob.pb4.into_alternate::<9>().speed(Speed::VeryHigh),
-            ),
-            ccdr.peripheral.SDMMC2,
-            &ccdr.clocks,
-        );
-        interrupt_free(|cs| {
-            fs::sdmmc_fs::SD_CARD
-                .borrow(cs)
-                .replace(Some(fs::sdmmc_fs::SdmmcFs::new(sdcard)))
-        });
-    }
+    // // SD Card
+    // {
+    //     let sdcard = dp.SDMMC2.sdmmc(
+    //         (
+    //             gpiod.pd6.into_alternate::<11>().speed(Speed::VeryHigh),
+    //             gpiod.pd7.into_alternate::<11>().speed(Speed::VeryHigh),
+    //             gpiob.pb14.into_alternate::<9>().speed(Speed::VeryHigh),
+    //             gpiob.pb15.into_alternate::<9>().speed(Speed::VeryHigh),
+    //             gpiob.pb3.into_alternate::<9>().speed(Speed::VeryHigh),
+    //             gpiob.pb4.into_alternate::<9>().speed(Speed::VeryHigh),
+    //         ),
+    //         ccdr.peripheral.SDMMC2,
+    //         &ccdr.clocks,
+    //     );
+    //     interrupt_free(|cs| {
+    //         fs::sdmmc_fs::SD_CARD
+    //             .borrow(cs)
+    //             .replace(Some(fs::sdmmc_fs::SdmmcFs::new(sdcard)))
+    //     });
+    // }
 
-    // QSPI Flash
-    {
-        let mut qspi_store = fs::qspi_store::NorFlash::new(
-            dp.QUADSPI.bank1(
-                (
-                    gpiof.pf10.into_alternate::<9>().speed(Speed::VeryHigh),
-                    gpiod.pd11.into_alternate::<9>().speed(Speed::VeryHigh),
-                    gpiod.pd12.into_alternate::<9>().speed(Speed::VeryHigh),
-                    gpiof.pf7.into_alternate::<9>().speed(Speed::VeryHigh),
-                    gpiod.pd13.into_alternate::<9>().speed(Speed::VeryHigh),
-                ),
-                100.MHz(),
-                &ccdr.clocks,
-                ccdr.peripheral.QSPI,
-            ),
-            gpiog.pg6.into_push_pull_output().speed(Speed::VeryHigh),
-        );
-        qspi_store.init().unwrap();
+    // // QSPI Flash
+    // {
+    //     let mut qspi_store = fs::qspi_store::NorFlash::new(
+    //         dp.QUADSPI.bank1(
+    //             (
+    //                 gpiof.pf10.into_alternate::<9>().speed(Speed::VeryHigh),
+    //                 gpiod.pd11.into_alternate::<9>().speed(Speed::VeryHigh),
+    //                 gpiod.pd12.into_alternate::<9>().speed(Speed::VeryHigh),
+    //                 gpiof.pf7.into_alternate::<9>().speed(Speed::VeryHigh),
+    //                 gpiod.pd13.into_alternate::<9>().speed(Speed::VeryHigh),
+    //             ),
+    //             100.MHz(),
+    //             &ccdr.clocks,
+    //             ccdr.peripheral.QSPI,
+    //         ),
+    //         gpiog.pg6.into_push_pull_output().speed(Speed::VeryHigh),
+    //     );
+    //     qspi_store.init().unwrap();
 
-        interrupt_free(|cs| {
-            fs::qspi_store::QSPI_STORE
-                .borrow(cs)
-                .replace(Some(qspi_store));
-        });
-    }
+    //     interrupt_free(|cs| {
+    //         fs::qspi_store::QSPI_STORE
+    //             .borrow(cs)
+    //             .replace(Some(qspi_store));
+    //     });
+    // }
 
     // FIXME
     // // Display config
