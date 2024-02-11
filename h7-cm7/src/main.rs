@@ -179,6 +179,8 @@ unsafe fn main() -> ! {
         });
     }
 
+    panic!();
+
     // FIXME
     // // Internal I2C bus
     // let mut internal_i2c = dp.I2C1.i2c(
