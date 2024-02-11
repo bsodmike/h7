@@ -5,7 +5,8 @@
     const_for,
     const_mut_refs,
     array_chunks,
-    generic_const_exprs
+    generic_const_exprs,
+    const_trait_impl
 )]
 
 // use embedded_display_controller::DisplayController;
@@ -14,13 +15,16 @@ extern crate alloc;
 
 use {
     crate::utils::interrupt_free,
+    alloc::boxed::Box,
     chrono::{NaiveDate, Timelike},
-    core::fmt::Write,
+    core::{borrow::BorrowMut, cell::RefCell, fmt::Write},
     cortex_m::{asm::delay, delay},
     embedded_display_controller::{
         DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
     },
     fugit::RateExtU32,
+    hal::gpio::{Output, Pin},
+    heapless::Arc,
     led::Led,
     stm32h7xx_hal::{
         self as hal, adc,
@@ -49,10 +53,23 @@ mod terminal;
 mod time;
 mod utils;
 
+pub static LED_RED: critical_section::Mutex<
+    RefCell<Option<stm32h7xx_hal::gpio::Pin<'I', 12, Output>>>,
+> = critical_section::Mutex::new(RefCell::new(None));
+pub static LED_GREEN: critical_section::Mutex<
+    RefCell<Option<stm32h7xx_hal::gpio::Pin<'J', 13, Output>>>,
+> = critical_section::Mutex::new(RefCell::new(None));
+pub static LED_BLUE: critical_section::Mutex<
+    RefCell<Option<stm32h7xx_hal::gpio::Pin<'E', 3, Output>>>,
+> = critical_section::Mutex::new(RefCell::new(None));
+
 #[cortex_m_rt::entry]
 unsafe fn main() -> ! {
     logger::init();
-    // log::info!("Booting up...");
+    log::info!("Booting up...");
+
+    defmt::info!("main: Booting up...");
+    // panic!();
 
     // Get peripherals
     let mut cp = cortex_m::Peripherals::take().unwrap();
@@ -149,9 +166,18 @@ unsafe fn main() -> ! {
     let mut led_r = gpioi.pi12.into_push_pull_output();
     let mut led_g = gpioj.pj13.into_push_pull_output();
     let mut led_b = gpioe.pe3.into_push_pull_output();
-    led_r.set_high();
-    led_g.set_low();
-    led_b.set_high();
+
+    {
+        interrupt_free(|cs| {
+            led_r.set_high();
+            led_g.set_low();
+            led_b.set_high();
+
+            LED_RED.borrow(cs).replace(Some(led_r));
+            LED_GREEN.borrow(cs).replace(Some(led_g));
+            LED_BLUE.borrow(cs).replace(Some(led_b));
+        });
+    }
 
     // FIXME
     // // Internal I2C bus
@@ -447,9 +473,17 @@ unsafe fn main() -> ! {
     let mut cmd_buf_len: usize = 0;
 
     // Main loop
-    led_r.set_high();
-    led_g.set_high();
-    led_b.set_high();
+    interrupt_free(|cs| {
+        if let Some(pin) = &mut *LED_RED.borrow_ref_mut(cs) {
+            pin.set_high()
+        };
+        if let Some(pin) = &mut *LED_GREEN.borrow_ref_mut(cs) {
+            pin.set_high()
+        };
+        if let Some(pin) = &mut *LED_BLUE.borrow_ref_mut(cs) {
+            pin.set_high()
+        };
+    });
     let _ = write!(menu.writer(), "> ");
 
     loop {
@@ -500,17 +534,62 @@ unsafe fn main() -> ! {
         // Blink
         if let Some(dt) = TimeSource::get_date_time() {
             if dt.second() % 2 == 0 {
-                led_b.set_high();
+                interrupt_free(|cs| {
+                    if let Some(pin) = &mut *LED_BLUE.borrow_ref_mut(cs) {
+                        pin.set_high()
+                    };
+                });
             } else {
-                led_b.set_low();
+                interrupt_free(|cs| {
+                    if let Some(pin) = &mut *LED_BLUE.borrow_ref_mut(cs) {
+                        pin.set_low()
+                    };
+                });
             }
         }
 
         // FIXME -- Additional blink, as the above is disabled due to commenting out the RTC setup (since it is crashing at the moment).
         delay.delay_ms(500u32);
-        led_b.set_high();
+        interrupt_free(|cs| {
+            let binding = &mut *LED_BLUE.borrow_ref_mut(cs);
+            if let Some(pin) = binding {
+                pin.set_low();
+                get_pin_state(cs, Some(pin));
+            };
+        });
         delay.delay_ms(500u32);
-        led_b.set_low();
+        interrupt_free(|cs| {
+            let binding = &mut *LED_BLUE.borrow_ref_mut(cs);
+            if let Some(pin) = binding {
+                pin.set_high();
+                get_pin_state(cs, Some(pin));
+            };
+        });
+    }
+}
+
+fn get_pin_state(
+    cs: critical_section::CriticalSection<'_>,
+    got_pin: Option<&mut Pin<'E', 3, Output>>,
+) {
+    if let Some(pin) = got_pin {
+        defmt::info!("Got pin BLUE");
+        match pin.get_state() {
+            stm32h7xx_hal::gpio::PinState::Low => {
+                defmt::info!("Got pin BLUE state: PinState::Low");
+                let binding = &mut *LED_GREEN.borrow_ref_mut(cs);
+                if let Some(pin) = binding {
+                    pin.set_low();
+                };
+            }
+            stm32h7xx_hal::gpio::PinState::High => {
+                defmt::info!("Got pin BLUE state: PinState::High");
+                let binding = &mut *LED_GREEN.borrow_ref_mut(cs);
+                if let Some(pin) = binding {
+                    pin.set_high();
+                };
+            }
+        }
     }
 }
 

@@ -17,7 +17,7 @@ if [ ! -z ${DFU_ID} ]; then
         echo "Board is now in DFU mode with ID 0483:df11"
         echo ""
 
-        # dfu-util -a 0 -d 0483:df11 -s 0x08000000 -D *.bin
+        dfu-util -a 0 -d 0483:df11 -s 0x08000000 -D *.bin
     else
         echo "Board has an incorrect DFU ID: ${DFU_ID}"
         echo ""
