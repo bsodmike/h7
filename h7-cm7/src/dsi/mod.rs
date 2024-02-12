@@ -35,7 +35,7 @@ impl Dsi {
         display_config: &DisplayConfiguration,
         dsihost: DSIHOST,
         dsihost_rec: rec::Dsi,
-        core_clocks: &CoreClocks,
+        _core_clocks: &CoreClocks,
     ) -> Self {
         dsihost_rec.enable().reset();
         unsafe {

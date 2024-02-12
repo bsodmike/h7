@@ -12,6 +12,7 @@ pub const SCREEN_HEIGHT: usize = 800;
 pub const FRAME_BUFFER_SIZE: usize =
     mem::size_of::<FrameBuffer<Pixel, SCREEN_WIDTH, SCREEN_HEIGHT>>();
 pub const FRAME_BUFFER_ALLOC_SIZE: usize = FRAME_BUFFER_SIZE * 2;
+#[allow(dead_code)]
 pub const FRAME_RATE: u32 = 60;
 
 pub static GPU: Mutex<RefCell<Option<Gpu>>> = Mutex::new(RefCell::new(None));
@@ -22,6 +23,7 @@ pub struct Gpu {
 }
 
 impl Gpu {
+    #[allow(dead_code)]
     pub fn new(
         display: H7Display<'static, Pixel, SCREEN_HEIGHT, SCREEN_HEIGHT>,
         mut layer: LtdcLayer1,

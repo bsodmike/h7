@@ -31,6 +31,8 @@ pub static UART_TERMINAL_RX: Mutex<RefCell<Option<serial::Rx<pac::USART1>>>> =
     Mutex::new(RefCell::new(None));
 pub static UART_TERMINAL_TX: Mutex<RefCell<Option<serial::Tx<pac::USART1>>>> =
     Mutex::new(RefCell::new(None));
+
+#[allow(dead_code)]
 pub const UART_TERMINAL_BAUD: u32 = 115_200;
 
 pub const MENU: &[MenuItem<TerminalWriter>] = &[

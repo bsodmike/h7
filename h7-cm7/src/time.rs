@@ -21,6 +21,7 @@ const DEFAULT_TIMESTAMP: embedded_sdmmc::Timestamp = embedded_sdmmc::Timestamp {
 pub struct TimeSource;
 
 impl TimeSource {
+    #[allow(dead_code)]
     pub fn set_source(rtc: Rtc) {
         interrupt_free(|cs| RTC.borrow(cs).replace(Some(rtc)));
     }

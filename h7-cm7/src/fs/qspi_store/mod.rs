@@ -20,12 +20,14 @@ pub struct NorFlash {
 }
 
 impl NorFlash {
+    #[allow(dead_code)]
     pub fn new(qspi: Qspi<QUADSPI>, cs: PG6<Output<PushPull>>) -> Self {
         Self {
             mx25l: Mx25L::new(qspi, cs),
         }
     }
 
+    #[allow(dead_code)]
     pub fn init(&mut self) -> Result<(), QspiError> {
         self.mx25l.init()
     }

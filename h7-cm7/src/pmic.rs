@@ -1,6 +1,9 @@
 use embedded_hal::blocking::i2c::Write as I2CWrite;
 
+#[allow(dead_code)]
 const PMIC_ADDRESS: u8 = 0x08;
+
+#[allow(dead_code)]
 const PMIC_SETUP: &[&[u8]] = &[
     &[0x4F, 0x00],
     &[0x50, 0x0F],
@@ -17,6 +20,7 @@ const PMIC_SETUP: &[&[u8]] = &[
     &[0x42, 0x01],
 ];
 
+#[allow(dead_code)]
 pub fn configure<E, BUS: I2CWrite<Error = E>>(bus: &mut BUS) -> Result<(), E> {
     for data in PMIC_SETUP {
         bus.write(PMIC_ADDRESS, data)?;

@@ -39,6 +39,7 @@ pub struct SdmmcFs<const MAX_OPEN_DIRS: usize, const MAX_OPEN_FILES: usize> {
 impl<const MAX_OPEN_DIRS: usize, const MAX_OPEN_FILES: usize>
     SdmmcFs<MAX_OPEN_DIRS, MAX_OPEN_FILES>
 {
+    #[allow(dead_code)]
     pub fn new(sdmmc: H7Sdmmc) -> Self {
         Self {
             state: SdmmcState::Sdmmc(sdmmc),

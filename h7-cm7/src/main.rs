@@ -8,6 +8,7 @@
     generic_const_exprs,
     const_trait_impl
 )]
+#![allow(incomplete_features)]
 
 // use embedded_display_controller::DisplayController;
 
@@ -18,25 +19,12 @@ use {
         board::{set_blue_led, set_green_led, set_red_led, LedState},
         utils::interrupt_free,
     },
-    alloc::boxed::Box,
-    chrono::{NaiveDate, Timelike},
-    core::{borrow::BorrowMut, cell::RefCell, fmt::Write},
-    cortex_m::{asm::delay, delay},
-    embedded_display_controller::{
-        DisplayConfiguration, DisplayController, DisplayControllerLayer, PixelFormat,
-    },
+    chrono::Timelike,
+    core::{cell::RefCell, fmt::Write},
     fugit::RateExtU32,
     hal::gpio::{ErasedPin, Output},
-    heapless::Arc,
     led::Led,
-    stm32h7xx_hal::{
-        self as hal, adc,
-        gpio::Speed,
-        pac,
-        prelude::*,
-        rcc, rtc,
-        usb_hs::{UsbBus, USB1_ULPI},
-    },
+    stm32h7xx_hal::{self as hal, adc, pac, prelude::*, rcc},
     time::TimeSource,
 };
 
@@ -150,7 +138,7 @@ unsafe fn main() -> ! {
     });
 
     // GPIO
-    let (gpioa, gpiob, _gpioc, gpiod, gpioe, gpiof, gpiog, gpioh, gpioi, gpioj, gpiok) = {
+    let (_gpioa, _gpiob, _gpioc, gpiod, gpioe, gpiof, gpiog, gpioh, gpioi, gpioj, _gpiok) = {
         (
             dp.GPIOA.split(ccdr.peripheral.GPIOA),
             dp.GPIOB.split(ccdr.peripheral.GPIOB),
@@ -302,7 +290,7 @@ unsafe fn main() -> ! {
     }
 
     // SDRAM
-    let framebuffer_start_addr = {
+    let _framebuffer_start_addr = {
         // Configure SDRAM pins
         let sdram_pins = fmc_pins! {
             // A0-A12
