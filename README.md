@@ -1,6 +1,6 @@
 # h7
 
-This is largely adapted from (olback/h7)[https://github.com/olback/h7].
+This is largely adapted from [olback/h7](https://github.com/olback/h7).
 
 ## Minimum supported Rust version
 
