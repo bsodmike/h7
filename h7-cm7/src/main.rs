@@ -14,6 +14,7 @@
 
 extern crate alloc;
 
+#[allow(unused_imports)]
 use {
     crate::{
         board::{set_blue_led, set_green_led, set_red_led, LedState},
@@ -24,7 +25,7 @@ use {
     fugit::RateExtU32,
     hal::gpio::{ErasedPin, Output},
     led::Led,
-    stm32h7xx_hal::{self as hal, adc, pac, prelude::*, rcc},
+    stm32h7xx_hal::{self as hal, adc, pac, prelude::*, rcc, rtc},
     time::TimeSource,
 };
 
@@ -115,7 +116,8 @@ unsafe fn main() -> ! {
     let pwr = dp.PWR.constrain();
     let rcc = dp.RCC.constrain();
     let mut pwrcfg = pwr.ldo().freeze();
-    let _backup = pwrcfg.backup().unwrap();
+    #[allow(unused_variables)]
+    let backup = pwrcfg.backup().unwrap();
 
     // Constrain and Freeze clocks
     let ccdr = {
@@ -237,7 +239,7 @@ unsafe fn main() -> ! {
     //     // Set Date and Time
     //     #[cfg(debug_assertions)]
     //     let _ = TimeSource::set_date_time(
-    //         NaiveDate::from_ymd_opt(
+    //         chrono::NaiveDate::from_ymd_opt(
     //             consts::COMPILE_TIME_YEAR,
     //             consts::COMPILE_TIME_MONTH,
     //             consts::COMPILE_TIME_DAY,
@@ -251,8 +253,6 @@ unsafe fn main() -> ! {
     //         })
     //         .unwrap(),
     //     );
-
-    //     let now = TimeSource::get_date_time().unwrap();
 
     //     // Set boot time
     //     interrupt_free(|cs| time::BOOT_TIME.replace(cs, TimeSource::get_date_time()));
@@ -518,9 +518,9 @@ unsafe fn main() -> ! {
         // Blink
         if let Some(dt) = TimeSource::get_date_time() {
             if dt.second() % 2 == 0 {
-                set_blue_led(LedState::Off);
+                set_red_led(LedState::Off);
             } else {
-                set_blue_led(LedState::On);
+                set_red_led(LedState::On);
             }
         }
 
@@ -530,7 +530,7 @@ unsafe fn main() -> ! {
             let binding = &mut *LED_BLUE.borrow_ref_mut(cs);
             if let Some(pin) = binding {
                 pin.set_low();
-                get_pin_state(cs, Some(pin), "BLUE");
+                // get_pin_state(cs, Some(pin), "BLUE");
             };
         });
         delay.delay_ms(500u32);
@@ -538,31 +538,31 @@ unsafe fn main() -> ! {
             let binding = &mut *LED_BLUE.borrow_ref_mut(cs);
             if let Some(pin) = binding {
                 pin.set_high();
-                get_pin_state(cs, Some(pin), "BLUE");
+                // get_pin_state(cs, Some(pin), "BLUE");
             };
         });
     }
 }
 
-fn get_pin_state(
-    _: critical_section::CriticalSection<'_>,
-    pin_opt: Option<&mut ErasedPin<Output>>,
-    name: &str,
-) {
-    if let Some(pin) = pin_opt {
-        defmt::info!("Got pin {}", name);
-        match pin.get_state() {
-            stm32h7xx_hal::gpio::PinState::Low => {
-                defmt::info!("Got pin {} state: PinState::Low", name);
-                set_green_led(LedState::On);
-            }
-            stm32h7xx_hal::gpio::PinState::High => {
-                defmt::info!("Got pin {} state: PinState::High", name);
-                set_green_led(LedState::Off);
-            }
-        }
-    }
-}
+// fn get_pin_state(
+//     _: critical_section::CriticalSection<'_>,
+//     pin_opt: Option<&mut ErasedPin<Output>>,
+//     name: &str,
+// ) {
+//     if let Some(pin) = pin_opt {
+//         defmt::info!("Got pin {}", name);
+//         match pin.get_state() {
+//             stm32h7xx_hal::gpio::PinState::Low => {
+//                 defmt::info!("Got pin {} state: PinState::Low", name);
+//                 set_green_led(LedState::On);
+//             }
+//             stm32h7xx_hal::gpio::PinState::High => {
+//                 defmt::info!("Got pin {} state: PinState::High", name);
+//                 set_green_led(LedState::Off);
+//             }
+//         }
+//     }
+// }
 
 #[alloc_error_handler]
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
