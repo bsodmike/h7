@@ -1,10 +1,15 @@
 #!/bin/bash 
 
 set -e
+RELEASE=release
 
 if [ ! -z $1 ]; then
     if [ $1 == "build" ] || [ $1 == "run" ] || [ $1 == "b" ] || [ $1 == "r" ]; then
-        cargo -C h7-cm7 -Zunstable-options b
+        if [ ${RELEASE} == "release" ]; then
+            cargo -C h7-cm7 -Zunstable-options b --release
+        else
+            cargo -C h7-cm7 -Zunstable-options b
+        fi
     fi
 else
     echo "Usage: ./upload [COMMAND]"
@@ -16,7 +21,7 @@ else
 fi
 
 TARGET_DIR=$(pwd)/h7-cm7
-RELEASE_DIR=${TARGET_DIR}/target/thumbv7em-none-eabihf/debug
+RELEASE_DIR=${TARGET_DIR}/target/thumbv7em-none-eabihf/${RELEASE}
 
 if [ ! -z $1 ]; then
     if [ $1 == "flash" ] || [ $1 == "run" ] || [ $1 == "f" ] || [ $1 == "r" ]; then

@@ -31,7 +31,7 @@
             "armToolchainPath": "/opt/homebrew/bin",
             "device": "STM32H747XI_M7",
             // TODO adjust all these to fit your system, program and hardware
-            "executable": "./h7-cm7/target/thumbv7em-none-eabihf/debug/h7-cm7",
+            "executable": "./h7-cm7/target/thumbv7em-none-eabihf/release/h7-cm7",
             "svdFile": "./resources/stm32h747xi/svd/STM32H747_CM7.svd",
             "gdbPath": "arm-none-eabi-gdb", // or gdb or multiarch-gdb
             // NOTE requires openOCD 0.11.0+
@@ -61,7 +61,7 @@
             "servertype": "external",
             "gdbTarget": ":3333",
             // TODO adjust all these to fit your system, program and hardware
-            "executable": "./h7-cm7/target/thumbv7em-none-eabihf/debug/h7-cm7",
+            "executable": "./h7-cm7/target/thumbv7em-none-eabihf/release/h7-cm7",
             "gdbPath": "arm-none-eabi-gdb", // or gdb or multiarch-gdb
             // "svdFile": "nrf52840.svd", // optional
         }

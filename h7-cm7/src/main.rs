@@ -59,6 +59,8 @@ pub static LED_BLUE: critical_section::Mutex<
 
 #[cortex_m_rt::entry]
 unsafe fn main() -> ! {
+    defmt::println!("main");
+
     defmt::info!("Booting up...");
     defmt::info!("main: Booting up...");
     // panic!();
@@ -114,13 +116,21 @@ unsafe fn main() -> ! {
     // Constrain and Freeze power
     let pwr = dp.PWR.constrain();
     let rcc = dp.RCC.constrain();
-    let mut pwrcfg = pwr.ldo().freeze();
+
+    #[cfg(feature = "giga_r1_wifi")]
+    let mut pwrcfg = pwr.ldo().vos0(&dp.SYSCFG).freeze();
     #[allow(unused_variables)]
     let backup = pwrcfg.backup().unwrap();
 
+    #[cfg(feature = "giga_r1_wifi")]
     // Constrain and Freeze clocks
     let ccdr = {
-        let mut ccdr = rcc.sys_ck(400.MHz()).freeze(pwrcfg, &dp.SYSCFG);
+        let mut ccdr = rcc
+            .use_hse(16.MHz())
+            // FIXME speeds > 420MHz seem to fail!
+            .sys_ck(420.MHz())
+            .pll1_strategy(rcc::PllConfigStrategy::Iterative)
+            .freeze(pwrcfg, &dp.SYSCFG);
 
         // USB Clock
         let _ = ccdr.clocks.hsi48_ck().expect("HSI48 must run");
@@ -221,41 +231,37 @@ unsafe fn main() -> ! {
     // gpiok.pk3.into_push_pull_output().set_high().unwrap(); // cable
     // gpiok.pk4.into_push_pull_output().set_low().unwrap(); // alt
 
-    // // RTC
-    // {
-    //     // Configure RTC
-    //     // FIXME - another crash
-    //     TimeSource::set_source(rtc::Rtc::open_or_init(
-    //         dp.RTC,
-    //         backup.RTC,
-    //         rtc::RtcClock::Lse {
-    //             freq: 32768.Hz(),
-    //             bypass: true,
-    //             css: false,
-    //         },
-    //         &ccdr.clocks,
-    //     ));
-    //     // Set Date and Time
-    //     #[cfg(debug_assertions)]
-    //     let _ = TimeSource::set_date_time(
-    //         chrono::NaiveDate::from_ymd_opt(
-    //             consts::COMPILE_TIME_YEAR,
-    //             consts::COMPILE_TIME_MONTH,
-    //             consts::COMPILE_TIME_DAY,
-    //         )
-    //         .and_then(|td| {
-    //             td.and_hms_opt(
-    //                 consts::COMPILE_TIME_HOUR,
-    //                 consts::COMPILE_TIME_MINUTE,
-    //                 consts::COMPILE_TIME_SECOND,
-    //             )
-    //         })
-    //         .unwrap(),
-    //     );
+    // RTC
+    {
+        // Configure RTC
+        // FIXME - another crash
+        TimeSource::set_source(rtc::Rtc::open_or_init(
+            dp.RTC,
+            backup.RTC,
+            rtc::RtcClock::Lsi,
+            &ccdr.clocks,
+        ));
+        // Set Date and Time
+        #[cfg(debug_assertions)]
+        let _ = TimeSource::set_date_time(
+            chrono::NaiveDate::from_ymd_opt(
+                consts::COMPILE_TIME_YEAR,
+                consts::COMPILE_TIME_MONTH,
+                consts::COMPILE_TIME_DAY,
+            )
+            .and_then(|td| {
+                td.and_hms_opt(
+                    consts::COMPILE_TIME_HOUR,
+                    consts::COMPILE_TIME_MINUTE,
+                    consts::COMPILE_TIME_SECOND,
+                )
+            })
+            .unwrap(),
+        );
 
-    //     // Set boot time
-    //     interrupt_free(|cs| time::BOOT_TIME.replace(cs, TimeSource::get_date_time()));
-    // }
+        // Set boot time
+        interrupt_free(|cs| time::BOOT_TIME.replace(cs, TimeSource::get_date_time()));
+    }
 
     // Get the delay provider.
     let mut delay = cp.SYST.delay(ccdr.clocks);
