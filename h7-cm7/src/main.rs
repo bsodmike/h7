@@ -60,7 +60,7 @@ pub static LED_BLUE: critical_section::Mutex<
 
 #[cortex_m_rt::entry]
 unsafe fn main() -> ! {
-    defmt::println!("Booting up...");
+    defmt::info!("Booting up...");
     // panic!();
 
     // Get peripherals
@@ -232,7 +232,6 @@ unsafe fn main() -> ! {
     // RTC
     {
         // Configure RTC
-        // FIXME - another crash
         TimeSource::set_source(rtc::Rtc::open_or_init(
             dp.RTC,
             backup.RTC,
@@ -281,7 +280,9 @@ unsafe fn main() -> ! {
         channel.enable(&temp_adc_disabled);
         delay.delay_us(25_u16); // Delay necessary?
         let temp_adc = temp_adc_disabled.enable();
+
         // Save clock freq
+
         interrupt_free(|cs| {
             system::CLOCK_FREQ
                 .borrow(cs)
@@ -290,7 +291,28 @@ unsafe fn main() -> ! {
                 .borrow(cs)
                 .replace(Some((temp_adc, channel)));
 
-            defmt::println!("hello");
+            let t_adc = &mut *system::CORE_TEMP.borrow_ref_mut(cs);
+            if let Some((ref mut adc, ref mut chan)) = t_adc {
+                // FIXME take reading
+                let vdda = 2.500; // Volts
+                let word: u32 = adc.read(chan).expect("Temperature read failed.");
+
+                // Average slope
+                let cal = (110.0 - 30.0)
+                    / (stm32h7xx_hal::signature::TS_CAL_110::read()
+                        - stm32h7xx_hal::signature::TS_CAL_30::read()) as f32;
+                // Calibration values are measured at VDDA = 3.3 V ± 10 mV
+                let word_3v3 = word as f32 * vdda / 3.3;
+                // Linear interpolation
+                let temperature =
+                    cal * (word_3v3 - stm32h7xx_hal::signature::TS_CAL_30::read() as f32) + 30.0;
+
+                defmt::trace!(
+                    "ADC reading: {=u32}, Temperature: {=f32} degC",
+                    word,
+                    temperature
+                );
+            }
         });
     }
 
@@ -518,7 +540,7 @@ unsafe fn main() -> ! {
                 }
             }
             None => {
-                defmt::println!("No UART data");
+                // defmt::println!("No UART data");
             } // FIFO empty
         };
 
@@ -529,7 +551,7 @@ unsafe fn main() -> ! {
             } else {
                 set_red_led(LedState::On);
             }
-            defmt::println!("{:?}", &dt.timestamp());
+            defmt::println!("RTC: {:?}", &dt.timestamp());
         }
 
         // FIXME -- Additional blink, as the above is disabled due to commenting out the RTC setup (since it is crashing at the moment).

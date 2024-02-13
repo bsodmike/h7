@@ -47,16 +47,20 @@
                     // Treat data as raw binary data, and do not format in any way
                     "dataFormat": "BinaryLE"
                   }
-                ]
-              }
+                ],
+                "options": {
+                    "env": {
+                        "DEFMT_LOG": "Trace" // Trace, Debug, Info, Warn, Error
+                        }
+                    },
+                }
             ],
-            // "env": {
-            //     //!MODIFY (or remove)
-            //     // If you set this variable, check the VSCode console log window for the location of the log file.
-            //     "RUST_LOG": "info"
-            // },
-            // // Info, Debug
-            // "consoleLogLevel": "Console"
+            "env": {
+                //!MODIFY (or remove)
+                // If you set this variable, check the VSCode console log window for the location of the log file.
+                "RUST_LOG": "info",
+            },
+            "consoleLogLevel": "Console"
         },
         {
             "cwd": "${workspaceRoot}",
