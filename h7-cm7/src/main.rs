@@ -22,6 +22,7 @@ use {
     },
     chrono::Timelike,
     core::{cell::RefCell, fmt::Write},
+    defmt_rtt as _, // global logger
     fugit::RateExtU32,
     hal::gpio::{ErasedPin, Output},
     led::Led,
@@ -58,11 +59,9 @@ pub static LED_BLUE: critical_section::Mutex<
 
 #[cortex_m_rt::entry]
 unsafe fn main() -> ! {
-    logger::init();
-    log::info!("Booting up...");
-
+    defmt::info!("Booting up...");
     defmt::info!("main: Booting up...");
-    // panic!();
+    panic!();
 
     // Get peripherals
     let mut cp = cortex_m::Peripherals::take().unwrap();

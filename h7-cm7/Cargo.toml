@@ -11,7 +11,7 @@ build = "build.rs"
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7"
 critical-section = "1.1.0"
-stm32h7xx-hal = { version = "0.15", features = [ "stm32h747cm7", "rt", "fmc", "sdmmc-fatfs", "ltdc", "rtc", "usb_hs", "xspi", "crc" ] }
+stm32h7xx-hal = { version = "0.15", features = [ "stm32h747cm7", "rt", "defmt", "fmc", "sdmmc-fatfs", "ltdc", "rtc", "usb_hs", "xspi", "crc" ] }
 # stm32h7xx-hal = { git = "https://github.com/stm32-rs/stm32h7xx-hal", features = [ "stm32h747cm7", "rt", "fmc", "sdmmc-fatfs", "ltdc", "rtc", "usb_hs", "xspi", "crc" ] }
 # stm32h7xx-hal = { path = "../../stm32h7xx-hal", features = [ "stm32h747cm7", "rt", "fmc", "sdmmc-fatfs", "ltdc", "rtc", "usb_hs", "xspi", "crc" ] }
 embedded-hal = { version = "0.2", features = [ "unproven" ] }
@@ -59,14 +59,16 @@ defmt-rtt = "0.4"
 # embedded-sdmmc = { git = "https://github.com/olback/embedded-sdmmc-rs", branch = "handler-capacity" }
 
 [features]
-default = ["defmt-rtt"]
+default = ["defmt"]
 semihosting = [
     "cortex-m-log",
     "panic-semihosting",
     "cortex-m-semihosting",
     "lazy_static"
 ]
-defmt-rtt = []
+defmt = []
+usb_logging = []
+needs_fixing = []
 
 [profile.dev]
 codegen-units = 1 # better optimizations

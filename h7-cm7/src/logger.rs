@@ -37,7 +37,7 @@ mod semihosting {
 #[cfg(feature = "semihosting")]
 pub use semihosting::{init, set_log_level};
 
-#[cfg(not(feature = "semihosting"))]
+#[cfg(feature = "usb_logging")]
 mod uart {
 
     use {
@@ -98,5 +98,13 @@ mod uart {
     }
 }
 
-#[cfg(not(feature = "semihosting"))]
+#[cfg(feature = "usb_logging")]
 pub use uart::{init, set_log_level};
+
+// #[cfg(feature = "defmt")]
+// mod defmt_logger {
+
+// }
+
+// #[cfg(feature = "defmt")]
+// pub use defmt_logger;

@@ -8,7 +8,7 @@ use {
 
 struct PanicLogger;
 
-#[cfg(not(feature = "defmt-rtt"))]
+#[cfg(feature = "usb_logging")]
 impl Write for PanicLogger {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         interrupt_free(|cs| {
@@ -20,11 +20,11 @@ impl Write for PanicLogger {
     }
 }
 
-#[cfg(feature = "defmt-rtt")]
+#[cfg(feature = "defmt")]
 impl Write for PanicLogger {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         interrupt_free(|_cs| {
-            defmt::info!("Panic: {}", s);
+            defmt::error!("Panic: {}", s);
 
             Ok(())
         })

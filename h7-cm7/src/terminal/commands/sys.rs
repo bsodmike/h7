@@ -133,18 +133,19 @@ pub const SYS: MenuItem<'static, TerminalWriter> = MenuItem::Command {
             writeln!(m.writer(), "Current log level: {}", logger::get_log_level())?;
             Ok(())
         }
-        ["loglevel", level] => {
-            match log::LevelFilter::from_str(level) {
-                Ok(new_level) => {
-                    logger::set_log_level(new_level);
-                    writeln!(m.writer(), "New log level: {new_level}")?;
-                }
-                Err(e) => {
-                    writeln!(m.writer(), "Failed to set new log level: {e}")?;
-                }
-            }
-            Ok(())
-        }
+        // FIXME
+        // ["loglevel", level] => {
+        //     match log::LevelFilter::from_str(level) {
+        //         Ok(new_level) => {
+        //             logger::set_log_level(new_level);
+        //             writeln!(m.writer(), "New log level: {new_level}")?;
+        //         }
+        //         Err(e) => {
+        //             writeln!(m.writer(), "Failed to set new log level: {e}")?;
+        //         }
+        //     }
+        //     Ok(())
+        // }
         _ => check_args_len(1, args.len()),
     },
 };
