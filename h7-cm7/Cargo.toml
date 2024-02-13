@@ -58,6 +58,9 @@ defmt-rtt = "0.4"
 # embedded-sdmmc = { path = "../../embedded-sdmmc-rs" }
 # embedded-sdmmc = { git = "https://github.com/olback/embedded-sdmmc-rs", branch = "handler-capacity" }
 
+[dev-dependencies]
+defmt-print = "0.3.11"
+
 [features]
 default = ["defmt"]
 semihosting = [

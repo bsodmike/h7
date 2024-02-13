@@ -37,7 +37,7 @@ mod display;
 mod dsi;
 mod fs;
 mod led;
-mod logger;
+// mod logger;
 mod mem;
 #[cfg(not(feature = "semihosting"))]
 mod panic;
@@ -61,7 +61,7 @@ pub static LED_BLUE: critical_section::Mutex<
 unsafe fn main() -> ! {
     defmt::info!("Booting up...");
     defmt::info!("main: Booting up...");
-    panic!();
+    // panic!();
 
     // Get peripherals
     let mut cp = cortex_m::Peripherals::take().unwrap();

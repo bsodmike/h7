@@ -5,7 +5,7 @@ use {
     crate::{
         consts,
         led::Led,
-        logger,
+        // logger,
         terminal::{
             menu::{MenuError, MenuItem},
             TerminalWriter, MENU,
@@ -130,7 +130,7 @@ pub const SYS: MenuItem<'static, TerminalWriter> = MenuItem::Command {
             cortex_m::peripheral::SCB::sys_reset()
         }
         ["loglevel"] => {
-            writeln!(m.writer(), "Current log level: {}", logger::get_log_level())?;
+            // writeln!(m.writer(), "Current log level: {}", logger::get_log_level())?;
             Ok(())
         }
         // FIXME
