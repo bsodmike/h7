@@ -14,6 +14,7 @@
 
 extern crate alloc;
 
+use alloc::string::ToString;
 #[allow(unused_imports)]
 use {
     crate::{
@@ -59,10 +60,7 @@ pub static LED_BLUE: critical_section::Mutex<
 
 #[cortex_m_rt::entry]
 unsafe fn main() -> ! {
-    defmt::println!("main");
-
-    defmt::info!("Booting up...");
-    defmt::info!("main: Booting up...");
+    defmt::println!("Booting up...");
     // panic!();
 
     // Get peripherals
@@ -291,6 +289,8 @@ unsafe fn main() -> ! {
             system::CORE_TEMP
                 .borrow(cs)
                 .replace(Some((temp_adc, channel)));
+
+            defmt::println!("hello");
         });
     }
 
@@ -517,7 +517,9 @@ unsafe fn main() -> ! {
                     let _ = writeln!(menu, "Error: Buffer full");
                 }
             }
-            None => {} // FIFO empty
+            None => {
+                defmt::println!("No UART data");
+            } // FIFO empty
         };
 
         // Blink
@@ -527,6 +529,7 @@ unsafe fn main() -> ! {
             } else {
                 set_red_led(LedState::On);
             }
+            defmt::println!("{:?}", &dt.timestamp());
         }
 
         // FIXME -- Additional blink, as the above is disabled due to commenting out the RTC setup (since it is crashing at the moment).

@@ -20,6 +20,46 @@
         // },
         {
             "cwd": "${workspaceRoot}",
+            // "preLaunchTask": "${defaultBuildTask}",
+            "type": "probe-rs-debug",
+            "request": "launch",
+            "name": "probe_rs Executable Test",
+            "flashingConfig": {
+            //   "flashingEnabled": true,
+            },
+            "chip": "STM32H747XIHx",
+            "coreConfigs": [
+              {
+                "coreIndex": 0,
+                "programBinary": "./h7-cm7/target/thumbv7em-none-eabihf/release/h7-cm7",
+                "svdFile": "./resources/stm32h747xi/svd/STM32H747_CM7.svd",
+                "rttEnabled": true,
+                "rttChannelFormats": [
+                  {
+                    "channelNumber": 0,
+                    // Format RTT data as String data
+                    "dataFormat": "String",
+                    // Include host-side timestamps for every line of data transferred from the target RTT output
+                    "showTimestamps": true
+                  },
+                  {
+                    "channelNumber": 1,
+                    // Treat data as raw binary data, and do not format in any way
+                    "dataFormat": "BinaryLE"
+                  }
+                ]
+              }
+            ],
+            // "env": {
+            //     //!MODIFY (or remove)
+            //     // If you set this variable, check the VSCode console log window for the location of the log file.
+            //     "RUST_LOG": "info"
+            // },
+            // // Info, Debug
+            // "consoleLogLevel": "Console"
+        },
+        {
+            "cwd": "${workspaceRoot}",
             "name": "Flash & Debug",
             // build latest firmware first!
             // "preLaunchTask": "rust: cargo build",
@@ -53,17 +93,17 @@
                 "transport select swd",
             ],
         },
-        {
-            "cwd": "${workspaceRoot}",
-            "name": "Attach Debug",
-            "request": "attach",
-            "type": "cortex-debug",
-            "servertype": "external",
-            "gdbTarget": ":3333",
-            // TODO adjust all these to fit your system, program and hardware
-            "executable": "./h7-cm7/target/thumbv7em-none-eabihf/release/h7-cm7",
-            "gdbPath": "arm-none-eabi-gdb", // or gdb or multiarch-gdb
-            // "svdFile": "nrf52840.svd", // optional
-        }
+        // {
+        //     "cwd": "${workspaceRoot}",
+        //     "name": "Attach Debug",
+        //     "request": "attach",
+        //     "type": "cortex-debug",
+        //     "servertype": "external",
+        //     "gdbTarget": ":3333",
+        //     // TODO adjust all these to fit your system, program and hardware
+        //     "executable": "./h7-cm7/target/thumbv7em-none-eabihf/release/h7-cm7",
+        //     "gdbPath": "arm-none-eabi-gdb", // or gdb or multiarch-gdb
+        //     // "svdFile": "nrf52840.svd", // optional
+        // }
     ]
 }
